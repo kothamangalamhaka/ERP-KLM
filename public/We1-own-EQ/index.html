@@ -66,32 +66,44 @@
         color: var(--btn-hover);
       }
 
-      /* Table Container */
+      /* Table Container - Sticky Header Freeze */
       .container {
-        padding: 20px;
-        overflow-x: auto;
-        min-height: 90vh;
+        padding: 0 20px 20px 20px;
+        overflow: auto;
+        height: calc(100vh - 58px);
+        box-sizing: border-box;
       }
 
       table {
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
         white-space: nowrap;
       }
 
       th,
       td {
-        border: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
         padding: 8px 12px;
         text-align: left;
       }
 
-      th {
+      th:first-child,
+      td:first-child {
+        border-left: 1px solid var(--border);
+      }
+
+      thead th {
         background-color: var(--ribbon-bg);
         font-weight: 600;
         color: #57606a;
-        position: relative;
+        position: sticky;
+        top: 0;
+        z-index: 15;
+        border-top: 1px solid var(--border);
         user-select: none;
+        box-shadow: 0 2px 3px rgba(0, 0, 0, 0.05);
       }
 
       .th-content {
@@ -221,43 +233,52 @@
         font-weight: bold;
       }
 
-      /* 🟢 Sticky Freeze for SN & Plate No Columns */
-      th.sticky-sn, td.sticky-sn {
+      tbody tr:hover td {
+        background-color: #f3f4f6;
+      }
+
+      /* 🟢 Sticky Freeze for SN & Plate No Columns (Pixel-Exact Alignment) */
+      th.sticky-sn,
+      td.sticky-sn {
         position: sticky;
         left: 0;
-        background-color: inherit;
-        z-index: 2;
+        width: 52px;
+        min-width: 52px;
+        max-width: 52px;
+        box-sizing: border-box;
+        text-align: center;
+        z-index: 5;
       }
-      th.sticky-sn {
-        z-index: 12;
-        background-color: var(--ribbon-bg);
-      }
-
-      th.sticky-plate, td.sticky-plate {
-        position: sticky;
-        left: 45px; /* SN കോളത്തിന് ശേഷമുള്ള സ്ഥാനം */
-        background-color: inherit;
-        z-index: 2;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.08); /* സ്ക്രോൾ ചെയ്യുമ്പോൾ വേർതിരിവ് കാണാൻ */
-      }
-      th.sticky-plate {
-        z-index: 12;
-        background-color: var(--ribbon-bg);
-      }
-
-      td.sn-col {
+      td.sticky-sn {
+        background-color: #ffffff;
         color: #6e7781;
         font-weight: 500;
-        width: 35px;
-        min-width: 35px;
-        text-align: center;
+      }
+      th.sticky-sn {
+        z-index: 25;
+        background-color: var(--ribbon-bg);
       }
 
-      td.plate-col {
+      th.sticky-plate,
+      td.sticky-plate {
+        position: sticky;
+        left: 52px;
+        min-width: 118px;
+        box-sizing: border-box;
+        border-right: 2px solid #cbd5e1 !important;
+        box-shadow: 3px 0 6px -2px rgba(15, 23, 42, 0.08);
+        z-index: 5;
+      }
+      td.sticky-plate {
+        background-color: #ffffff;
         font-weight: 700;
-        color: #000000;
+        color: #0f172a;
         cursor: context-menu;
-        min-width: 100px;
+        letter-spacing: 0.3px;
+      }
+      th.sticky-plate {
+        z-index: 25;
+        background-color: var(--ribbon-bg);
       }
 
       a {
@@ -274,6 +295,10 @@
       }
       .status-mobilizing {
         color: #d97706;
+        font-weight: 600;
+      }
+      .status-ideal {
+        color: #6e7781;
         font-weight: 600;
       }
 
@@ -362,6 +387,51 @@
 
       .filter-item input {
         cursor: pointer;
+      }
+
+      /* Date Tree & Color Filter Styles */
+      .tree-node {
+        user-select: none;
+      }
+      .tree-header {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 0;
+        cursor: pointer;
+      }
+      .tree-toggle {
+        display: inline-block;
+        width: 14px;
+        text-align: center;
+        font-size: 10px;
+        color: #57606a;
+        font-weight: bold;
+      }
+      .tree-children {
+        padding-left: 18px;
+        display: none;
+      }
+      .tree-children.open {
+        display: block;
+      }
+      .color-filter-box {
+        border-bottom: 1px solid #d0d7de;
+        padding-bottom: 6px;
+        margin-bottom: 6px;
+      }
+      .color-filter-title {
+        font-weight: 700;
+        font-size: 11px;
+        color: #57606a;
+        margin-bottom: 4px;
+      }
+      .color-chip {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        border: 1px solid rgba(0, 0, 0, 0.2);
       }
 
       .filter-actions {
@@ -546,6 +616,9 @@
           <button onclick="openLog('VehicleTypeLog')">🚜 Vehicle Type & Santhook</button>
           <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
           <button onclick="openLog('Equipment')">🚜 Equipment</button>
+          <button onclick="window.location.href='OWN_EXP.html'" style="background: #cf222e; color: #ffffff; border: none; margin-left: 10px;">
+            ⏰ Expiry Tracker
+          </button>
           <button class="salary" style="background: #f7c111; color: white; border: none; margin-left: 10px;">
             <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5)">Driver Salary</a>
           </button>
@@ -579,6 +652,7 @@
         <button onclick="sortGrid('asc')">🔼 Sort A-Z</button>
         <button onclick="sortGrid('desc')">🔽 Sort Z-A</button>
       </div>
+      <div id="colorFilterSection" class="color-filter-box" style="display: none;"></div>
       <input
         type="text"
         id="filterSearchInput"
@@ -1138,6 +1212,89 @@
     </div>
 
     <script>
+      const DATE_FILTER_COLS = new Set([
+        "mob_date_ui",
+        "joining_date_ui",
+        "iqama_expiry_ui",
+        "licence_expiry_ui",
+        "passport_expiry_ui",
+        "eq_insurance_exp_ui",
+        "fahs_mvpi_exp_ui",
+        "op_card_exp_ui",
+        "isthimaara_exp_ui",
+      ]);
+
+      const EXPIRY_COLOR_MAP = {
+        iqama_expiry_ui: "iqama_expiry",
+        licence_expiry_ui: "licence_expiry",
+        passport_expiry_ui: "passport_expiry",
+        eq_insurance_exp_ui: "eq_insurance_exp",
+        fahs_mvpi_exp_ui: "fahs_mvpi_exp",
+        op_card_exp_ui: "op_card_exp",
+        isthimaara_exp_ui: "isthimaara_exp",
+      };
+
+      let activeColorFilters = {}; // { columnKey: Set(['red', 'orange', 'none']) }
+      let tempColorSelection = new Set();
+
+      function getExpiryColorCategory(rawDateStr) {
+        if (!rawDateStr || rawDateStr === "null" || rawDateStr === "undefined" || String(rawDateStr).trim() === "") {
+          return "none";
+        }
+        const target = new Date(rawDateStr);
+        if (isNaN(target.getTime())) return "none";
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        target.setHours(0, 0, 0, 0);
+
+        const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) return "red";
+        if (diffDays <= 30) return "orange";
+        return "none";
+      }
+
+      function matchesGlobalSearch(row) {
+        if (globalSearchQuery === "") return true;
+        if (globalSearchType === "plate_no") {
+          return String(row.plate_no || "").toLowerCase().includes(globalSearchQuery);
+        } else if (globalSearchType === "driver_name") {
+          return String(row.driver_name || "").toLowerCase().includes(globalSearchQuery);
+        } else {
+          const allRowValues = Object.values(row)
+            .map((v) => String(v ?? "").toLowerCase())
+            .join(" ");
+          return allRowValues.includes(globalSearchQuery);
+        }
+      }
+
+      function matchesActiveRowFilters(row, excludeColumnKey = null) {
+        for (const key in activeFilters) {
+          if (key === excludeColumnKey) continue;
+          const allowed = activeFilters[key];
+          const val = cleanVal(row[key]);
+          if (allowed && !allowed.has(val)) {
+            return false;
+          }
+        }
+        for (const key in activeColorFilters) {
+          if (key === excludeColumnKey) continue;
+          const allowedColors = activeColorFilters[key];
+          const rawDateKey = EXPIRY_COLOR_MAP[key];
+          if (allowedColors && rawDateKey) {
+            const cat = getExpiryColorCategory(row[rawDateKey]);
+            if (!allowedColors.has(cat)) return false;
+          }
+        }
+        return true;
+      }
+
+      function getCascadingRowsForColumn(columnKey) {
+        return masterTableData.filter(
+          (row) => matchesActiveRowFilters(row, columnKey) && matchesGlobalSearch(row)
+        );
+      }
+
       // 🟢 Header Right-Click Column Data Copy Handler for Excel
       function copyColumnToClipboard(event, columnKey, headerLabel) {
         event.preventDefault();
@@ -1145,13 +1302,7 @@
 
         // 1. Get currently visible (filtered & searched) rows in current order
         let visibleRows = masterTableData.filter((row) => {
-          for (const key in activeFilters) {
-            const allowed = activeFilters[key];
-            const val = String(row[key] ?? "-");
-            if (allowed && !allowed.has(val)) {
-              return false;
-            }
-          }
+          if (!matchesActiveRowFilters(row)) return false;
 
           if (globalSearchQuery !== "") {
             if (globalSearchType === "plate_no") {
@@ -1432,7 +1583,7 @@
               fahs_mvpi_exp_ui,
               op_card_exp_ui,
               isthimaara_exp_ui,
-              status: cleanVal(row.status),
+              status: (!mob_date_ui && (!cleanVal(row.status) || cleanVal(row.status) === "Running")) ? "Ideal" : cleanVal(row.status),
               note: cleanVal(row.note),
               driver_mobile: cleanVal(row.driver_mobile),
               vehicle_type: cleanVal(row.vehicle_type),
@@ -1453,6 +1604,7 @@
           });
 
           updateGlobalDatalists();
+          applySortingInternal();
 
           const thButtons = document.querySelectorAll(".filter-btn");
           thButtons.forEach((btn) => {
@@ -1495,14 +1647,8 @@
             tbody.innerHTML = '';
 
             let filteredRows = masterTableData.filter(row => {
-                // 1. Column-wise Header Filters
-                for (const key in activeFilters) {
-                    const allowed = activeFilters[key];
-                    const val = String(row[key] ?? '-');
-                    if (allowed && !allowed.has(val)) {
-                        return false;
-                    }
-                }
+                // 1. Column-wise Header Filters & Color Filters
+                if (!matchesActiveRowFilters(row)) return false;
 
                 // 2. 🟢 Ribbon Global Search Filter
                 if (globalSearchQuery !== '') {
@@ -1557,7 +1703,9 @@
               ? "status-running"
               : row.status === "Mobilizing"
                 ? "status-mobilizing"
-                : "status-released";
+                : row.status === "Ideal"
+                  ? "status-ideal"
+                  : "status-released";
 
           tr.innerHTML = `
                     <td class="sn-col sticky-sn">${index + 1}</td>
@@ -1596,16 +1744,7 @@
 
       // 🟢 നിലവിൽ UI ഗ്രിഡിൽ കാണുന്ന (Filtered & Sorted) പ്ലേറ്റുകളുടെ ലിസ്റ്റ് കൃത്യമായ ഓർഡറിൽ എടുക്കുന്നു
 function getCurrentGridPlates() {
-    let filteredRows = masterTableData.filter(row => {
-        for (const key in activeFilters) {
-            const allowed = activeFilters[key];
-            const val = String(row[key] ?? '-');
-            if (allowed && !allowed.has(val)) {
-                return false;
-            }
-        }
-        return true;
-    });
+    let filteredRows = masterTableData.filter(row => matchesActiveRowFilters(row));
 
     // നിലവിലെ ഓർഡർ അതേപടി നിലനിർത്തി പ്ലേറ്റുകൾ മാത്രമെടുക്കുന്നു
     const visiblePlates = filteredRows
@@ -1941,63 +2080,264 @@ function getCurrentGridPlates() {
       }
 
       let tempFilterSelection = new Set();
+      const MONTH_ORDER = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function openExcelFilter(event, columnKey) {
-    event.stopPropagation();
-    currentFilterKey = columnKey;
-    
-    const btn = event.currentTarget;
-    const rect = btn.getBoundingClientRect();
-    const menu = document.getElementById('excelFilterMenu');
-    
-    menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-    menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 270)}px`;
-    menu.style.display = 'flex';
+      function parseUIDateParts(uiDateStr) {
+        // Expected format: DD-MMM-YY (e.g., 15-Jul-28)
+        if (!uiDateStr || uiDateStr === "-" || uiDateStr.trim() === "") return null;
+        const parts = uiDateStr.trim().split("-");
+        if (parts.length !== 3) return null;
+        const day = parts[0];
+        const month = parts[1];
+        const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+        return { year, month, day, full: uiDateStr.trim() };
+      }
 
-    const allUnique = [...new Set(masterTableData.map(r => String(r[columnKey] ?? '-')))];
-    // 🟢 നേരത്തെ ഫിൽട്ടർ ചെയ്തിട്ടുണ്ടെങ്കിൽ അത് എടുക്കുന്നു, ഇല്ലെങ്കിൽ എല്ലാം സെലക്ട് ചെയ്യുന്നു
-    tempFilterSelection = activeFilters[columnKey] ? new Set(activeFilters[columnKey]) : new Set(allUnique);
+      function openExcelFilter(event, columnKey) {
+        event.stopPropagation();
+        currentFilterKey = columnKey;
 
-    const searchInput = document.getElementById('filterSearchInput');
-    searchInput.value = '';
-    searchInput.placeholder = 'Search (eg: 5645, 5564)...';
-    populateFilterOptions(columnKey);
-}
+        const btn = event.currentTarget;
+        const rect = btn.getBoundingClientRect();
+        const menu = document.getElementById("excelFilterMenu");
+
+        menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+        menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 280)}px`;
+        menu.style.display = "flex";
+
+        const scopedRows = getCascadingRowsForColumn(columnKey);
+        const allUnique = [...new Set(scopedRows.map((r) => cleanVal(r[columnKey])))];
+        if (activeFilters[columnKey]) {
+          tempFilterSelection = new Set(allUnique.filter((val) => activeFilters[columnKey].has(val)));
+        } else {
+          tempFilterSelection = new Set(allUnique);
+        }
+
+        // 🟢 Expiry Date Color Filter Section
+        const colorSection = document.getElementById("colorFilterSection");
+        if (EXPIRY_COLOR_MAP[columnKey]) {
+          colorSection.style.display = "block";
+          tempColorSelection = activeColorFilters[columnKey]
+            ? new Set(activeColorFilters[columnKey])
+            : new Set(["red", "orange", "none"]);
+
+          colorSection.innerHTML = `
+            <div class="color-filter-title">🎨 Filter by Expiry Color</div>
+            <label class="filter-item">
+              <input type="checkbox" class="color-filter-check" value="red" ${tempColorSelection.has("red") ? "checked" : ""} onchange="onColorCheckboxChange(this)">
+              <span class="color-chip" style="background:#dc3545;"></span>
+              <span>Expired (Red)</span>
+            </label>
+            <label class="filter-item">
+              <input type="checkbox" class="color-filter-check" value="orange" ${tempColorSelection.has("orange") ? "checked" : ""} onchange="onColorCheckboxChange(this)">
+              <span class="color-chip" style="background:#fff3cd; border-color:#d97706;"></span>
+              <span>Expiring ≤ 30 Days (Orange)</span>
+            </label>
+            <label class="filter-item">
+              <input type="checkbox" class="color-filter-check" value="none" ${tempColorSelection.has("none") ? "checked" : ""} onchange="onColorCheckboxChange(this)">
+              <span class="color-chip" style="background:#ffffff;"></span>
+              <span>Normal / No Color</span>
+            </label>
+          `;
+        } else {
+          colorSection.style.display = "none";
+          colorSection.innerHTML = "";
+          tempColorSelection = new Set();
+        }
+
+        const searchInput = document.getElementById("filterSearchInput");
+        searchInput.value = "";
+        searchInput.placeholder = DATE_FILTER_COLS.has(columnKey)
+          ? "Search year, month or date..."
+          : "Search (eg: 5645, 5564)...";
+        populateFilterOptions(columnKey);
+      }
+
+      function onColorCheckboxChange(cb) {
+        if (cb.checked) tempColorSelection.add(cb.value);
+        else tempColorSelection.delete(cb.value);
+      }
 
       function closeFilterMenu() {
         document.getElementById("excelFilterMenu").style.display = "none";
         currentFilterKey = null;
       }
 
-      function populateFilterOptions(columnKey, searchTerm = '') {
-    const container = document.getElementById('filterItemsList');
-    container.innerHTML = '';
+      function populateFilterOptions(columnKey, searchTerm = "") {
+        const container = document.getElementById("filterItemsList");
+        container.innerHTML = "";
 
-    const uniqueValues = [...new Set(masterTableData.map(r => String(r[columnKey] ?? '-')))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const scopedRows = getCascadingRowsForColumn(columnKey);
+        const uniqueValues = [...new Set(scopedRows.map((r) => cleanVal(r[columnKey])))];
+        const searchTerms = searchTerm.trim().toLowerCase().split(/[\s,]+/).filter((t) => t.length > 0);
 
-    // 🟢 ഒന്നിലധികം വാക്കുകൾ കോമ (,) അല്ലെങ്കിൽ സ്പേസ് ഇട്ട് സെർച്ച് ചെയ്യാൻ (Multi Search Split)
-    const searchTerms = searchTerm.trim().toLowerCase().split(/[\s,]+/).filter(t => t.length > 0);
+        const filteredValues = uniqueValues.filter((val) => {
+          if (searchTerms.length === 0) return true;
+          const displayLabel = val === "" ? "(blanks)" : val.toLowerCase();
+          return searchTerms.some((term) => displayLabel.includes(term));
+        });
 
-    const filteredValues = uniqueValues.filter(val => {
-        if (searchTerms.length === 0) return true;
-        const lowerVal = val.toLowerCase();
-        // സെർച്ച് ചെയ്ത വാക്കുകളിൽ ഏതെങ്കിലും ഒന്നുമായി മാച്ച് ആയാൽ ലിസ്റ്റിൽ കാണിക്കും
-        return searchTerms.some(term => lowerVal.includes(term));
-    });
+        // 🟢 Date Column Tree View (Year -> Month -> Date)
+        if (DATE_FILTER_COLS.has(columnKey)) {
+          const tree = {}; // { year: { month: [fullDateStr, ...] } }
+          let hasBlank = false;
 
-    filteredValues.forEach(val => {
-        const isChecked = tempFilterSelection.has(val);
-        const label = document.createElement('label');
-        label.className = 'filter-item';
-        label.innerHTML = `
-            <input type="checkbox" class="col-filter-check" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''} onchange="onCheckboxChange(this)">
-            <span>${val}</span>
-        `;
-        container.appendChild(label);
-    });
+          filteredValues.forEach((val) => {
+            if (val === "") {
+              hasBlank = true;
+              return;
+            }
+            const parsed = parseUIDateParts(val);
+            if (!parsed) return;
+            if (!tree[parsed.year]) tree[parsed.year] = {};
+            if (!tree[parsed.year][parsed.month]) tree[parsed.year][parsed.month] = [];
+            tree[parsed.year][parsed.month].push(parsed.full);
+          });
 
-    syncSelectAllCheckbox();
-}
+          const sortedYears = Object.keys(tree).sort((a, b) => Number(a) - Number(b));
+          const autoExpand = searchTerms.length > 0;
+
+          sortedYears.forEach((yr) => {
+            const monthsObj = tree[yr];
+            const sortedMonths = Object.keys(monthsObj).sort(
+              (a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)
+            );
+
+            const yearNode = document.createElement("div");
+            yearNode.className = "tree-node";
+
+            const yearHeader = document.createElement("div");
+            yearHeader.className = "tree-header";
+            yearHeader.innerHTML = `
+              <span class="tree-toggle" onclick="toggleTreeBranch(event, this)">${autoExpand ? "▼" : "▶"}</span>
+              <input type="checkbox" class="tree-year-cb" data-year="${yr}" onchange="onTreeYearChange(this)">
+              <span style="font-weight:700;" onclick="toggleTreeBranch(event, this.parentElement.querySelector('.tree-toggle'))">${yr}</span>
+            `;
+
+            const monthsContainer = document.createElement("div");
+            monthsContainer.className = `tree-children ${autoExpand ? "open" : ""}`;
+
+            sortedMonths.forEach((mo) => {
+              const daysList = monthsObj[mo].sort((a, b) => Number(a.split("-")[0]) - Number(b.split("-")[0]));
+              const monthNode = document.createElement("div");
+              monthNode.className = "tree-node";
+
+              const monthHeader = document.createElement("div");
+              monthHeader.className = "tree-header";
+              monthHeader.innerHTML = `
+                <span class="tree-toggle" onclick="toggleTreeBranch(event, this)">${autoExpand ? "▼" : "▶"}</span>
+                <input type="checkbox" class="tree-month-cb" data-year="${yr}" data-month="${mo}" onchange="onTreeMonthChange(this)">
+                <span style="font-weight:600;" onclick="toggleTreeBranch(event, this.parentElement.querySelector('.tree-toggle'))">${mo}</span>
+              `;
+
+              const daysContainer = document.createElement("div");
+              daysContainer.className = `tree-children ${autoExpand ? "open" : ""}`;
+
+              daysList.forEach((fullDate) => {
+                const isChecked = tempFilterSelection.has(fullDate);
+                const dayLabel = document.createElement("label");
+                dayLabel.className = "filter-item";
+                dayLabel.style.paddingLeft = "14px";
+                dayLabel.innerHTML = `
+                  <input type="checkbox" class="col-filter-check" data-year="${yr}" data-month="${mo}" value="${fullDate}" ${isChecked ? "checked" : ""} onchange="onCheckboxChange(this)">
+                  <span>${fullDate}</span>
+                `;
+                daysContainer.appendChild(dayLabel);
+              });
+
+              monthNode.appendChild(monthHeader);
+              monthNode.appendChild(daysContainer);
+              monthsContainer.appendChild(monthNode);
+            });
+
+            yearNode.appendChild(yearHeader);
+            yearNode.appendChild(monthsContainer);
+            container.appendChild(yearNode);
+          });
+
+          if (hasBlank) {
+            const isChecked = tempFilterSelection.has("");
+            const blankLabel = document.createElement("label");
+            blankLabel.className = "filter-item";
+            blankLabel.innerHTML = `
+              <input type="checkbox" class="col-filter-check" value="" ${isChecked ? "checked" : ""} onchange="onCheckboxChange(this)">
+              <span style="color:#6e7781; font-style:italic;">(Blanks)</span>
+            `;
+            container.appendChild(blankLabel);
+          }
+
+          syncTreeCheckboxes();
+          syncSelectAllCheckbox();
+          return;
+        }
+
+        // Standard Flat List for Non-Date Columns
+        filteredValues.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        filteredValues.forEach((val) => {
+          const isChecked = tempFilterSelection.has(val);
+          const label = document.createElement("label");
+          label.className = "filter-item";
+          label.innerHTML = `
+            <input type="checkbox" class="col-filter-check" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} onchange="onCheckboxChange(this)">
+            <span>${val === "" ? "(Blanks)" : val}</span>
+          `;
+          container.appendChild(label);
+        });
+
+        syncSelectAllCheckbox();
+      }
+
+      function toggleTreeBranch(e, toggleEl) {
+        e.stopPropagation();
+        const children = toggleEl.closest(".tree-node").querySelector(".tree-children");
+        if (!children) return;
+        const isOpen = children.classList.toggle("open");
+        toggleEl.textContent = isOpen ? "▼" : "▶";
+      }
+
+      function onTreeYearChange(yearCb) {
+        const yr = yearCb.getAttribute("data-year");
+        const dayCbs = document.querySelectorAll(`.col-filter-check[data-year="${yr}"]`);
+        dayCbs.forEach((cb) => {
+          cb.checked = yearCb.checked;
+          if (yearCb.checked) tempFilterSelection.add(cb.value);
+          else tempFilterSelection.delete(cb.value);
+        });
+        syncTreeCheckboxes();
+        syncSelectAllCheckbox();
+      }
+
+      function onTreeMonthChange(monthCb) {
+        const yr = monthCb.getAttribute("data-year");
+        const mo = monthCb.getAttribute("data-month");
+        const dayCbs = document.querySelectorAll(`.col-filter-check[data-year="${yr}"][data-month="${mo}"]`);
+        dayCbs.forEach((cb) => {
+          cb.checked = monthCb.checked;
+          if (monthCb.checked) tempFilterSelection.add(cb.value);
+          else tempFilterSelection.delete(cb.value);
+        });
+        syncTreeCheckboxes();
+        syncSelectAllCheckbox();
+      }
+
+      function syncTreeCheckboxes() {
+        document.querySelectorAll(".tree-month-cb").forEach((mCb) => {
+          const yr = mCb.getAttribute("data-year");
+          const mo = mCb.getAttribute("data-month");
+          const all = document.querySelectorAll(`.col-filter-check[data-year="${yr}"][data-month="${mo}"]`);
+          const checked = document.querySelectorAll(`.col-filter-check[data-year="${yr}"][data-month="${mo}"]:checked`);
+          mCb.checked = all.length > 0 && all.length === checked.length;
+          mCb.indeterminate = checked.length > 0 && checked.length < all.length;
+        });
+
+        document.querySelectorAll(".tree-year-cb").forEach((yCb) => {
+          const yr = yCb.getAttribute("data-year");
+          const all = document.querySelectorAll(`.col-filter-check[data-year="${yr}"]`);
+          const checked = document.querySelectorAll(`.col-filter-check[data-year="${yr}"]:checked`);
+          yCb.checked = all.length > 0 && all.length === checked.length;
+          yCb.indeterminate = checked.length > 0 && checked.length < all.length;
+        });
+      }
 
       function onFilterSearchInput() {
         const query = document.getElementById("filterSearchInput").value;
@@ -2007,31 +2347,31 @@ function openExcelFilter(event, columnKey) {
       }
 
       function toggleSelectAll(masterCb) {
-    const cbs = document.querySelectorAll('.col-filter-check');
-    cbs.forEach(cb => {
-        cb.checked = masterCb.checked;
-        if (masterCb.checked) {
+        const cbs = document.querySelectorAll(".col-filter-check");
+        cbs.forEach((cb) => {
+          cb.checked = masterCb.checked;
+          if (masterCb.checked) {
             tempFilterSelection.add(cb.value);
-        } else {
+          } else {
             tempFilterSelection.delete(cb.value);
-        }
-    });
-}
+          }
+        });
+        syncTreeCheckboxes();
+      }
 
-function onCheckboxChange(cb) {
-    if (cb.checked) {
-        tempFilterSelection.add(cb.value);
-    } else {
-        tempFilterSelection.delete(cb.value);
-    }
-    syncSelectAllCheckbox();
-}
+      function onCheckboxChange(cb) {
+        if (cb.checked) {
+          tempFilterSelection.add(cb.value);
+        } else {
+          tempFilterSelection.delete(cb.value);
+        }
+        syncTreeCheckboxes();
+        syncSelectAllCheckbox();
+      }
 
       function syncSelectAllCheckbox() {
         const allCbs = document.querySelectorAll(".col-filter-check");
-        const checkedCbs = document.querySelectorAll(
-          ".col-filter-check:checked",
-        );
+        const checkedCbs = document.querySelectorAll(".col-filter-check:checked");
         const selectAll = document.getElementById("selectAllCheckbox");
         if (allCbs.length === 0) {
           selectAll.checked = false;
@@ -2043,139 +2383,45 @@ function onCheckboxChange(cb) {
           selectAll.checked = false;
           selectAll.indeterminate = false;
         } else {
+          selectAll.checked = false;
           selectAll.indeterminate = true;
         }
       }
 
       function applyCurrentFilter() {
-    if (!currentFilterKey) return;
+        if (!currentFilterKey) return;
 
-    const allUnique = [...new Set(masterTableData.map(r => String(r[currentFilterKey] ?? '-')))];
+        const scopedRows = getCascadingRowsForColumn(currentFilterKey);
+        const allUnique = [...new Set(scopedRows.map((r) => cleanVal(r[currentFilterKey])))];
 
-    // 🟢 മുഴുവൻ സെലക്ട് ആണെങ്കിൽ ഫിൽട്ടർ ഒഴിവാക്കുന്നു, അല്ലെങ്കിൽ തിരഞ്ഞെടുത്തവ മാത്രം ഫിൽട്ടർ ആക്കുന്നു
-    if (tempFilterSelection.size === allUnique.length) {
-        delete activeFilters[currentFilterKey];
-    } else {
-        activeFilters[currentFilterKey] = new Set(tempFilterSelection);
-    }
-
-    const thButtons = document.querySelectorAll('.filter-btn');
-    thButtons.forEach(btn => {
-        const fnStr = btn.getAttribute('onclick') || '';
-        if (fnStr.includes(`'${currentFilterKey}'`)) {
-            if (activeFilters[currentFilterKey]) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
+        if (tempFilterSelection.size === allUnique.length) {
+          delete activeFilters[currentFilterKey];
+        } else {
+          activeFilters[currentFilterKey] = new Set(tempFilterSelection);
         }
-    });
 
-    renderFilteredTable();
-    closeFilterMenu();
-}
-
-      async function loadTableData() {
-        const tbody = document.getElementById("eqTableBody");
-        try {
-          const token = localStorage.getItem("emp_token");
-          const res = await fetch("/api/we1-own-eq/data", {
-            headers: { Authorization: "Bearer " + token },
-          });
-          const data = await res.json();
-
-          if (!data.success) {
-            if (
-              data.message &&
-              (data.message.toLowerCase().includes("session") ||
-                data.message.toLowerCase().includes("token") ||
-                data.message.toLowerCase().includes("unauthorized"))
-            ) {
-              logout();
-              return;
-            }
-            throw new Error(data.message);
+        if (EXPIRY_COLOR_MAP[currentFilterKey]) {
+          if (tempColorSelection.size === 3) {
+            delete activeColorFilters[currentFilterKey];
+          } else {
+            activeColorFilters[currentFilterKey] = new Set(tempColorSelection);
           }
+        }
 
-          uniqueVehicleTypes.clear();
-          uniqueSiteNames.clear();
-          uniqueDriverNames.clear();
-          uniqueOwnerNames.clear();
-          uniqueSanthookNames.clear();
-          uniquePlates.clear();
-          globalPlates = [];
-
-          masterTableData = (data.data || []).map((row) => {
-            const mob_date_ui = formatUIDate(row.mob_date);
-            const joining_date_ui = formatUIDate(row.joining_date);
-            const eq_insurance_exp_ui = formatUIDate(row.eq_insurance_exp);
-            const fahs_mvpi_exp_ui = formatUIDate(row.fahs_mvpi_exp);
-
-            if (row.vehicle_type && row.vehicle_type.trim() !== "")
-              uniqueVehicleTypes.add(row.vehicle_type.trim());
-            if (row.site_name && row.site_name.trim() !== "")
-              uniqueSiteNames.add(row.site_name.trim());
-            if (row.driver_name && row.driver_name.trim() !== "")
-              uniqueDriverNames.add(row.driver_name.trim());
-            if (row.vehicle_owner && row.vehicle_owner.trim() !== "")
-              uniqueOwnerNames.add(row.vehicle_owner.trim());
-            if (row.santhook && row.santhook.trim() !== "")
-              uniqueSanthookNames.add(row.santhook.trim());
-            if (row.plate_no && row.plate_no.trim() !== "") {
-              uniquePlates.add(row.plate_no.trim());
-              globalPlates.push(row.plate_no.trim());
-            }
-
-            return {
-              ...row,
-              mob_date_ui,
-              joining_date_ui,
-              eq_insurance_exp_ui,
-              fahs_mvpi_exp_ui,
-              status: cleanVal(row.status),
-              note: cleanVal(row.note),
-              driver_mobile: cleanVal(row.driver_mobile),
-              vehicle_type: cleanVal(row.vehicle_type),
-              driver_name: cleanVal(row.driver_name),
-              site_name: cleanVal(row.site_name),
-              vehicle_owner: cleanVal(row.vehicle_owner),
-              santhook: cleanVal(row.santhook),
-              salary: cleanVal(row.salary),
-              plate_no: cleanVal(row.plate_no),
-              old_eq: cleanVal(row.old_eq),
-              new_eq: cleanVal(row.new_eq),
-              chassis_no: cleanVal(row.chassis_no),
-              serial_no: cleanVal(row.serial_no),
-            };
-          });
-
-          updateGlobalDatalists();
-
-          // 🟢 നിലവിലുള്ള Sort റീ-അപ്ലൈ ചെയ്യുന്നു
-          applySortingInternal();
-
-          // ഫിൽട്ടർ ബട്ടണുകളുടെ ആക്ടീവ് ബ്ലൂ കളർ ഹൈലൈറ്റ് നിലനിർത്തുന്നു
-          const thButtons = document.querySelectorAll(".filter-btn");
-          thButtons.forEach((btn) => {
-            const fnStr = btn.getAttribute("onclick") || "";
-            let matchedKey = null;
-            for (const key in activeFilters) {
-              if (fnStr.includes(`'${key}'`)) {
-                matchedKey = key;
-                break;
-              }
-            }
-            if (matchedKey && activeFilters[matchedKey]) {
+        const thButtons = document.querySelectorAll(".filter-btn");
+        thButtons.forEach((btn) => {
+          const fnStr = btn.getAttribute("onclick") || "";
+          if (fnStr.includes(`'${currentFilterKey}'`)) {
+            if (activeFilters[currentFilterKey] || activeColorFilters[currentFilterKey]) {
               btn.classList.add("active");
             } else {
               btn.classList.remove("active");
             }
-          });
+          }
+        });
 
-          renderFilteredTable();
-        } catch (error) {
-          tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
-        }
+        renderFilteredTable();
+        closeFilterMenu();
       }
 
       // 🟢 3. സോർട്ടിംഗ് ലോജിക്
@@ -2643,6 +2889,9 @@ function onCheckboxChange(cb) {
                 else if (r.work_end_date)
                   status =
                     '<span style="color:#d97706; font-weight:bold;">Released</span>';
+                else if (!r.mob_date)
+                  status =
+                    '<span style="color:#6e7781; font-weight:bold;">Ideal</span>';
                 else
                   status =
                     '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
@@ -2946,6 +3195,7 @@ function onCheckboxChange(cb) {
                     <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Status</label>
                     <select id="newStatus" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none; background: #fff;">
                         <option value="Running">Running</option>
+                        <option value="Ideal">Ideal</option>
                         <option value="Mobilizing">Mobilizing</option>
                         <option value="Released">Released</option>
                     </select>
@@ -3055,7 +3305,9 @@ function onCheckboxChange(cb) {
           vehicle_owner: document.getElementById("newOwner").value.trim(),
           santhook: document.getElementById("newSanthook").value.trim(),
           salary: document.getElementById("newSalary").value || null,
-          status: document.getElementById("newStatus").value || "Running",
+          status: !document.getElementById("newMobDate").value
+            ? "Ideal"
+            : (document.getElementById("newStatus").value || "Running"),
           note: document.getElementById("newNote").value.trim(),
           old_eq: document.getElementById("newOldEq").value.trim(),
           new_eq: document.getElementById("newNewEq").value.trim(),
@@ -3170,7 +3422,62 @@ function onCheckboxChange(cb) {
         }
       }
 
-      async function exportToExcel() {
+      function exportToExcel() {
+        const html = `
+          <div style="display: flex; flex-direction: column; gap: 12px; padding: 6px 0;">
+            <label style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; color: #24292f;">
+              <input type="checkbox" id="exportFilteredOnlyCb" style="width: 15px; height: 15px; cursor: pointer;">
+              <span>Export Filtered UI Data Only <span style="font-weight: 400; color: #57606a;">(Unchecked = Entire Data)</span></span>
+            </label>
+            <p style="margin: 0; color: #57606a; font-size: 12px;">Select the Excel report format you want to download:</p>
+            <button onclick="runExcelExport('compact')" style="padding: 10px 14px; background: #0969da; color: #fff; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; text-align: left;">
+              📄 Compact Export<br>
+              <span style="font-weight: 400; font-size: 11px; opacity: 0.9;">Summary columns (SN to Note)</span>
+            </button>
+            <button onclick="runExcelExport('full')" style="padding: 10px 14px; background: #1a7f37; color: #fff; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; text-align: left;">
+              📊 Full Data (Entire UI)<br>
+              <span style="font-weight: 400; font-size: 11px; opacity: 0.9;">All 26 UI columns including IQAMA, Licence, Passport & EQ Expiry highlights</span>
+            </button>
+          </div>
+        `;
+        openModal("📊 Export Excel Options", html);
+      }
+
+      function getVisibleFilteredPlates() {
+        return masterTableData
+          .filter((row) => {
+            if (!matchesActiveRowFilters(row)) return false;
+
+            if (globalSearchQuery !== "") {
+              if (globalSearchType === "plate_no") {
+                const plate = String(row.plate_no || "").toLowerCase();
+                if (!plate.includes(globalSearchQuery)) return false;
+              } else if (globalSearchType === "driver_name") {
+                const driver = String(row.driver_name || "").toLowerCase();
+                if (!driver.includes(globalSearchQuery)) return false;
+              } else {
+                const allRowValues = Object.values(row)
+                  .map((v) => String(v ?? "").toLowerCase())
+                  .join(" ");
+                if (!allRowValues.includes(globalSearchQuery)) return false;
+              }
+            }
+            return true;
+          })
+          .map((row) => String(row.plate_no || "").trim())
+          .filter((p) => p !== "");
+      }
+
+      async function runExcelExport(mode) {
+        const filteredOnly = Boolean(document.getElementById("exportFilteredOnlyCb")?.checked);
+        const plateNos = filteredOnly ? getVisibleFilteredPlates() : [];
+
+        if (filteredOnly && plateNos.length === 0) {
+          alert("No filtered rows visible in UI to export.");
+          return;
+        }
+
+        closeModal();
         const btn = document.getElementById("exportBtn");
         const originalText = btn.innerHTML;
 
@@ -3181,8 +3488,16 @@ function onCheckboxChange(cb) {
         try {
           const token = localStorage.getItem("emp_token");
           const res = await fetch("/py/api/we1-own-eq/export", {
-            method: "GET",
-            headers: { Authorization: "Bearer " + token },
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              mode: mode,
+              filtered_only: filteredOnly,
+              plate_nos: plateNos,
+            }),
           });
 
           if (!res.ok)
@@ -3193,7 +3508,9 @@ function onCheckboxChange(cb) {
           const a = document.createElement("a");
           a.style.display = "none";
           a.href = url;
-          a.download = `We1_Own_EQ_Report_${new Date().toISOString().split("T")[0]}.xlsx`;
+          const label = mode === "full" ? "Full_UI" : "Compact";
+          const scopeTag = filteredOnly ? "_Filtered" : "";
+          a.download = `We1_Own_EQ_${label}${scopeTag}_${new Date().toISOString().split("T")[0]}.xlsx`;
           document.body.appendChild(a);
           a.click();
           window.URL.revokeObjectURL(url);

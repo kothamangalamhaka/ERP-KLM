@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>We1 Own EQ - Expiry Tracker</title>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --primary: #0969da;
+        --red-bg: #fee2e2;
+        --red-text: #b91c1c;
+        --red-solid: #dc2626;
+        --orange-bg: #fef3c7;
+        --orange-text: #b45309;
+        --orange-solid: #d97706;
+        --green-bg: #dcfce7;
+        --green-text: #15803d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+        font-size: 13px;
+      }
+
+      /* Top Header Ribbon */
+      .ribbon {
+        background: #ffffff;
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      }
+
+      .ribbon-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-right: auto;
+      }
+
+      .btn-back {
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1px solid #cbd5e1;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .btn-back:hover {
+        background: #e2e8f0;
+      }
+
+      .btn-export {
+        background: #0969da;
+        color: #ffffff;
+        border: none;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      .btn-export:hover {
+        background: #0550ae;
+      }
+
+      .btn-pdf {
+        background: #dc2626;
+        color: #ffffff;
+        border: none;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      .btn-pdf:hover {
+        background: #b91c1c;
+      }
+
+      .btn-png {
+        background: #16a34a;
+        color: #ffffff;
+        border: none;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      .btn-png:hover {
+        background: #15803d;
+      }
+
+      .search-box {
+        padding: 7px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 12px;
+        width: 240px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      .search-box:focus {
+        border-color: var(--primary);
+      }
+
+      .status-filter-select {
+        padding: 7px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #334155;
+        background: #ffffff;
+        outline: none;
+        cursor: pointer;
+      }
+
+      /* Category Tabs Bar */
+      .category-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px 24px 12px 24px;
+        background: var(--bg);
+      }
+
+      .cat-btn {
+        background: #ffffff;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 9px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.15s ease;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+      }
+
+      .cat-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-1px);
+      }
+
+      .cat-btn.active {
+        background: #0f172a;
+        border-color: #0f172a;
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+      }
+
+      .badge-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .badge-red {
+        background: var(--red-solid);
+        color: #ffffff;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .badge-orange {
+        background: var(--orange-solid);
+        color: #ffffff;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      /* Summary Strip */
+      .summary-strip {
+        display: flex;
+        gap: 14px;
+        padding: 0 24px 14px 24px;
+        flex-wrap: wrap;
+      }
+
+      .stat-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 170px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+      }
+
+      .stat-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      .stat-value {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+      }
+
+      /* Table Card */
+      .table-wrapper {
+        padding: 0 24px 24px 24px;
+      }
+
+      .table-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: auto;
+        max-height: calc(100vh - 135px);
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        white-space: nowrap;
+      }
+
+      thead th {
+        background: #f1f5f9;
+        color: #334155;
+        font-weight: 700;
+        font-size: 12px;
+        text-align: left;
+        padding: 10px 14px;
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1.5px solid #94a3b8;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      thead th:last-child,
+      tbody td:last-child {
+        border-right: none;
+      }
+
+      tbody td {
+        padding: 9px 14px;
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1px solid #cbd5e1;
+        color: #1e293b;
+      }
+
+      tbody tr:hover td:not(.cell-expired):not(.cell-soon) {
+        background-color: #f1f5f9;
+      }
+
+      .sn-cell {
+        color: #64748b;
+        font-weight: 600;
+        width: 50px;
+        text-align: center;
+      }
+
+      .plate-cell {
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .doc-no-cell {
+        font-family: "JetBrains Mono", monospace, sans-serif;
+        font-weight: 600;
+        color: #0969da;
+      }
+
+      /* Full Cell Status Color Fill */
+      td.cell-expired {
+        background-color: #dc2626 !important;
+        color: #ffffff !important;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      td.cell-soon {
+        background-color: #fef3c7 !important;
+        color: #b45309 !important;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .date-text-bold {
+        position: relative;
+        font-weight: 700;
+        color: #0f172a;
+        cursor: pointer;
+        text-align: center;
+        padding-right: 28px !important;
+        transition: background 0.15s;
+      }
+
+      .date-text-bold:hover {
+        background-color: #e0f2fe !important;
+        color: #0369a1 !important;
+      }
+
+      .date-edit-icon {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 11px;
+        opacity: 0.75;
+        pointer-events: none;
+      }
+
+      .date-text-bold:hover .date-edit-icon {
+        opacity: 1;
+      }
+
+      /* Safe Date Update Modal */
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(2px);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-box {
+        background: #ffffff;
+        width: 390px;
+        max-width: 92vw;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.2);
+        border: 1px solid #cbd5e1;
+      }
+
+      .modal-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .info-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #334155;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ribbon">
+      <div class="ribbon-title">
+        <span>⏰ We1 Own EQ — Document & ID Expiry Tracker</span>
+      </div>
+
+      <select id="statusFilterSelect" class="status-filter-select" onchange="renderExpiryTable()">
+        <option value="expired_and_soon">🚨 Expired & Expiring Soon (≤ 30 Days)</option>
+        <option value="expired">🔴 Expired Only</option>
+        <option value="soon">🟠 Expiring ≤ 30 Days Only</option>
+      </select>
+
+      <input
+        type="text"
+        id="expirySearchInput"
+        class="search-box"
+        placeholder="Search Plate, Driver, Doc No, Site..."
+        oninput="renderExpiryTable()"
+      />
+
+      <button id="copyPngBtn" class="btn-png" onclick="copyExpiryTableAsPNG()">
+        🖼️ Copy HD PNG
+      </button>
+
+      <button id="exportPdfBtn" class="btn-pdf" onclick="exportExpiryTableAsPDF()">
+        📕 Export PDF
+      </button>
+
+      <button id="exportExpiryBtn" class="btn-export" onclick="exportExpiryExcel()">
+        📊 Export Excel
+      </button>
+
+      <button class="btn-back" onclick="window.location.href='index.html'">
+        ⬅ Back to Main EQ
+      </button>
+    </div>
+
+    <!-- Expiry Category Buttons -->
+    <div class="category-bar" id="categoryButtonsBar"></div>
+
+    <!-- Safe Expiry Date Update Modal -->
+    <div id="dateUpdateModal" class="modal-backdrop">
+      <div class="modal-box">
+        <div class="modal-title">
+          <span id="modalCategoryTitle">📅 Update Expiry Date</span>
+          <button onclick="closeDateUpdateModal()" style="background:none; border:none; font-size:16px; color:#dc2626; cursor:pointer;">✖</button>
+        </div>
+        <div id="modalTargetInfo" class="info-box"></div>
+        <input type="hidden" id="updMasterId" />
+        <input type="hidden" id="updDriverLogId" />
+        <input type="hidden" id="updPlateNo" />
+        <input type="hidden" id="updFieldKey" />
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-weight:700; font-size:12px; color:#0f172a; margin-bottom:5px;">New Expiry Date:</label>
+          <input type="date" id="updNewDateInput" style="width:100%; padding:8px 10px; border:1.5px solid #0969da; border-radius:6px; font-size:13px; font-weight:600; outline:none;" />
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button onclick="closeDateUpdateModal()" style="padding:8px 14px; background:#e2e8f0; color:#1e293b; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Cancel</button>
+          <button id="saveDateBtn" onclick="submitExpiryDateUpdate()" style="padding:8px 16px; background:#16a34a; color:#ffffff; border:none; border-radius:6px; font-weight:700; cursor:pointer;">💾 Save Date</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiry Data Table -->
+    <div class="table-wrapper">
+      <div class="table-card">
+        <table>
+          <thead id="expiryTableHead"></thead>
+          <tbody id="expiryTableBody">
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 24px; color: #64748b">
+                Loading expiry records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const EXPIRY_CATEGORIES = [
+        {
+          key: "iqama_expiry",
+          label: "🪪 IQAMA Expiry",
+          docCols: [{ header: "IQAMA No.", field: "iqama_no" }],
+        },
+        {
+          key: "licence_expiry",
+          label: "🚗 Licence Expiry",
+          docCols: [{ header: "IQAMA No.", field: "iqama_no" }],
+        },
+        {
+          key: "passport_expiry",
+          label: "🛂 Passport Expiry",
+          docCols: [{ header: "Passport No.", field: "passport_no" }],
+        },
+        {
+          key: "eq_insurance_exp",
+          label: "🛡️ EQ Insurance Exp",
+          docCols: [
+            { header: "Chassis No", field: "chassis_no" },
+            { header: "Serial No", field: "serial_no" },
+          ],
+        },
+        {
+          key: "fahs_mvpi_exp",
+          label: "🔧 FAHS / MVPI Exp",
+          docCols: [
+            { header: "Chassis No", field: "chassis_no" },
+            { header: "Serial No", field: "serial_no" },
+          ],
+        },
+        {
+          key: "op_card_exp",
+          label: "📇 Operation Card Exp",
+          docCols: [
+            { header: "Chassis No", field: "chassis_no" },
+            { header: "Serial No", field: "serial_no" },
+          ],
+        },
+        {
+          key: "isthimaara_exp",
+          label: "📄 Isthimaara Exp",
+          docCols: [
+            { header: "Chassis No", field: "chassis_no" },
+            { header: "Serial No", field: "serial_no" },
+          ],
+        },
+      ];
+
+      const COPYABLE_FIELDS = new Set([
+        "plate_no",
+        "driver_name",
+        "iqama_no",
+        "passport_no",
+        "chassis_no",
+        "serial_no",
+      ]);
+
+      let masterExpiryData = [];
+      let currentRenderedRows = [];
+      let activeCategoryKey = "iqama_expiry";
+
+      function showCopyToast(msg) {
+        let toast = document.getElementById("copyToastNotification");
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.id = "copyToastNotification";
+          toast.style.cssText =
+            "position:fixed; bottom:24px; right:24px; background:#0969da; color:#fff; padding:10px 18px; border-radius:6px; font-size:13px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.18); z-index:9999; transition:opacity 0.3s;";
+          document.body.appendChild(toast);
+        }
+        toast.innerText = msg;
+        toast.style.opacity = "1";
+        toast.style.display = "block";
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 300);
+        }, 2000);
+      }
+
+      function writeToClipboard(text, toastMsg) {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => showCopyToast(toastMsg))
+          .catch(() => {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            showCopyToast(toastMsg);
+          });
+      }
+
+      function copyExpiryColumn(event, fieldKey, label) {
+        if (!COPYABLE_FIELDS.has(fieldKey)) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (currentRenderedRows.length === 0) return;
+
+        const lines = currentRenderedRows.map((row) => {
+          const val = row[fieldKey];
+          if (!val || val === "-" || val === "null" || val === "undefined") return "";
+          return String(val).trim();
+        });
+
+        writeToClipboard(
+          lines.join("\r\n"),
+          `📋 Copied ${lines.length} rows of "${label}"!`
+        );
+      }
+
+      function copyExpiryCell(event, fieldKey, value) {
+        if (!COPYABLE_FIELDS.has(fieldKey)) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const clean =
+          !value || value === "-" || value === "null" || value === "undefined"
+            ? ""
+            : String(value).trim();
+        if (!clean) return;
+
+        writeToClipboard(clean, `📋 Copied: ${clean}`);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("emp_token");
+        if (!token) {
+          window.location.href = "login.html?redirect=OWN_EXP.html";
+          return;
+        }
+        loadExpiryTrackerData();
+      });
+
+      function formatUIDate(dateStr) {
+        if (!dateStr || dateStr === "null" || String(dateStr).trim() === "") return "-";
+        const cleanStr = String(dateStr).split("T")[0].trim();
+        const parts = cleanStr.split(/[-/]/);
+        if (parts.length === 3 && parts[0].length === 4) {
+          const year = parts[0].slice(-2);
+          const monthNum = parseInt(parts[1], 10) - 1;
+          const day = String(parts[2]).padStart(2, "0");
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          return `${day}-${monthNames[monthNum] || parts[1]}-${year}`;
+        }
+        return dateStr;
+      }
+
+      async function loadExpiryTrackerData() {
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/py/api/we1-own-eq/expiry-tracker", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.detail || "Failed to fetch expiry data");
+
+          masterExpiryData = json.data || [];
+          renderCategoryButtons();
+          renderExpiryTable();
+        } catch (err) {
+          document.getElementById("expiryTableBody").innerHTML = `
+            <tr><td colspan="7" style="text-align:center; color:#dc2626; padding:20px;">Error: ${err.message}</td></tr>
+          `;
+        }
+      }
+
+      function renderCategoryButtons() {
+        const bar = document.getElementById("categoryButtonsBar");
+        bar.innerHTML = EXPIRY_CATEGORIES.map((cat) => {
+          let expiredCount = 0;
+          let soonCount = 0;
+
+          masterExpiryData.forEach((row) => {
+            const days = row[`${cat.key}_days`];
+            if (days !== null && days !== undefined) {
+              if (days < 0) expiredCount++;
+              else if (days <= 30) soonCount++;
+            }
+          });
+
+          const isActive = cat.key === activeCategoryKey ? "active" : "";
+          return `
+            <button class="cat-btn ${isActive}" onclick="selectExpiryCategory('${cat.key}')">
+              <span>${cat.label}</span>
+              <span class="badge-group">
+                ${expiredCount > 0 ? `<span class="badge-red" title="Expired">${expiredCount}</span>` : ""}
+                ${soonCount > 0 ? `<span class="badge-orange" title="Expiring in 30 days">${soonCount}</span>` : ""}
+              </span>
+            </button>
+          `;
+        }).join("");
+      }
+
+      function selectExpiryCategory(key) {
+        activeCategoryKey = key;
+        renderCategoryButtons();
+        renderExpiryTable();
+      }
+
+      async function exportExpiryExcel() {
+        const btn = document.getElementById("exportExpiryBtn");
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "⏳ Exporting...";
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/py/api/we1-own-eq/expiry-tracker/export", {
+            method: "GET",
+            headers: { Authorization: "Bearer " + token },
+          });
+
+          if (!res.ok) throw new Error("Failed to generate Expiry Excel report.");
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.style.display = "none";
+          a.href = url;
+          a.download = `We1_Own_EQ_Expiry_Tracker_${new Date().toISOString().split("T")[0]}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } catch (err) {
+          alert("Export Error: " + err.message);
+        } finally {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          btn.style.opacity = "1";
+        }
+      }
+
+      function renderExpiryTable() {
+        const cat = EXPIRY_CATEGORIES.find((c) => c.key === activeCategoryKey) || EXPIRY_CATEGORIES[0];
+        const thead = document.getElementById("expiryTableHead");
+        const tbody = document.getElementById("expiryTableBody");
+        const searchQuery = (document.getElementById("expirySearchInput").value || "").trim().toLowerCase();
+        const statusFilter = document.getElementById("statusFilterSelect").value;
+
+        const docHeadersHtml = cat.docCols
+          .map(
+            (col) =>
+              `<th oncontextmenu="copyExpiryColumn(event, '${col.field}', '${col.header}')" title="Right-click to copy entire ${col.header} column" style="cursor: context-menu;">${col.header}</th>`
+          )
+          .join("");
+
+        thead.innerHTML = `
+          <tr>
+            <th style="width: 55px; text-align: center;">SN</th>
+            <th oncontextmenu="copyExpiryColumn(event, 'plate_no', 'Plate No')" title="Right-click to copy entire Plate No column" style="cursor: context-menu;">Plate No</th>
+            <th>Vehicle Type</th>
+            <th oncontextmenu="copyExpiryColumn(event, 'driver_name', 'Driver Name')" title="Right-click to copy entire Driver Name column" style="cursor: context-menu;">Driver Name</th>
+            ${docHeadersHtml}
+            <th style="text-align: center;">Expiry Date</th>
+            <th style="text-align: center;">Remaining / Status</th>
+            <th>Site Name</th>
+          </tr>
+        `;
+
+        // Prepare and filter rows (Exclude 31+ days & empty dates)
+        const processedRows = masterExpiryData
+          .map((row) => {
+            const rawDate = row[cat.key];
+            const days = row[`${cat.key}_days`];
+
+            let bucket = "ignore";
+            if (days !== null && days !== undefined) {
+              if (days < 0) {
+                bucket = "expired";
+              } else if (days <= 30) {
+                bucket = "soon";
+              }
+            }
+
+            return {
+              ...row,
+              _rawDate: rawDate,
+              _days: days,
+              _bucket: bucket,
+            };
+          })
+          .filter((r) => {
+            if (r._bucket !== "expired" && r._bucket !== "soon") return false;
+            if (statusFilter === "expired" && r._bucket !== "expired") return false;
+            if (statusFilter === "soon" && r._bucket !== "soon") return false;
+
+            if (searchQuery !== "") {
+              const docValues = cat.docCols.map((c) => r[c.field]);
+              const haystack = [
+                r.plate_no,
+                r.vehicle_type,
+                r.driver_name,
+                ...docValues,
+                r.site_name,
+                formatUIDate(r._rawDate),
+              ]
+                .map((v) => String(v || "").toLowerCase())
+                .join(" ");
+              if (!haystack.includes(searchQuery)) return false;
+            }
+            return true;
+          });
+
+        // Sort: Expired first (most overdue first), then Expiring Soon (0 to 30 days)
+        processedRows.sort((a, b) => a._days - b._days);
+        currentRenderedRows = processedRows;
+
+        const totalCols = 7 + cat.docCols.length;
+        if (processedRows.length === 0) {
+          tbody.innerHTML = `
+            <tr><td colspan="${totalCols}" style="text-align:center; padding:24px; color:#15803d; font-weight:600;">✅ No expired or expiring (≤ 30 days) records found in this category.</td></tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = processedRows
+          .map((r, idx) => {
+            const isExpired = r._bucket === "expired";
+            const overdueDays = Math.abs(r._days);
+            const statusText = isExpired
+              ? `Expired (${overdueDays} day${overdueDays === 1 ? "" : "s"} ago)`
+              : r._days === 0
+                ? "Expires Today"
+                : `In ${r._days} day${r._days === 1 ? "" : "s"}`;
+            const statusCellClass = isExpired ? "cell-expired" : "cell-soon";
+
+            const plateVal = (r.plate_no || "").trim();
+            const driverVal = (r.driver_name || "").trim();
+
+            const docCellsHtml = cat.docCols
+              .map((col) => {
+                const val = (r[col.field] || "").trim();
+                const safeVal = val.replace(/'/g, "\\'");
+                return `<td class="doc-no-cell" oncontextmenu="copyExpiryCell(event, '${col.field}', '${safeVal}')" title="Right-click to copy ${col.header}" style="cursor: context-menu;">${val || "-"}</td>`;
+              })
+              .join("");
+
+            return `
+              <tr>
+                <td class="sn-cell">${idx + 1}</td>
+                <td class="plate-cell" oncontextmenu="copyExpiryCell(event, 'plate_no', '${plateVal.replace(/'/g, "\\'")}')" title="Right-click to copy Plate No" style="cursor: context-menu;">${plateVal || "-"}</td>
+                <td>${r.vehicle_type || "-"}</td>
+                <td oncontextmenu="copyExpiryCell(event, 'driver_name', '${driverVal.replace(/'/g, "\\'")}')" title="Right-click to copy Driver Name" style="cursor: context-menu;">${driverVal || "-"}</td>
+                ${docCellsHtml}
+                <td class="date-text-bold" onclick="openDateUpdateModal(${Number(r.id) || 0}, ${Number(r.driver_log_id) || 0})" title="Click to update expiry date"><span>${formatUIDate(r._rawDate)}</span><span class="date-edit-icon no-export-icon">✏️</span></td>
+                <td class="${statusCellClass}">${statusText}</td>
+                <td>${r.site_name || "-"}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function openDateUpdateModal(masterId, driverLogId) {
+        const cat = EXPIRY_CATEGORIES.find((c) => c.key === activeCategoryKey) || EXPIRY_CATEGORIES[0];
+        // Find exact record by unique masterId (never by index)
+        const targetRow = masterExpiryData.find((item) => Number(item.id) === Number(masterId));
+        if (!targetRow) {
+          alert("Record not found. Please refresh the page.");
+          return;
+        }
+
+        const isDriverField = ["iqama_expiry", "licence_expiry", "passport_expiry"].includes(cat.key);
+        if (isDriverField && !targetRow.driver_log_id) {
+          alert("No Driver Log entry exists for this vehicle yet. Please add it in Main EQ -> Driver Log first.");
+          return;
+        }
+
+        const cleanLabel = cat.label.replace(/^[^\w]+/, "").trim();
+        document.getElementById("modalCategoryTitle").innerText = `📅 Update ${cleanLabel}`;
+        document.getElementById("updMasterId").value = targetRow.id || "";
+        document.getElementById("updDriverLogId").value = targetRow.driver_log_id || "";
+        document.getElementById("updPlateNo").value = targetRow.plate_no || "";
+        document.getElementById("updFieldKey").value = cat.key;
+        document.getElementById("updNewDateInput").value = targetRow[cat.key] || "";
+
+        const docSummary = cat.docCols
+          .map((c) => `<strong>${c.header}:</strong> ${targetRow[c.field] || "-"}`)
+          .join(" &nbsp;|&nbsp; ");
+
+        document.getElementById("modalTargetInfo").innerHTML = `
+          <div><strong>Plate No:</strong> <span style="color:#0969da; font-weight:700;">${targetRow.plate_no || "-"}</span></div>
+          <div><strong>Driver:</strong> ${targetRow.driver_name || "-"}</div>
+          <div>${docSummary}</div>
+          <div><strong>Current Expiry:</strong> ${formatUIDate(targetRow[cat.key])}</div>
+        `;
+
+        document.getElementById("dateUpdateModal").style.display = "flex";
+      }
+
+      function closeDateUpdateModal() {
+        document.getElementById("dateUpdateModal").style.display = "none";
+      }
+
+      async function submitExpiryDateUpdate() {
+        const masterId = document.getElementById("updMasterId").value;
+        const driverLogId = document.getElementById("updDriverLogId").value;
+        const plateNo = document.getElementById("updPlateNo").value;
+        const fieldKey = document.getElementById("updFieldKey").value;
+        const newDate = document.getElementById("updNewDateInput").value;
+
+        if (!newDate) {
+          alert("Please select a valid Expiry Date.");
+          return;
+        }
+
+        const btn = document.getElementById("saveDateBtn");
+        const origText = btn.innerHTML;
+        btn.innerHTML = "⏳ Saving...";
+        btn.disabled = true;
+
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/py/api/we1-own-eq/expiry-tracker/update-date", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              master_id: masterId ? Number(masterId) : null,
+              driver_log_id: driverLogId ? Number(driverLogId) : null,
+              plate_no: plateNo,
+              field: fieldKey,
+              new_date: newDate,
+            }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.detail || data.message || "Update failed.");
+          }
+
+          closeDateUpdateModal();
+          showCopyToast(`✅ ${plateNo} expiry date updated!`);
+          await loadExpiryTrackerData();
+        } catch (err) {
+          alert("Update Error: " + err.message);
+        } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
+      }
+
+      // 🟢 Capture Active Screen Table at Full Width & Height (No Scroll Clipping, Ultra-HD)
+      async function captureActiveTableCanvas() {
+        const table = document.querySelector(".table-card table");
+        if (!table || currentRenderedRows.length === 0) {
+          throw new Error("No table data visible on screen to capture.");
+        }
+
+        const cat = EXPIRY_CATEGORIES.find((c) => c.key === activeCategoryKey) || EXPIRY_CATEGORIES[0];
+        const cleanTitle = cat.label.replace(/^[^\w]+/, "").trim();
+
+        const wrapper = document.createElement("div");
+        wrapper.style.position = "fixed";
+        wrapper.style.left = "-99999px";
+        wrapper.style.top = "0";
+        wrapper.style.background = "#ffffff";
+        wrapper.style.padding = "20px";
+        wrapper.style.display = "inline-block";
+        wrapper.style.zIndex = "-1";
+
+        const titleBar = document.createElement("div");
+        titleBar.style.cssText =
+          "display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid #0f172a; font-family:Inter,system-ui,sans-serif;";
+        titleBar.innerHTML = `
+          <div style="font-size:18px; font-weight:800; color:#0f172a;">We1 Own EQ — ${cleanTitle} Report</div>
+          <div style="font-size:12px; font-weight:600; color:#475569;">Date: ${formatUIDate(new Date().toISOString().split("T")[0])} | Total: ${currentRenderedRows.length}</div>
+        `;
+
+        const clonedTable = table.cloneNode(true);
+        clonedTable.style.width = "auto";
+        clonedTable.style.borderCollapse = "collapse";
+
+        // Remove pencil edit icons and extra right padding before PNG/PDF capture
+        clonedTable.querySelectorAll(".no-export-icon").forEach((el) => el.remove());
+        clonedTable.querySelectorAll(".date-text-bold").forEach((td) => {
+          td.style.paddingRight = "14px";
+        });
+
+        clonedTable.querySelectorAll("th").forEach((th) => {
+          th.style.position = "static";
+          th.style.border = "1px solid #94a3b8";
+          th.style.background = "#f1f5f9";
+        });
+        clonedTable.querySelectorAll("td").forEach((td) => {
+          td.style.border = "1px solid #cbd5e1";
+        });
+
+        wrapper.appendChild(titleBar);
+        wrapper.appendChild(clonedTable);
+        document.body.appendChild(wrapper);
+
+        try {
+          const fullWidth = wrapper.scrollWidth;
+          const fullHeight = wrapper.scrollHeight;
+
+          const canvas = await html2canvas(wrapper, {
+            scale: 3, // Ultra-HD 3x resolution
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            width: fullWidth,
+            height: fullHeight,
+            windowWidth: fullWidth,
+            windowHeight: fullHeight,
+          });
+          return { canvas, cleanTitle };
+        } finally {
+          document.body.removeChild(wrapper);
+        }
+      }
+
+      // 📕 Export Active Table to Single-Page PDF (Exact Custom Page Width & Height, No Limit)
+      async function exportExpiryTableAsPDF() {
+        const btn = document.getElementById("exportPdfBtn");
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "⏳ Generating PDF...";
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+
+        try {
+          const { canvas, cleanTitle } = await captureActiveTableCanvas();
+          const imgData = canvas.toDataURL("image/png", 1.0);
+
+          const pdfWidth = (canvas.width / 3) * 0.75;
+          const pdfHeight = (canvas.height / 3) * 0.75;
+          const orientation = pdfWidth >= pdfHeight ? "l" : "p";
+
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({
+            orientation: orientation,
+            unit: "pt",
+            format: [pdfWidth, pdfHeight],
+            compress: true,
+          });
+
+          pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
+          const safeName = cleanTitle.replace(/[^a-zA-Z0-9_-]+/g, "_");
+          pdf.save(`We1_Own_EQ_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`);
+        } catch (err) {
+          alert("PDF Export Error: " + err.message);
+        } finally {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          btn.style.opacity = "1";
+        }
+      }
+
+      // 🖼️ Copy Active Table as Ultra-HD PNG directly to Clipboard
+      async function copyExpiryTableAsPNG() {
+        const btn = document.getElementById("copyPngBtn");
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "⏳ Copying HD PNG...";
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+
+        try {
+          const { canvas } = await captureActiveTableCanvas();
+          await new Promise((resolve, reject) => {
+            canvas.toBlob(async (blob) => {
+              if (!blob) return reject(new Error("Failed to create PNG image."));
+              try {
+                await navigator.clipboard.write([
+                  new ClipboardItem({ "image/png": blob }),
+                ]);
+                showCopyToast("🖼️ High-Quality HD PNG copied to clipboard!");
+                resolve();
+              } catch (clipErr) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `We1_Own_EQ_Expiry_HD_${new Date().toISOString().split("T")[0]}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showCopyToast("🖼️ Clipboard blocked on HTTP — HD PNG downloaded instead!");
+                resolve();
+              }
+            }, "image/png", 1.0);
+          });
+        } catch (err) {
+          alert("PNG Copy Error: " + err.message);
+        } finally {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          btn.style.opacity = "1";
+        }
+      }
+    </script>
+  </body>
+</html>

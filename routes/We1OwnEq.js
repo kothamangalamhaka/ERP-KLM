@@ -122,6 +122,7 @@ router.post("/log/save", verifyEditor, async (req, res) => {
         let status = "Running";
         if (r.replaced_date) status = "Replaced";
         else if (r.work_end_date) status = "Released";
+        else if (!r.mob_date) status = "Ideal";
 
         // 🟢 Master table ലേക്ക് old_eq, new_eq സിങ്ക് ചെയ്യുന്നു
         syncQuery = `UPDATE we1_own_eq_master SET site_name=$2, mob_date=$3, status=$4, old_eq=$5, new_eq=$6 WHERE plate_no=$1`;
@@ -275,7 +276,7 @@ router.post("/add", verifyEditor, async (req, res) => {
       val(vehicle_owner),
       val(santhook),
       val(salary),
-      val(status) || "Running",
+      val(mob_date) ? (val(status) || "Running") : "Ideal",
       val(note),
       val(old_eq),
       val(new_eq),

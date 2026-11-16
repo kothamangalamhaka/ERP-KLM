@@ -35,6 +35,7 @@ from routers.KSA_Office.Vat_customer_docs import router as vat_customer_docs_rou
 from routers.Spareparts_business.export_dashboard import router as sp_export_dashboard_router
 from routers.Spareparts_business.Export_list import router as sp_export_list_router
 from routers.Spareparts_business.export_stock import router as sp_export_stock_router
+from routers import own_database_expiry
 
 
 load_dotenv()
@@ -73,6 +74,7 @@ app.include_router(vat_customer_docs_router)
 app.include_router(sp_export_dashboard_router)
 app.include_router(sp_export_list_router)
 app.include_router(sp_export_stock_router)
+app.include_router(own_database_expiry.router)
 
 class ExportRequest(BaseModel):
     headers: list

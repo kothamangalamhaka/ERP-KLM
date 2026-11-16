@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from fastapi.responses import StreamingResponse
+from typing import Optional, List
 import io
 import openpyxl
 from openpyxl.styles import PatternFill, Font, Alignment
@@ -26,8 +27,18 @@ def get_db_connection():
         print(f"Database connection error: {e}")
         return None
 
-@router.get("/py/api/we1-own-eq/export")
-def export_we1_own_eq_excel():
+@router.api_route("/py/api/we1-own-eq/export", methods=["GET", "POST"])
+def export_we1_own_eq_excel(
+    mode: str = "compact",
+    payload: Optional[dict] = Body(default=None)
+):
+    filtered_only = False
+    plate_nos: List[str] = []
+    if payload:
+        mode = payload.get("mode", mode)
+        filtered_only = bool(payload.get("filtered_only", False))
+        plate_nos = [str(p).strip().upper() for p in (payload.get("plate_nos") or []) if str(p).strip()]
+
     conn = get_db_connection()
     if not conn:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -35,169 +46,206 @@ def export_we1_own_eq_excel():
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # 🟢 Fetch Master Data with Driver Log (IQAMA & Licence) Details
-        query = """
+        # 🟢 Fetch Master Data with Full Driver Log (IQAMA, Licence & Passport) Details
+        base_query = """
             SELECT 
                 m.*,
                 d.iqama_no,
                 d.iqama_expiry,
-                d.licence_expiry
+                d.licence_expiry,
+                d.passport_no,
+                d.passport_expiry
             FROM we1_own_eq_master m
             LEFT JOIN LATERAL (
-                SELECT iqama_no, iqama_expiry, licence_expiry
+                SELECT iqama_no, iqama_expiry, licence_expiry, passport_no, passport_expiry
                 FROM we1_driver_log
                 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(m.plate_no))
                 ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
                 LIMIT 1
             ) d ON true
-            ORDER BY m.id ASC
         """
-        cursor.execute(query)
-        data = cursor.fetchall()
+        if filtered_only and plate_nos:
+            cursor.execute(
+                base_query + " WHERE UPPER(TRIM(m.plate_no)) = ANY(%s) ORDER BY m.id ASC",
+                (plate_nos,)
+            )
+            raw_rows = cursor.fetchall()
+            # UI-യിൽ ഫിൽട്ടർ/സോർട്ട് ചെയ്ത അതേ ഓർഡറിൽ തന്നെ ക്രമീകരിക്കുന്നു
+            order_map = {p: idx for idx, p in enumerate(plate_nos)}
+            data = sorted(
+                raw_rows,
+                key=lambda r: order_map.get(str(r["plate_no"] or "").strip().upper(), 999999)
+            )
+        else:
+            cursor.execute(base_query + " ORDER BY m.id ASC")
+            data = cursor.fetchall()
         
         wb = openpyxl.Workbook()
         
         header_fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
         header_font = Font(color="FFFFFF", bold=True)
         center_alignment = Alignment(horizontal="center", vertical="center")
-        
-        # ==========================================
-        # 📑 TAB 1: Classic Summary (We1_Own_EQ)
-        # ==========================================
-        ws1 = wb.active
-        ws1.title = "We1_Own_EQ"
+        expired_fill = PatternFill(start_color="DC3545", end_color="DC3545", fill_type="solid")
+        expired_font = Font(color="FFFFFF", bold=True)
+        expiring_fill = PatternFill(start_color="FFF3CD", end_color="FFF3CD", fill_type="solid")
+        expiring_font = Font(color="D97706", bold=True)
+        today_date = datetime.now().date()
 
-        headers_tab1 = [
-            "SN", "Mobilisation Date", "Vehicle Type", "Plate No", "Driver Name", 
-            "Mobile", "Joining Date", "Site Name", "Vehicle Owner", "Santhook", 
-            "Salary", "Status", "Note"
-        ]
-        ws1.append(headers_tab1)
+        if mode == "full":
+            # ==========================================
+            # 📑 FULL DATA (Entire UI - All 26 Columns)
+            # ==========================================
+            ws = wb.active
+            ws.title = "Full_UI_Data"
 
-        for cell in ws1[1]:
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = center_alignment
+            headers_full = [
+                "SN", "Mobilisation Date", "Vehicle Type", "Plate No", "Driver Name", 
+                "Mobile", "Joining Date", "Site Name", "Vehicle Owner", "Santhook", 
+                "Salary", "Status", "Note", "Old EQ", "New EQ", 
+                "IQAMA No.", "IQAMA Exp", "Licence Exp", "Passport No.", "Passport Exp",
+                "Chassis No", "Serial No", "EQ Insurance Exp", "FAHS/MVPI Exp",
+                "Operation Card Exp", "Isthimaara Exp"
+            ]
+            ws.append(headers_full)
 
-        for i, row in enumerate(data, start=1):
-            salary_val = float(row['salary']) if row['salary'] else None
-            ws1.append([
-                i,
-                row['mob_date'],
-                row['vehicle_type'] or "",
-                row['plate_no'] or "",
-                row['driver_name'] or "",
-                row['driver_mobile'] or "",
-                row['joining_date'],
-                row['site_name'] or "",
-                row['vehicle_owner'] or "",
-                row['santhook'] or "",
-                salary_val,
-                row['status'] or "Running",
-                row['note'] or ""
-            ])
+            for cell in ws[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = center_alignment
 
-        for row in ws1.iter_rows(min_row=2, max_col=13, max_row=len(data) + 1):
-            if row[1].value:
-                row[1].number_format = 'DD-MMM-YY'
-                row[1].alignment = center_alignment
-            if row[6].value:
-                row[6].number_format = 'DD-MMM-YY'
-                row[6].alignment = center_alignment
-            if row[12].value:
-                row[12].alignment = Alignment(wrap_text=True, vertical="top")
+            for i, row in enumerate(data, start=1):
+                salary_val = float(row['salary']) if row['salary'] else None
+                ws.append([
+                    i,
+                    row['mob_date'],
+                    row['vehicle_type'] or "",
+                    row['plate_no'] or "",
+                    row['driver_name'] or "",
+                    row['driver_mobile'] or "",
+                    row['joining_date'],
+                    row['site_name'] or "",
+                    row['vehicle_owner'] or "",
+                    row['santhook'] or "",
+                    salary_val,
+                    ("Ideal" if not row['mob_date'] and (not row['status'] or row['status'] == "Running") else (row['status'] or "Running")),
+                    row['note'] or "",
+                    row['old_eq'] or "",
+                    row['new_eq'] or "",
+                    row['iqama_no'] or "",
+                    row['iqama_expiry'],
+                    row['licence_expiry'],
+                    row['passport_no'] or "",
+                    row['passport_expiry'],
+                    row['chassis_no'] or "",
+                    row['serial_no'] or "",
+                    row['eq_insurance_exp'],
+                    row['fahs_mvpi_exp'],
+                    row['op_card_exp'],
+                    row['isthimaara_exp']
+                ])
 
-        ws1.auto_filter.ref = f"A1:M{len(data) + 1}"
-        ws1.freeze_panes = "A2"
-        ws1.sheet_view.zoomScale = 100
+            all_date_cols = [2, 7, 17, 18, 20, 23, 24, 25, 26]
+            expiry_date_cols = {17, 18, 20, 23, 24, 25, 26}
+            for row in ws.iter_rows(min_row=2, max_col=26, max_row=len(data) + 1):
+                for col_idx in all_date_cols:
+                    cell = row[col_idx - 1]
+                    if cell.value:
+                        cell.number_format = 'DD-MMM-YY'
+                        cell.alignment = center_alignment
+                        if col_idx in expiry_date_cols:
+                            val_date = cell.value.date() if isinstance(cell.value, datetime) else cell.value
+                            diff_days = (val_date - today_date).days
+                            if diff_days < 0:
+                                cell.fill = expired_fill
+                                cell.font = expired_font
+                            elif diff_days <= 30:
+                                cell.fill = expiring_fill
+                                cell.font = expiring_font
+                if row[12].value:
+                    row[12].alignment = Alignment(wrap_text=True, vertical="top")
 
-        col_widths_tab1 = {
-            'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': 22, 
-            'F': 16, 'G': 16, 'H': 22, 'I': 22, 'J': 16, 
-            'K': 12, 'L': 12, 'M': 40
-        }
-        for col, width in col_widths_tab1.items():
-            ws1.column_dimensions[col].width = width
+            ws.auto_filter.ref = f"A1:Z{len(data) + 1}"
+            ws.freeze_panes = "A2"
+            ws.sheet_view.zoomScale = 80
 
-        # ==========================================
-        # 📑 TAB 2: Full UI Details (Full_Details)
-        # ==========================================
-        ws2 = wb.create_sheet(title="Full_Details")
+            col_widths_full = {
+                'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': 22, 
+                'F': 16, 'G': 16, 'H': 22, 'I': 22, 'J': 16, 
+                'K': 12, 'L': 12, 'M': 35, 'N': 14, 'O': 14,
+                'P': 16, 'Q': 16, 'R': 16, 'S': 16, 'T': 16,
+                'U': 20, 'V': 20, 'W': 18, 'X': 18, 'Y': 18, 'Z': 18
+            }
+            for col, width in col_widths_full.items():
+                ws.column_dimensions[col].width = width
 
-        headers_tab2 = [
-            "SN", "Mobilisation Date", "Vehicle Type", "Plate No", "Driver Name", 
-            "Mobile", "Joining Date", "Site Name", "Vehicle Owner", "Santhook", 
-            "Salary", "Status", "Note", "Old EQ", "New EQ", 
-            "IQAMA No.", "IQAMA Exp", "Licence Exp", "Chassis No", "Serial No", 
-            "EQ Insurance Exp", "FAHS / MVPI Exp", "Operation Card Exp", "Isthimaara Exp"
-        ]
-        ws2.append(headers_tab2)
+            filename = "We1_Own_EQ_Full_UI_Report.xlsx"
+        else:
+            # ==========================================
+            # 📑 COMPACT SUMMARY (We1_Own_EQ)
+            # ==========================================
+            ws = wb.active
+            ws.title = "We1_Own_EQ"
 
-        for cell in ws2[1]:
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = center_alignment
+            headers_compact = [
+                "SN", "Mobilisation Date", "Vehicle Type", "Plate No", "Driver Name", 
+                "Mobile", "Joining Date", "Site Name", "Vehicle Owner", "Santhook", 
+                "Salary", "Status", "Note"
+            ]
+            ws.append(headers_compact)
 
-        for i, row in enumerate(data, start=1):
-            salary_val = float(row['salary']) if row['salary'] else None
-            ws2.append([
-                i,
-                row['mob_date'],
-                row['vehicle_type'] or "",
-                row['plate_no'] or "",
-                row['driver_name'] or "",
-                row['driver_mobile'] or "",
-                row['joining_date'],
-                row['site_name'] or "",
-                row['vehicle_owner'] or "",
-                row['santhook'] or "",
-                salary_val,
-                row['status'] or "Running",
-                row['note'] or "",
-                row['old_eq'] or "",
-                row['new_eq'] or "",
-                row['iqama_no'] or "",
-                row['iqama_expiry'],
-                row['licence_expiry'],
-                row['chassis_no'] or "",
-                row['serial_no'] or "",
-                row['eq_insurance_exp'],
-                row['fahs_mvpi_exp'],
-                row['op_card_exp'],
-                row['isthimaara_exp']
-            ])
+            for cell in ws[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = center_alignment
 
-        date_col_indexes = [2, 7, 17, 18, 21, 22, 23, 24] # 1-based columns for dates
-        for row in ws2.iter_rows(min_row=2, max_col=24, max_row=len(data) + 1):
-            for col_idx in date_col_indexes:
-                cell = row[col_idx - 1]
-                if cell.value:
-                    cell.number_format = 'DD-MMM-YY'
-                    cell.alignment = center_alignment
-            if row[12].value: # Note column
-                row[12].alignment = Alignment(wrap_text=True, vertical="top")
+            for i, row in enumerate(data, start=1):
+                salary_val = float(row['salary']) if row['salary'] else None
+                ws.append([
+                    i,
+                    row['mob_date'],
+                    row['vehicle_type'] or "",
+                    row['plate_no'] or "",
+                    row['driver_name'] or "",
+                    row['driver_mobile'] or "",
+                    row['joining_date'],
+                    row['site_name'] or "",
+                    row['vehicle_owner'] or "",
+                    row['santhook'] or "",
+                    salary_val,
+                    ("Ideal" if not row['mob_date'] and (not row['status'] or row['status'] == "Running") else (row['status'] or "Running")),
+                    row['note'] or ""
+                ])
 
-        ws2.auto_filter.ref = f"A1:X{len(data) + 1}"
-        ws2.freeze_panes = "A2"
-        ws2.sheet_view.zoomScale = 100
+            for row in ws.iter_rows(min_row=2, max_col=13, max_row=len(data) + 1):
+                if row[1].value:
+                    row[1].number_format = 'DD-MMM-YY'
+                    row[1].alignment = center_alignment
+                if row[6].value:
+                    row[6].number_format = 'DD-MMM-YY'
+                    row[6].alignment = center_alignment
+                if row[12].value:
+                    row[12].alignment = Alignment(wrap_text=True, vertical="top")
 
-        col_widths_tab2 = {
-            'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': 22, 
-            'F': 16, 'G': 16, 'H': 22, 'I': 22, 'J': 16, 
-            'K': 12, 'L': 12, 'M': 35, 'N': 14, 'O': 14,
-            'P': 16, 'Q': 16, 'R': 16, 'S': 20, 'T': 20,
-            'U': 18, 'V': 18, 'W': 18, 'X': 18
-        }
-        for col, width in col_widths_tab2.items():
-            ws2.column_dimensions[col].width = width
+            ws.auto_filter.ref = f"A1:M{len(data) + 1}"
+            ws.freeze_panes = "A2"
+            ws.sheet_view.zoomScale = 80
 
-        # Save to BytesIO stream
+            col_widths_compact = {
+                'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': 22, 
+                'F': 16, 'G': 16, 'H': 22, 'I': 22, 'J': 16, 
+                'K': 12, 'L': 12, 'M': 40
+            }
+            for col, width in col_widths_compact.items():
+                ws.column_dimensions[col].width = width
+
+            filename = "We1_Own_EQ_Compact_Report.xlsx"
+
         output = io.BytesIO()
         wb.save(output)
         output.seek(0)
         
         headers = {
-            'Content-Disposition': 'attachment; filename="We1_Own_EQ_Report.xlsx"'
+            'Content-Disposition': f'attachment; filename="{filename}"'
         }
         
         return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
