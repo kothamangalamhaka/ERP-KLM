@@ -74,6 +74,15 @@ const FIELD_ALIASES = {
     "DRIVER MOBILE NO",
     "DRIVER NUMBER",
   ],
+  chassisNo: [
+    "CHASSIS NUMBER",
+    "CHASSIS NO",
+    "CHASIS NUMBER",
+    "CHASIS NO",
+    "VIN",
+    "VIN NO",
+  ],
+  serialNo: ["SERIAL NUMBER", "SERIAL NO", "EQ SERIAL NO", "EQUIPMENT SERIAL NO"],
   iqamaNo: ["IQAMA NUMBER", "IQAMA NO"],
   iqamaExpiry: ["IQAMA EXPIRE DATE", "IQAMA EXPIRE"],
   licenceExpiry: [
@@ -179,6 +188,80 @@ async function loadIssueData() {
   }
 }
 
+function applySilentRecordUpdate(dbId, fieldUpdates = {}, reviewUpdate = null) {
+  const idx = issueRecords.findIndex((r) => r.id === dbId);
+  if (idx === -1) return;
+
+  const current = issueRecords[idx];
+  const updatedData = { ...(current.data || {}) };
+
+  Object.entries(fieldUpdates).forEach(([key, val]) => {
+    const targetKey =
+      Object.keys(updatedData).find(
+        (k) => normalizeKey(k) === normalizeKey(key),
+      ) || key;
+    updatedData[targetKey] = val;
+  });
+
+  if (reviewUpdate && reviewUpdate.issueKey) {
+    const existingReviews =
+      updatedData[MDB_REVIEW_KEY] && typeof updatedData[MDB_REVIEW_KEY] === "object"
+        ? { ...updatedData[MDB_REVIEW_KEY] }
+        : {};
+    existingReviews[reviewUpdate.issueKey] = reviewUpdate.review;
+    updatedData[MDB_REVIEW_KEY] = existingReviews;
+  }
+
+  // Open expiry sub-tables & scroll positions save cheyyunnu
+  const openExpiryIds = [...document.querySelectorAll("#expiryTables .table-card")]
+    .filter((card) => getComputedStyle(card).display !== "none")
+    .map((card) => card.dataset.tableId);
+
+  const scrollPositions = new Map();
+  document.querySelectorAll(".table-card").forEach((card) => {
+    const scroller = card.querySelector(".table-scroll");
+    if (scroller && card.dataset.tableId) {
+      scrollPositions.set(card.dataset.tableId, {
+        top: scroller.scrollTop,
+        left: scroller.scrollLeft,
+      });
+    }
+  });
+
+  // Single record maathram re-normalize cheyyunnu (filters/sorts clear cheyyathe)
+  issueRecords[idx] = normalizeRecord({
+    id: current.id,
+    sn: current.sn,
+    plate_number: current.plate,
+    site: current.site,
+    record_data: updatedData,
+  });
+
+  renderAllIssues();
+
+  // Open expiry sub-tables restore cheyyunnu
+  openExpiryIds.forEach((tableId) => {
+    const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
+    if (card) card.style.display = "block";
+  });
+
+  // Ella tables-ilum നിലവിലുള്ള Excel filters & sorts veendum apply cheyyunnu
+  document.querySelectorAll(".table-card").forEach((card) => {
+    const tableId = card.dataset.tableId;
+    if (tableId) applyTableExcelFilters(tableId);
+  });
+
+  // Scroll positions restore cheyyunnu
+  scrollPositions.forEach((pos, tableId) => {
+    const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
+    const scroller = card?.querySelector(".table-scroll");
+    if (scroller) {
+      scroller.scrollTop = pos.top;
+      scroller.scrollLeft = pos.left;
+    }
+  });
+}
+
 function normalizeRecord(record) {
   const data = record.record_data || {};
   const reviewRoot = data[MDB_REVIEW_KEY];
@@ -206,6 +289,8 @@ function normalizeRecord(record) {
     ownerMobile: getField(data, FIELD_ALIASES.ownerMobile),
     driver: getField(data, FIELD_ALIASES.driver),
     driverMobile: getField(data, FIELD_ALIASES.driverMobile),
+    chassisNo: getField(data, FIELD_ALIASES.chassisNo),
+    serialNo: getField(data, FIELD_ALIASES.serialNo),
     iqamaNo: getField(data, FIELD_ALIASES.iqamaNo),
     iqamaExpiry: getField(data, FIELD_ALIASES.iqamaExpiry),
     licenceExpiry: getField(data, FIELD_ALIASES.licenceExpiry),
@@ -664,6 +749,8 @@ function buildExpiryIssues() {
       } else {
         [
           "site",
+          "chassisNo",
+          "serialNo",
           "iqamaNo",
           "driver",
           "driverMobile",
@@ -1173,6 +1260,7 @@ function renderExpiryIssues(issues) {
   const driverBase = [
     textColumn("Plate No", "plate"),
     textColumn("Driver Name", "driver"),
+    textColumn("Driver Mobile", "driverMobile"),
     textColumn("Iqama No", "iqamaNo"),
   ];
   const equipmentBase = [
@@ -1185,6 +1273,7 @@ function renderExpiryIssues(issues) {
     textColumn("Site Co", "siteCo"),
   ];
   const ownerColumn = textColumn("Owner Name", "owner");
+  const ownerMobileColumn = textColumn("Owner Mobile", "ownerMobile");
 
   const cards = [
     tableCardMarkup({
@@ -1198,6 +1287,7 @@ function renderExpiryIssues(issues) {
         expiryGapColumn("expiry"),
         ...coordinators,
         ownerColumn,
+        ownerMobileColumn,
       ],
       rows: issues.iqamaOnly,
     }),
@@ -1214,6 +1304,7 @@ function renderExpiryIssues(issues) {
         expiryGapColumn("expiry"),
         ...coordinators,
         ownerColumn,
+        ownerMobileColumn,
       ],
       rows: issues.licenceOnly,
     }),
@@ -1230,6 +1321,7 @@ function renderExpiryIssues(issues) {
         expiryGapColumn("licence", "Licence Gap"),
         ...coordinators,
         ownerColumn,
+        ownerMobileColumn,
       ],
       rows: issues.iqamaAndLicence,
     }),
@@ -1253,6 +1345,8 @@ function renderExpiryIssues(issues) {
       subtitle: "FAHS/MVPI-only alerts for equipment.",
       columns: [
         ...equipmentBase,
+        textColumn("Chassis No", "chassisNo"),
+        textColumn("Serial No", "serialNo"),
         siteColumn,
         expiryDateColumn("Expiry Date", "expiry"),
         expiryGapColumn("expiry"),
@@ -1267,6 +1361,8 @@ function renderExpiryIssues(issues) {
       subtitle: "Both equipment documents are due or already expired.",
       columns: [
         ...equipmentBase,
+        textColumn("Chassis No", "chassisNo"),
+        textColumn("Serial No", "serialNo"),
         siteColumn,
         expiryDateColumn("Insurance Expiry", "insurance"),
         expiryGapColumn("insurance", "Insurance Gap"),
@@ -1317,6 +1413,8 @@ function renderExpiryIssues(issues) {
         textColumn("Driver Name", "driver"),
         textColumn("Driver Mobile", "driverMobile"),
         textColumn("Iqama No", "iqamaNo"),
+        textColumn("Chassis No", "chassisNo"),
+        textColumn("Serial No", "serialNo"),
         textColumn("Owner Mobile", "ownerMobile"),
         expiryDateColumn("Iqama Expiry", "iqama"),
         expiryGapColumn("iqama", "Iqama Gap"),
@@ -1420,17 +1518,22 @@ function tableCardMarkup({
       : escapeHtml(rawValue);
     const cellClass = column.cellClass ? column.cellClass(row) : "";
     const isPlateCol = column.label === "Plate No";
-let clickAttr = "";
-if (isPlateCol) {
-  if (id === "work-start-issues") {
-    clickAttr = `data-record-id="${row.id}" oncontextmenu="openWorkStartModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Work Start & Timeline"`;
-  } else if (id === "no-owner-issues") {
-    clickAttr = `data-record-id="${row.id}" oncontextmenu="openOwnerModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Owner Info"`;
-  } else if (id.includes("expiry")) {
-    clickAttr = `data-record-id="${row.id}" oncontextmenu="openQuickExpiryModal(event, ${row.id}, '${escapeAttribute(id)}')" style="cursor:context-menu;" title="Right-click to Update Expiry"`;
-  }
-}
-return `<td class="${escapeAttribute(cellClass)}" data-filter-value="${escapeAttribute(rawValue)}" ${clickAttr}>${display}</td>`;
+    const isCopyableDocCol = ["Iqama No", "Chassis No", "Serial No"].includes(
+      column.label,
+    );
+    let clickAttr = "";
+    if (isPlateCol) {
+      if (id === "work-start-issues") {
+        clickAttr = `data-record-id="${row.id}" oncontextmenu="openWorkStartModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Work Start & Timeline"`;
+      } else if (id === "no-owner-issues") {
+        clickAttr = `data-record-id="${row.id}" oncontextmenu="openOwnerModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Owner Info"`;
+      } else if (id.includes("expiry")) {
+        clickAttr = `data-record-id="${row.id}" oncontextmenu="openQuickExpiryModal(event, ${row.id}, '${escapeAttribute(id)}')" style="cursor:context-menu;" title="Right-click to Update Expiry"`;
+      }
+    } else if (isCopyableDocCol) {
+      clickAttr = `oncontextmenu="copyCellText(event, this, '${escapeAttribute(column.label)}')" style="cursor:copy;" title="Right-click to copy ${escapeAttribute(column.label)}"`;
+    }
+    return `<td class="${escapeAttribute(cellClass)}" data-filter-value="${escapeAttribute(rawValue)}" ${clickAttr}>${display}</td>`;
   })
   .join("");
             return `<tr class="data-row ${escapeAttribute(rowClass(row))}">${cells}</tr>`;
@@ -1483,14 +1586,33 @@ function openExcelFilter(event, tableId, columnIndex, label) {
     `[data-table-id="${cssEscape(tableId)}"]`,
   );
   if (!card) return;
-  const values = [...card.querySelectorAll("tbody .data-row")]
+
+  const filterKey = `${tableId}:${columnIndex}`;
+  const otherFilters = [...tableExcelFilters.entries()]
+    .filter(([key]) => key.startsWith(`${tableId}:`) && key !== filterKey)
+    .map(([key, selectedSet]) => ({
+      column: Number(key.split(":").pop()),
+      selectedSet,
+    }));
+
+  const eligibleRows = [...card.querySelectorAll("tbody .data-row")].filter(
+    (row) =>
+      otherFilters.every((f) =>
+        f.selectedSet.has(row.cells[f.column]?.dataset.filterValue || ""),
+      ),
+  );
+
+  const values = eligibleRows
     .map((row) => row.cells[columnIndex]?.dataset.filterValue || "")
     .filter((value, index, all) => all.indexOf(value) === index)
     .sort((a, b) =>
       a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
     );
-  const filterKey = `${tableId}:${columnIndex}`;
-  const selected = tableExcelFilters.get(filterKey) || new Set(values);
+
+  const existingSelection = tableExcelFilters.get(filterKey);
+  const selected = existingSelection
+    ? new Set(values.filter((v) => existingSelection.has(v)))
+    : new Set(values);
   activeExcelFilter = { tableId, columnIndex, filterKey, values };
   const activeSort = tableSorts.get(tableId);
 
@@ -1629,6 +1751,21 @@ function applyTableExcelFilters(tableId) {
       : "none";
     if (row.style.display !== "none") visibleCount++;
   });
+
+  if (visibleCount === 0 && filters.length > 1) {
+    const validFirstFilter = filters[0];
+    const resetRows = rows.filter((row) =>
+      validFirstFilter.selected.has(
+        row.cells[validFirstFilter.column]?.dataset.filterValue || "",
+      ),
+    );
+    if (resetRows.length > 0) {
+      filters.slice(1).forEach((f) => {
+        tableExcelFilters.delete(`${tableId}:${f.column}`);
+      });
+      return applyTableExcelFilters(tableId);
+    }
+  }
   card.querySelectorAll(".excel-filter-button").forEach((button) => {
     const key = button.dataset.filterButton.replace(
       `${tableId}-`,
@@ -2542,6 +2679,34 @@ function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");
 }
 
+async function copyCellText(event, cellEl, label) {
+  event.preventDefault();
+  event.stopPropagation();
+  const raw = (cellEl?.dataset?.filterValue || cellEl?.innerText || "").trim();
+  if (!raw || raw === "-") {
+    showToast(`No ${label} available to copy.`, true);
+    return;
+  }
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(raw);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = raw;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    showToast(`${label} copied: ${raw}`);
+  } catch (err) {
+    showToast(`Failed to copy ${label}.`, true);
+  }
+}
+
 // 🟢 Helper to format date into YYYY-MM-DD for input[type=date]
 function toIsoDate(dStr) {
   const d = parseDateValue(dStr);
@@ -2671,8 +2836,8 @@ async function submitExpiryModal() {
 
     const data = await res.json();
     if (data.success) {
-      showToast("Expiry updated successfully in Master DB!");
-      await loadIssueData(); // Refresh Issue tables instantly
+      applySilentRecordUpdate(dbId, updates);
+      showToast("Expiry updated silently in Master DB!");
     } else {
       showToast(data.message || "Failed to update", true);
     }
@@ -2771,8 +2936,11 @@ async function submitWorkStartModal() {
       throw new Error(reviewData.message || "Failed to update review status.");
     }
 
-    showToast("Work Start and Review updated in Master DB!");
-    await loadIssueData();
+    applySilentRecordUpdate(dbId, cellUpdates, {
+      issueKey: "work_start_gap",
+      review: reviewData.review,
+    });
+    showToast("Work Start and Review updated silently!");
   } catch (err) {
     showToast(err.message || "Error updating Work Start issue.", true);
   } finally {
@@ -2831,8 +2999,8 @@ async function submitOwnerModal() {
 
     const data = await res.json();
     if (data.success) {
-      showToast("Owner details updated successfully in Master DB!");
-      await loadIssueData();
+      applySilentRecordUpdate(dbId, updates);
+      showToast("Owner details updated silently!");
     } else {
       showToast(data.message || "Failed to update owner.", true);
     }
