@@ -144,6 +144,51 @@
           >
           Send Alerts
         </button>
+
+        <!-- 🟢 ISOLATED BATCH ALERT CLOCK TIMER -->
+        <div
+          id="batchAlertTimerWrapper"
+          style="
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+          "
+        >
+          <button
+            type="button"
+            class="btn-icon"
+            id="btnBatchClockToggle"
+            onclick="toggleBatchAlertSession()"
+            title="Start/Stop Batch Telegram Alert Timer"
+            style="
+              font-size: 18px;
+              padding: 4px 8px;
+              border: 1px solid var(--border-color);
+              border-radius: 6px;
+              background: #f8fafc;
+              line-height: 1;
+              transition: all 0.2s ease;
+            "
+          >
+            ⏱️
+          </button>
+          <span
+            id="batchStopwatchDisplay"
+            style="
+              display: none;
+              font-size: 10px;
+              font-weight: 800;
+              color: #dc2626;
+              margin-top: 2px;
+              font-family: monospace;
+              letter-spacing: 0.5px;
+              line-height: 1;
+            "
+            >00:00</span
+          >
+        </div>
         <button
           class="btn btn-primary desktop-action-btn"
           onclick="openAddColumnModal()"
@@ -1509,6 +1554,74 @@
           >
             Close
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🟢 ISOLATED BATCH TELEGRAM SENDING POPUP MODAL -->
+    <div id="batchTelegramModalOverlay" class="modal-overlay" style="z-index: 99999;">
+      <div
+        class="modal-box"
+        style="
+          width: 430px;
+          max-width: 92vw;
+          text-align: center;
+          padding: 28px 24px;
+          border-radius: 12px;
+          align-items: center;
+          gap: 16px;
+        "
+      >
+        <div style="font-size: 32px; line-height: 1">📨</div>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--primary)">
+          Syncing Combined Telegram Alerts
+        </h3>
+        <p
+          id="batchModalStatusText"
+          style="
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #475569;
+            margin: 0;
+            font-weight: 500;
+          "
+        >
+          All changes made so far are being combined and sent to Telegram. Please
+          wait until the update completes and do not close this screen.
+        </p>
+
+        <!-- Spinning Animation -->
+        <div id="batchModalSpinner" style="margin: 8px 0">
+          <span
+            class="material-icons"
+            style="
+              font-size: 38px;
+              color: var(--primary);
+              animation: spin 1s linear infinite;
+            "
+            >sync</span
+          >
+        </div>
+
+        <!-- Close Button (Hidden until completed) -->
+        <div
+          id="batchModalCloseContainer"
+          style="display: none; flex-direction: column; align-items: center; gap: 6px; width: 100%"
+        >
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick="closeBatchTelegramModal()"
+            style="padding: 8px 28px; font-weight: 700; border-radius: 6px"
+          >
+            Close
+          </button>
+          <span
+            id="batchModalAutoCloseHint"
+            style="font-size: 11px; color: #94a3b8; font-weight: 500"
+          >
+            Auto-closing in 15s...
+          </span>
         </div>
       </div>
     </div>

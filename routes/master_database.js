@@ -133,6 +133,204 @@ module.exports = function (pool, middlewares, helpers) {
     }
   }
 
+  // ==========================================
+  // ⏱️ ISOLATED BATCH TELEGRAM ALERT BUFFER
+  // ==========================================
+  const userBatchAlertBuffers = {}; // { username: { active: true, startedAt: Date.now(), items: [] } }
+
+  function addChangesToBatchBuffer(username, changes) {
+    if (!userBatchAlertBuffers[username]) {
+      userBatchAlertBuffers[username] = {
+        active: true,
+        startedAt: Date.now(),
+        items: [],
+      };
+    }
+    const buffer = userBatchAlertBuffers[username];
+    changes.forEach((c) => {
+      // Merge edits on the exact same record + column within the same batch session
+      const existing = buffer.items.find(
+        (item) =>
+          String(item.dbId) === String(c.dbId) &&
+          String(item.colName).toUpperCase() === String(c.colName).toUpperCase(),
+      );
+      if (existing) {
+        existing.newVal = c.newVal;
+        if (c.plate && c.plate !== "N/A") existing.plate = c.plate;
+        if (c.sn && c.sn !== "N/A") existing.sn = c.sn;
+      } else {
+        buffer.items.push({
+          dbId: c.dbId || "N/A",
+          sn: c.sn || "N/A",
+          plate: c.plate || "N/A",
+          colName: c.colName || "N/A",
+          oldVal: c.oldVal !== undefined && c.oldVal !== "" ? c.oldVal : "(Blank)",
+          newVal: c.newVal !== undefined && c.newVal !== "" ? c.newVal : "(Blank)",
+        });
+      }
+    });
+  }
+
+  async function flushUserBatchAlerts(
+    username,
+    durationLabel = "",
+    keepSessionAlive = false,
+  ) {
+    const buffer = userBatchAlertBuffers[username];
+    if (!buffer) {
+      return { success: true, message: "No active batch session found." };
+    }
+
+    // Extract current items safely without losing incoming concurrent edits
+    const items = buffer.items.splice(0, buffer.items.length);
+
+    if (keepSessionAlive) {
+      // Keep the session active and reset the 20-minute chunk timer while user continues editing
+      buffer.active = true;
+      buffer.lastFlushedAt = Date.now();
+    } else {
+      delete userBatchAlertBuffers[username];
+    }
+
+    if (items.length === 0) {
+      return {
+        success: true,
+        message: "Batch timer stopped. No new changes were pending.",
+      };
+    }
+
+    // Filter out net-zero edits where final value equals initial value
+    const effectiveItems = items.filter((it) => it.oldVal !== it.newVal);
+    if (effectiveItems.length === 0) {
+      return {
+        success: true,
+        message: "Batch timer stopped. All edited values reverted to original.",
+      };
+    }
+
+    const timeStr = new Date().toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+
+    // Group changes by Record (SN / dbId / Plate)
+    const groupedByRecord = {};
+    effectiveItems.forEach((item) => {
+      const groupKey =
+        item.dbId && item.dbId !== "N/A"
+          ? `ID_${item.dbId}`
+          : `SN_${item.sn}_${item.plate}`;
+      if (!groupedByRecord[groupKey]) {
+        groupedByRecord[groupKey] = {
+          sn: item.sn,
+          plate: item.plate,
+          changes: [],
+        };
+      }
+      groupedByRecord[groupKey].changes.push(item);
+    });
+
+    let recordBlocks = [];
+    Object.values(groupedByRecord).forEach((grp) => {
+      let headerLine = `🔢 <b>SN:</b> <code>${grp.sn}</code>  |  🚚 <b>PLATE:</b> [ <code>${grp.plate}</code> ]`;
+      let lines = grp.changes.map(
+        (ch) =>
+          `   • <b>${ch.colName}:</b> <del>${ch.oldVal}</del> ➔ <b>${ch.newVal}</b>`,
+      );
+      recordBlocks.push(`${headerLine}\n${lines.join("\n")}`);
+    });
+
+    const headerTitle = keepSessionAlive
+      ? "🔔 <b>COMBINED MASTER DB UPDATE (20-Min Auto Checkpoint)</b>"
+      : "🔔 <b>COMBINED MASTER DB UPDATE</b>";
+
+    const headerMeta =
+      `${headerTitle}\n\n` +
+      `👤 <b>Modified By:</b> @${username}\n` +
+      (durationLabel ? `⏱️ <b>Session Duration:</b> ${durationLabel}\n` : "") +
+      `⏰ <b>Sent At:</b> ${timeStr}\n` +
+      `-----------------------------------\n\n`;
+
+    // Telegram 4096 char limit safe chunking
+    const MAX_LEN = 3700;
+    let currentMsg = headerMeta;
+
+    for (let i = 0; i < recordBlocks.length; i++) {
+      const block = recordBlocks[i] + "\n\n-----------------------------------\n\n";
+      if (currentMsg.length + block.length > MAX_LEN && currentMsg !== headerMeta) {
+        await sendActivityTelegramMessage(currentMsg);
+        currentMsg = headerMeta + `<i>(Continued...)</i>\n\n` + block;
+      } else {
+        currentMsg += block;
+      }
+    }
+
+    if (currentMsg.trim() !== headerMeta.trim()) {
+      await sendActivityTelegramMessage(currentMsg);
+    }
+
+    return {
+      success: true,
+      message: `Combined ${effectiveItems.length} change(s) across ${Object.keys(groupedByRecord).length} vehicle(s) and sent to Telegram!`,
+    };
+  }
+
+  // Rolling 20-Minute Auto-Flush (Sends accumulated edits every 20 mins while keeping timer running)
+  setInterval(async () => {
+    const now = Date.now();
+    for (let uname in userBatchAlertBuffers) {
+      const buf = userBatchAlertBuffers[uname];
+      const lastCheckpoint = buf.lastFlushedAt || buf.startedAt;
+
+      if (now - lastCheckpoint >= 20 * 60 * 1000) {
+        const totalMins = Math.floor((now - buf.startedAt) / 60000);
+        if (buf.items.length > 0) {
+          await flushUserBatchAlerts(
+            uname,
+            `${totalMins}m elapsed (Auto-Checkpoint)`,
+            true, // Keep session alive for continued editing!
+          ).catch((e) => console.error("Batch Auto-Flush Error:", e.message));
+        } else {
+          // If user left timer idle for > 40 mins with zero edits, clean up safely
+          if (now - lastCheckpoint >= 40 * 60 * 1000) {
+            delete userBatchAlertBuffers[uname];
+          } else {
+            buf.lastFlushedAt = now;
+          }
+        }
+      }
+    }
+  }, 30000);
+
+  router.post("/batch-alert/start", verifyToken, (req, res) => {
+    if (req.user.role === "Viewer") {
+      return res.json({ success: false, message: "Access Denied." });
+    }
+    const uname = req.user.username;
+    userBatchAlertBuffers[uname] = {
+      active: true,
+      startedAt: Date.now(),
+      items: userBatchAlertBuffers[uname]?.items || [],
+    };
+    res.json({ success: true });
+  });
+
+  router.post("/batch-alert/flush", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer") {
+        return res.json({ success: false, message: "Access Denied." });
+      }
+      const { duration } = req.body;
+      const result = await flushUserBatchAlerts(req.user.username, duration);
+      res.json(result);
+    } catch (error) {
+      handleError(res, error, req.user.role, "BATCH_ALERT_FLUSH");
+    }
+  });
+
   function formatPlateNumber(val) {
     if (!val) return "";
     let p = String(val).toUpperCase().trim();
@@ -142,6 +340,38 @@ module.exports = function (pool, middlewares, helpers) {
     let normalMatch = raw.match(/^(\d+)([A-Z]+)$/);
     if (normalMatch) return normalMatch[1] + " " + normalMatch[2];
     return p.replace(/\s+/g, " ");
+  }
+
+  function isPersonNameCol(colName) {
+    if (!colName) return false;
+    const clean = String(colName).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    return [
+      "DRIVERNAME",
+      "OLDDRIVERNAME",
+      "OWNER",
+      "OWNERNAME",
+      "NATIONALITY",
+      "REMARK",
+      "REMARKS",
+      "STATUSREMARK",
+      "VATBILLSTATUS",
+      "IQAMANOTE",
+      "LICENCENOTE",
+      "LICENSENOTE",
+    ].includes(clean);
+  }
+
+  function formatPersonName(val) {
+    if (!val) return "";
+    const str = String(val).trim();
+    if (!str) return "";
+    const upper = str.toUpperCase();
+    if (upper === "IDK" || upper === "N/A" || upper === "NA") return upper;
+    return str
+      .replace(/\s+/g, " ")
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
   }
 
   function calculateDependentFields(rowData) {
@@ -591,9 +821,16 @@ module.exports = function (pool, middlewares, helpers) {
         let rowArray = [];
         headers.forEach((h) => {
           let val = dbRow.record_data[h];
-          if (val === undefined) {
-             // Case-insensitive fallback if exact case is missing
-             let foundKey = Object.keys(dbRow.record_data).find(k => k.replace(/\s+/g, "").toUpperCase() === h.replace(/\s+/g, "").toUpperCase());
+          if (val === undefined || val === null || String(val).trim() === "") {
+             // Case-insensitive fallback if exact case is missing or empty
+             let foundKey = Object.keys(dbRow.record_data).find(
+               (k) =>
+                 k.replace(/\s+/g, "").toUpperCase() ===
+                   h.replace(/\s+/g, "").toUpperCase() &&
+                 dbRow.record_data[k] !== undefined &&
+                 dbRow.record_data[k] !== null &&
+                 String(dbRow.record_data[k]).trim() !== "",
+             );
              if (foundKey) val = dbRow.record_data[foundKey];
           }
           rowArray.push(val || "");
@@ -773,7 +1010,7 @@ module.exports = function (pool, middlewares, helpers) {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      const { edits } = req.body;
+      const { edits, batchAlertMode } = req.body;
 
       if (req.user.role === "Viewer")
         throw new Error("Access Denied: Viewers cannot edit data.");
@@ -789,12 +1026,13 @@ module.exports = function (pool, middlewares, helpers) {
         }
 
         const recordRes = await client.query(
-          "SELECT plate_number, record_data FROM erp_records WHERE id = $1",
+          "SELECT sn, plate_number, record_data FROM erp_records WHERE id = $1",
           [dbId],
         );
         if (recordRes.rows.length === 0) continue;
 
         let currentData = recordRes.rows[0].record_data || {};
+        let recordSn = recordRes.rows[0].sn || currentData["SN"] || "N/A";
         
         // 🟢 FIX 1: Null/Undefined സുരക്ഷിതമായി സ്ട്രിങ്ങിലേക്ക് മാറ്റുന്നു
         let rawOldVal = currentData[colName] !== undefined && currentData[colName] !== null ? String(currentData[colName]).trim() : "";
@@ -812,6 +1050,8 @@ module.exports = function (pool, middlewares, helpers) {
         // 🟢 FIX 3: കൃത്യമായ മാറ്റം ഉണ്ടെങ്കിൽ മാത്രം ലോഗിൽ ചേർക്കുന്നു
         if (rawOldVal !== rawNewVal) {
           changeLogs.push({
+            dbId: dbId,
+            sn: recordSn,
             plate: plateNo,
             colName: colName,
             oldVal: rawOldVal !== "" ? rawOldVal : "(Blank)",
@@ -841,9 +1081,15 @@ module.exports = function (pool, middlewares, helpers) {
 
       await client.query("COMMIT");
 
-      // 🟢 NEW CODE: Live Telegram Alert Trigger (Instant - 0 Delay)
+      // 🟢 ISOLATED CHECK: Batch Timer ON aanenkil buffer-lekk, allengil Fire-and-forget live alert (Zero UI Lag)
       if (changeLogs.length > 0) {
-        await sendLiveTelegramAlert(req.user.username, changeLogs);
+        if (batchAlertMode || userBatchAlertBuffers[req.user.username]?.active) {
+          addChangesToBatchBuffer(req.user.username, changeLogs);
+        } else {
+          sendLiveTelegramAlert(req.user.username, changeLogs).catch((err) =>
+            console.error("Background Telegram Error:", err.message),
+          );
+        }
       }
 
       res.json({ success: true });
@@ -1092,7 +1338,7 @@ module.exports = function (pool, middlewares, helpers) {
         });
       }
 
-      const { edits } = req.body;
+      const { edits, batchAlertMode } = req.body;
       if (!Array.isArray(edits) || edits.length === 0) {
         return res.json({ success: false, message: "No edits provided." });
       }
@@ -1103,17 +1349,20 @@ module.exports = function (pool, middlewares, helpers) {
       for (let edit of edits) {
         let { dbId, colName, newValue, plate } = edit;
         const recordRes = await client.query(
-          "SELECT plate_number, record_data FROM erp_records WHERE id = $1",
+          "SELECT sn, plate_number, record_data FROM erp_records WHERE id = $1",
           [dbId],
         );
         if (recordRes.rows.length > 0) {
           let currentData = recordRes.rows[0].record_data || {};
+          let recordSn = recordRes.rows[0].sn || currentData["SN"] || "N/A";
           let rawOldVal = currentData[colName] !== undefined && currentData[colName] !== null ? String(currentData[colName]).trim() : "";
           let rawNewVal = newValue !== undefined && newValue !== null ? String(newValue).trim() : "";
           let plateNo = plate || recordRes.rows[0].plate_number || currentData["PLATE NUMBER"] || currentData["Plate Number"] || "N/A";
 
           if (rawOldVal !== rawNewVal) {
             changeLogs.push({
+              dbId: dbId,
+              sn: recordSn,
               plate: plateNo,
               colName: colName,
               oldVal: rawOldVal !== "" ? rawOldVal : "(Blank)",
@@ -1160,9 +1409,15 @@ module.exports = function (pool, middlewares, helpers) {
         )
         .catch((err) => console.error("Log error:", err.message));
 
-      // 🟢 FIX: നിലവിലുള്ള sendLiveTelegramAlert ഫങ്ഷൻ കൃത്യമായി വിളിക്കുന്നു
+      // 🟢 ISOLATED CHECK: Batch Timer ON aanenkil buffer-lekk, allengil Fire-and-forget live alert (Zero UI Lag)
       if (changeLogs.length > 0) {
-        await sendLiveTelegramAlert(req.user.username, changeLogs);
+        if (batchAlertMode || userBatchAlertBuffers[req.user.username]?.active) {
+          addChangesToBatchBuffer(req.user.username, changeLogs);
+        } else {
+          sendLiveTelegramAlert(req.user.username, changeLogs).catch((err) =>
+            console.error("Background Telegram Error:", err.message),
+          );
+        }
       }
 
       res.json(pyResponse.data);
@@ -1818,15 +2073,116 @@ router.post("/update-expiry-dates", verifyToken, async (req, res) => {
       );
 
       if (changeLogs.length > 0) {
-        await sendLiveTelegramAlert(req.user.username, changeLogs);
+        sendLiveTelegramAlert(req.user.username, changeLogs).catch((err) =>
+          console.error("Background Telegram Error:", err.message),
+        );
       }
     }
 
     res.json({ success: true, message: "Expiry dates updated successfully." });
-  } catch (error) {
-    handleError(res, error, req.user.role, "UPDATE_EXPIRY");
-  }
-});
+    } catch (error) {
+      handleError(res, error, req.user.role, "UPDATE_EXPIRY");
+    }
+  });
+
+  // ==========================================
+  // 🧮 ISOLATED RECALCULATE DAYS WORKED API
+  // ==========================================
+  router.post("/recalculate-days-worked", verifyToken, async (req, res) => {
+    const client = await pool.connect();
+    try {
+      if (req.user.role === "Viewer") {
+        return res.json({
+          success: false,
+          message: "Access Denied: Viewers cannot run recalculation.",
+        });
+      }
+
+      const { role, site, username } = req.user;
+      let query = "SELECT id, record_data FROM erp_records WHERE deleted_at IS NULL";
+      let params = [];
+
+      // Site-restricted editors only recalculate their assigned site
+      if (role !== "Admin" && role !== "Super Admin") {
+        query +=
+          " AND TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))";
+        params = [site];
+      }
+
+      await client.query("BEGIN");
+
+      // 🟢 erp_headers ടേബിളിൽ നിന്ന് കൃത്യമായ കോളം പേര് ('Days Worked') എടുക്കുന്നു
+      const hdrRes = await client.query(
+        "SELECT header_name FROM erp_headers WHERE deleted_at IS NULL",
+      );
+      const exactDaysHeader =
+        hdrRes.rows.find(
+          (h) =>
+            h.header_name.replace(/\s+/g, "").toUpperCase() === "DAYSWORKED",
+        )?.header_name || COLUMNS.DAYS_WORKED;
+
+      const recordsRes = await client.query(query, params);
+      let updatedCount = 0;
+
+      for (const row of recordsRes.rows) {
+        const currentData = row.record_data || {};
+        const calculated = calculateDependentFields(currentData);
+
+        // calculated ഒബ്ജക്റ്റിൽ നിന്ന് (അത് 'DAYS WORKED' ആയാലും 'Days Worked' ആയാലും) വാല്യൂ എടുക്കുന്നു
+        const calcKey = Object.keys(calculated).find(
+          (k) => k.replace(/\s+/g, "").toUpperCase() === "DAYSWORKED",
+        );
+
+        const existingKey = Object.keys(currentData).find(
+          (k) => k.replace(/\s+/g, "").toUpperCase() === "DAYSWORKED",
+        );
+
+        const oldDays = existingKey
+          ? String(currentData[existingKey] || "").trim()
+          : "";
+        const newDays =
+          calcKey && calculated[calcKey] !== undefined
+            ? String(calculated[calcKey]).trim()
+            : oldDays;
+
+        // പഴയ കീ 'DAYS WORKED' ആണെങ്കിൽ അത് മാറ്റി കൃത്യമായ 'Days Worked' ആക്കുന്നു
+        const needsKeyFix =
+          existingKey && existingKey !== exactDaysHeader && newDays !== "";
+
+        if (oldDays !== newDays || needsKeyFix) {
+          let updatedJson = { [exactDaysHeader]: newDays };
+          await client.query(
+            `UPDATE erp_records
+             SET record_data = (record_data - 'DAYS WORKED') || $1::jsonb,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2`,
+            [JSON.stringify(updatedJson), row.id],
+          );
+          updatedCount++;
+        }
+      }
+
+      await client.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'RECALCULATE_DAYS_WORKED', $2)",
+        [username, JSON.stringify({ updatedCount })],
+      );
+
+      await client.query("COMMIT");
+
+      res.json({
+        success: true,
+        message:
+          updatedCount > 0
+            ? `Successfully recalculated and updated ${updatedCount} record(s)!`
+            : "All records are already up to date!",
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      handleError(res, error, req.user.role, "RECALCULATE_DAYS_WORKED");
+    } finally {
+      client.release();
+    }
+  });
 
   return router;
 };

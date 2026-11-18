@@ -275,6 +275,12 @@ function buildUserMenu() {
       `<a href="./admin/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--primary);">admin_panel_settings</span> Admin Console</a><a href="./log/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:#14b8a6;">history</span> View Logs</a><button class="user-dropdown-item" onclick="runLegacyMigration()"><span class="material-icons" style="font-size:16px; color:#f59e0b;">sync_alt</span> Sync Legacy Logs</button><a href="./recycle_bin.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--danger);">delete_sweep</span> Recycle Bin</a><div class="user-dropdown-divider"></div>`,
     );
   }
+  if (currentUser.role !== "Viewer") {
+    menu.insertAdjacentHTML(
+      "beforeend",
+      `<button class="user-dropdown-item" onclick="recalculateAllDaysWorked()"><span class="material-icons" style="font-size:16px; color:#0284c7;">calculate</span> Recalculate Days Worked</button><div class="user-dropdown-divider"></div>`,
+    );
+  }
   menu.insertAdjacentHTML(
     "beforeend",
     `<button class="user-dropdown-item danger" onclick="performLogout()"><span class="material-icons" style="font-size:16px;">logout</span> Logout</button>`,
@@ -310,11 +316,15 @@ function resetInactivityTimer() {
 resetInactivityTimer();
 
 window.addEventListener("beforeunload", function (e) {
-  if (saveQueue.length > 0) {
-    clearTimeout(editDebounceTimer);
-    processQueue();
+  if (saveQueue.length > 0 || isBatchAlertActive) {
+    if (saveQueue.length > 0) {
+      clearTimeout(editDebounceTimer);
+      processQueue();
+    }
 
-    const confirmationMessage = "Data is saving in background. Leave site?";
+    const confirmationMessage = isBatchAlertActive
+      ? "Batch Telegram Alert timer is still running! Please stop the timer before leaving."
+      : "Data is saving in background. Leave site?";
     e.returnValue = confirmationMessage;
     return confirmationMessage;
   }
@@ -440,6 +450,50 @@ function formatPlateNumber(val) {
   let normalMatch = raw.match(/^(\d+)([A-Z]+)$/);
   if (normalMatch) return normalMatch[1] + " " + normalMatch[2];
   return p.replace(/\s+/g, " ");
+}
+
+// 🟢 Title Case Formatter for Driver Name, Owner Name, Nationality, Remarks & Notes
+function isPersonNameColumn(colName) {
+  if (!colName) return false;
+  const clean = String(colName).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  return [
+    "DRIVERNAME",
+    "OLDDRIVERNAME",
+    "OWNER",
+    "OWNERNAME",
+    "NATIONALITY",
+    "REMARK",
+    "REMARKS",
+    "STATUSREMARK",
+    "VATBILLSTATUS",
+    "IQAMANOTE",
+    "LICENCENOTE",
+    "LICENSENOTE",
+  ].includes(clean);
+}
+
+function formatPersonName(val) {
+  if (!val) return "";
+  const str = String(val).trim();
+  if (!str) return "";
+  const upper = str.toUpperCase();
+  if (upper === "IDK" || upper === "N/A" || upper === "NA") return upper;
+
+  // Preserve line breaks (\n) while converting every word to Title Case
+  return str
+    .split("\n")
+    .map((line) =>
+      line
+        .trim()
+        .replace(/\s+/g, " ")
+        .split(" ")
+        .map((word) => {
+          if (!word) return "";
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        })
+        .join(" "),
+    )
+    .join("\n");
 }
 
 async function fetchData(isSilent = false) {
@@ -1010,7 +1064,7 @@ function openEditLogModal(id, name, mob, start, end, remark) {
 
 async function submitEditLog() {
   let id = $("#editLogId").val(),
-    name = $("#editLogName").val().trim(),
+    name = formatPersonName($("#editLogName").val().trim()),
     mob = $("#editLogMob").val().trim(),
     startRaw = $("#editLogStart").val(),
     end = $("#editLogEnd").val();
@@ -1135,7 +1189,7 @@ function deleteDriverLog(id) {
 
 // FIX: Driver Strict Date Validation and Release Handling
 async function submitDriverUpdate() {
-  let nName = $("#drvUpdateNewName").val().trim();
+  let nName = formatPersonName($("#drvUpdateNewName").val().trim());
   let nMob = $("#drvUpdateNewMob").val().trim();
 
   if (currentDriverModalMode === "current_update") {
@@ -1148,9 +1202,9 @@ async function submitDriverUpdate() {
     let iqamaExp = iqamaExpRaw ? formatToDDMMMYYYY(iqamaExpRaw) : "";
     let licenceExpRaw = $("#drvUpdateLicenceExp").val();
     let licenceExp = licenceExpRaw ? formatToDDMMMYYYY(licenceExpRaw) : "";
-    let iqamaNote = $("#drvUpdateIqamaNote").val().trim();
-    let licenceNote = $("#drvUpdateLicenceNote").val().trim();
-    let nationality = $("#drvUpdateNationality").val().trim();
+    let iqamaNote = formatPersonName($("#drvUpdateIqamaNote").val().trim());
+    let licenceNote = formatPersonName($("#drvUpdateLicenceNote").val().trim());
+    let nationality = formatPersonName($("#drvUpdateNationality").val().trim());
 
     showToast("Updating Current Driver...", "info");
 
@@ -2236,6 +2290,9 @@ function renderTable(response, preserveState = true) {
           alignVal === "center",
         isRight = alignVal === "right",
         stylesArr = [];
+      if (isPersonNameColumn(colName) && cell) {
+        cell = formatPersonName(cell);
+      }
       let isSN = colHead === "SN";
       if (isSN) {
         cell = snCounter++;
@@ -3597,7 +3654,7 @@ function openAddEntryModal(dbId = null, clone = false) {
       optionsCompHtml += `<option value="ADD_NEW_COMPANY" style="font-weight:bold; color:#2563eb;">+ Add New Company</option>`;
       inputHtml = `<select class="modal-input entry-input company-modal-select" data-colname="${header}" onchange="handleModalCompanyChange(this)"><option value="">Select Company</option>${optionsCompHtml}</select>`;
     } else if (colUpper === "VAT BILL OR NOT") {
-      inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">Select Option</option><option value="Yes">Yes</option><option value="No">No</option></select>`;
+      inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">Select Option</option><option value="Yes">Yes</option><option value="No">No</option><option value="Partial">Partial</option></select>`;
     } else if (
       colUpper === "SITE" &&
       currentUser.role !== "Admin" &&
@@ -3877,6 +3934,7 @@ async function submitNewEntry(keepOpen = false) {
         colUpper === "LAST WORKING DAY" ||
         colUpper === "WORK START";
     if (isDateCol && val) val = formatToDDMMMYYYY(val);
+    else if (isPersonNameColumn(cName) && val) val = formatPersonName(val);
     rowDataObj[$(this).data("colname")] = val;
   });
 
@@ -4072,7 +4130,10 @@ async function processQueue() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ edits: currentBatch }),
+      body: JSON.stringify({
+        edits: currentBatch,
+        batchAlertMode: isBatchAlertActive,
+      }),
       keepalive: true,
     });
     const data = await res.json();
@@ -4346,10 +4407,10 @@ function attachEditListeners() {
           inputHtml = `<select class="edit-input"><option value=""></option>${optionsCompHtml}</select>`;
           isSelect = true;
         } else if (colUpper === "VAT BILL OR NOT") {
-          let optsVat = ["Yes", "No"],
+          let optsVat = ["Yes", "No", "Partial"],
             optionsVatHtml = optsVat
               .map(function (o) {
-                return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
+                return `<option value="${o}" ${oldVal.toLowerCase() === o.toLowerCase() ? "selected" : ""}>${o}</option>`;
               })
               .join("");
           inputHtml = `<select class="edit-input"><option value=""></option>${optionsVatHtml}</select>`;
@@ -4477,6 +4538,8 @@ function attachEditListeners() {
           if (isDateCol && newVal) newVal = formatToDDMMMYYYY(newVal);
           else if (colUpper === "PLATE NUMBER")
             newVal = formatPlateNumber(newVal);
+          else if (isPersonNameColumn(colName) && newVal)
+            newVal = formatPersonName(newVal);
 
           $cell
             .removeClass("editing-cell")
@@ -4570,6 +4633,7 @@ function attachEditListeners() {
 // ? BULK EDIT EXCEL COPY-PASTE ENGINE
 // ==========================================
 let isBulkEditModeActive = false;
+let isBatchTriggeredByBulkEdit = false;
 
 function toggleBulkEditMode() {
   isBulkEditModeActive = !isBulkEditModeActive;
@@ -4582,14 +4646,29 @@ function toggleBulkEditMode() {
       color: "white",
       "border-color": "var(--success)",
     });
+
+    // 🟢 Auto-enable Batch Alert Clock if not already active
+    if (!isBatchAlertActive) {
+      isBatchTriggeredByBulkEdit = true;
+      toggleBatchAlertSession(true);
+    } else {
+      isBatchTriggeredByBulkEdit = false;
+    }
+
     showToast(
-      "Bulk Edit Enabled! Click a starting cell and press Ctrl+V to paste from Excel.",
+      "Bulk Edit & Batch Alert Timer Enabled! Paste from Excel (Ctrl+V).",
       "success",
     );
   } else {
     $("#erpTable").removeClass("bulk-edit-grid-active");
     btn.css({ background: "", color: "", "border-color": "" });
     showToast("Bulk Edit Disabled", "info");
+
+    // 🟢 Auto-stop Batch Alert Clock & send combined Telegram alerts if triggered by Bulk Edit
+    if (isBatchAlertActive && isBatchTriggeredByBulkEdit) {
+      isBatchTriggeredByBulkEdit = false;
+      toggleBatchAlertSession(true);
+    }
   }
 }
 
@@ -4659,6 +4738,8 @@ $(document).on(
           if (isDateCol && newValue) newValue = formatToDDMMMYYYY(newValue);
           else if (colUpper === "PLATE NUMBER")
             newValue = formatPlateNumber(newValue);
+          else if (isPersonNameColumn(colName) && newValue)
+            newValue = formatPersonName(newValue);
 
           if (oldValue !== newValue) {
             let colIdxInDataTable = cachedHeaders.indexOf(colName);
@@ -4948,4 +5029,218 @@ function playUserJoinedSound() {
   } catch (e) {
     console.error("Audio play error:", e);
   }
+}
+
+// ==========================================
+// ⏱️ ISOLATED BATCH TELEGRAM ALERT CONTROLLER
+// ==========================================
+let isBatchAlertActive = false;
+let batchAlertStartTime = null;
+let batchStopwatchInterval = null;
+let batchModalAutoCloseTimer = null;
+let batchModalCountdownInterval = null;
+
+function formatStopwatchDuration(seconds) {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return hrs > 0
+    ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}`
+    : `${pad(mins)}:${pad(secs)}`;
+}
+
+async function toggleBatchAlertSession(isAutoFromBulk = false) {
+  if (currentUser.role === "Viewer") {
+    return showToast("Access Denied: Viewers cannot send alerts.", "error");
+  }
+
+  // If user manually clicks the clock icon, clear the bulk-edit auto link
+  if (!isAutoFromBulk) {
+    isBatchTriggeredByBulkEdit = false;
+  }
+
+  const btn = document.getElementById("btnBatchClockToggle");
+  const timerDisplay = document.getElementById("batchStopwatchDisplay");
+
+  // 1. START BATCH SESSION
+  if (!isBatchAlertActive) {
+    isBatchAlertActive = true;
+    batchAlertStartTime = Date.now();
+
+    btn.style.background = "#fee2e2";
+    btn.style.borderColor = "#ef4444";
+    btn.style.boxShadow = "0 0 8px rgba(239, 68, 68, 0.4)";
+
+    timerDisplay.innerText = "00:00";
+    timerDisplay.style.display = "block";
+
+    batchStopwatchInterval = setInterval(() => {
+      const elapsedSec = Math.floor((Date.now() - batchAlertStartTime) / 1000);
+      timerDisplay.innerText = formatStopwatchDuration(elapsedSec);
+    }, 1000);
+
+    try {
+      await fetch("/api/batch-alert/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!isAutoFromBulk) {
+        showToast(
+          "Batch Alert Timer Started! All edits will be combined.",
+          "info",
+        );
+      }
+    } catch (e) {
+      console.warn("Batch start sync note:", e);
+    }
+    return;
+  }
+
+  // 2. STOP BATCH SESSION & SEND COMBINED ALERTS
+  isBatchTriggeredByBulkEdit = false;
+  const totalElapsedSec = Math.floor((Date.now() - batchAlertStartTime) / 1000);
+  const durationLabel = formatStopwatchDuration(totalElapsedSec);
+
+  clearInterval(batchStopwatchInterval);
+  batchStopwatchInterval = null;
+  isBatchAlertActive = false;
+
+  btn.style.background = "#f8fafc";
+  btn.style.borderColor = "var(--border-color)";
+  btn.style.boxShadow = "none";
+  timerDisplay.style.display = "none";
+  timerDisplay.innerText = "00:00";
+
+  // Open Custom Modal with Spinner
+  openBatchTelegramModal();
+
+  // Flush any pending unsaved cell edits in frontend queue first
+  if (saveQueue.length > 0) {
+    clearTimeout(editDebounceTimer);
+    await processQueue();
+    // Wait briefly to ensure queue finishes flushing
+    while (isProcessingQueue || saveQueue.length > 0) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+
+  try {
+    const res = await fetch("/api/batch-alert/flush", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ duration: durationLabel }),
+    });
+    const data = await res.json();
+    completeBatchTelegramModal(
+      data.success,
+      data.message || "Combined Telegram alerts sent successfully!",
+    );
+  } catch (err) {
+    completeBatchTelegramModal(
+      false,
+      "Network error while sending combined alerts.",
+    );
+  }
+}
+
+function openBatchTelegramModal() {
+  clearTimeout(batchModalAutoCloseTimer);
+  clearInterval(batchModalCountdownInterval);
+
+  $("#batchModalStatusText")
+    .text(
+      "All changes made so far are being combined and sent to Telegram. Please wait until the update completes and do not close this screen.",
+    )
+    .css("color", "#475569");
+  $("#batchModalSpinner").show();
+  $("#batchModalCloseContainer").hide();
+  $("#batchTelegramModalOverlay").css("display", "flex");
+}
+
+function completeBatchTelegramModal(isSuccess, customMsg) {
+  $("#batchModalSpinner").hide();
+  $("#batchModalStatusText")
+    .text(customMsg)
+    .css("color", isSuccess ? "#059669" : "#dc2626");
+  $("#batchModalCloseContainer").css("display", "flex");
+
+  let secondsLeft = 15;
+  $("#batchModalAutoCloseHint").text(`Auto-closing in ${secondsLeft}s...`);
+
+  batchModalCountdownInterval = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft > 0) {
+      $("#batchModalAutoCloseHint").text(`Auto-closing in ${secondsLeft}s...`);
+    } else {
+      clearInterval(batchModalCountdownInterval);
+    }
+  }, 1000);
+
+  batchModalAutoCloseTimer = setTimeout(() => {
+    closeBatchTelegramModal();
+  }, 15000);
+}
+
+function closeBatchTelegramModal() {
+  clearTimeout(batchModalAutoCloseTimer);
+  clearInterval(batchModalCountdownInterval);
+  $("#batchTelegramModalOverlay").hide();
+}
+
+// ==========================================
+// 🧮 ISOLATED RECALCULATE DAYS WORKED TRIGGER
+// ==========================================
+async function recalculateAllDaysWorked() {
+  const userMenu = document.getElementById("userDropdownMenu");
+  if (userMenu) userMenu.classList.remove("show");
+
+  if (currentUser.role === "Viewer") {
+    return showToast("Access Denied: Viewers cannot run recalculation.", "error");
+  }
+
+  Swal.fire({
+    title: "Recalculate Days Worked?",
+    text: "This will scan all records and recalculate 'DAYS WORKED' based on Work Start and Last Working Day.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#0284c7",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "Yes, Recalculate Now",
+  }).then(async (result) => {
+    if (!result.isConfirmed) return;
+
+    Swal.fire({
+      title: "Recalculating...",
+      text: "Updating database records, please wait...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+      const res = await fetch("/api/recalculate-days-worked", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        await fetchMasterDataInstant();
+        Swal.fire("Completed!", data.message, "success");
+      } else {
+        Swal.fire("Error", data.message || "Failed to recalculate.", "error");
+      }
+    } catch (e) {
+      Swal.fire("Error", "Network error while recalculating.", "error");
+    }
+  });
 }
