@@ -2798,6 +2798,27 @@ function updateParentCheckboxes() {
   }
 }
 
+const _cleanCellCache = new Map();
+const _decodeBox = document.createElement("textarea");
+function cleanCellText(v) {
+  const raw = String(v == null ? "" : v);
+  let out = _cleanCellCache.get(raw);
+  if (out === undefined) {
+    _decodeBox.innerHTML = raw;
+    out = _decodeBox.value.replace(/[\r\n\u2028]/g, " ").trim();
+    if (_cleanCellCache.size > 50000) _cleanCellCache.clear();
+    _cleanCellCache.set(raw, out);
+  }
+  return out;
+}
+function escFilterHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function openFilterMenu(event, colName, iconElement) {
   event.stopPropagation();
   currentFilterColName = colName;
@@ -2937,7 +2958,7 @@ function openFilterMenu(event, colName, iconElement) {
         continue;
       }
 
-      let cellVal = String(rowData[fIdx] || "").trim();
+      let cellVal = cleanCellText(rowData[fIdx]);
       if (!allowedValues.includes(cellVal)) {
         passesOtherFilters = false;
         break;
@@ -2995,7 +3016,7 @@ function openFilterMenu(event, colName, iconElement) {
     }
 
     if (passesOtherFilters) {
-      allOptions.add(String(rowData[colIdx] || "").trim());
+      allOptions.add(cleanCellText(rowData[colIdx]));
     }
   });
 
@@ -3119,11 +3140,11 @@ function openFilterMenu(event, colName, iconElement) {
     $(".day-cb, .leaf-cb").on("change", updateParentCheckboxes);
   } else {
     allData.forEach((val) => {
-      let displayVal = val.trim() === "" ? "(Blank)" : val,
+      let displayVal = val.trim() === "" ? "(Blank)" : escFilterHtml(val),
         isChecked = isAllSelected || previouslySelected.includes(val),
         id = "flt_" + Math.random().toString(36).substr(2, 9);
       listContainer.append(
-        `<div class="filter-item filter-row-item"><input type="checkbox" id="${id}" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb"><label for="${id}">${displayVal}</label></div>`,
+        `<div class="filter-item filter-row-item"><input type="checkbox" id="${id}" value="${escFilterHtml(val)}" ${isChecked ? "checked" : ""} class="col-filter-cb"><label for="${id}">${displayVal}</label></div>`,
       );
     });
     $(".col-filter-cb").on("change", updateParentCheckboxes);
