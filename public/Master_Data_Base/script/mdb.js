@@ -3477,6 +3477,9 @@ function openAddEntryModal(dbId = null, clone = false) {
     "SITE",
     "CUSTOMER",
     "OWNER",
+    "OWNER NAME",
+    "DRIVER NAME",
+    "NATIONALITY",
     "FIELD COORDINATOR",
     "FIELD CO",
     "SITE COORDINATOR",
@@ -3491,8 +3494,12 @@ function openAddEntryModal(dbId = null, clone = false) {
           .column(index)
           .data()
           .each((val) => {
-            if (val && String(val).trim() !== "")
-              uniqueVals.add(String(val).trim());
+            if (val && String(val).trim() !== "") {
+              let cleanVal = isPersonNameColumn(header)
+                ? formatPersonName(String(val).trim())
+                : String(val).trim();
+              uniqueVals.add(cleanVal);
+            }
           });
       }
       let optionsHtml = Array.from(uniqueVals)
@@ -3502,6 +3509,16 @@ function openAddEntryModal(dbId = null, clone = false) {
       listsHtml += `<datalist id="datalist_entry_${index}">${optionsHtml}</datalist>`;
     }
   });
+
+  // 🟢 Dynamic Dependent Datalists (Populated on Owner / Driver / Plate selection)
+  listsHtml += `
+    <datalist id="datalist_dyn_owner_mob"></datalist>
+    <datalist id="datalist_dyn_driver_mob"></datalist>
+    <datalist id="datalist_dyn_driver_nat"></datalist>
+    <datalist id="datalist_dyn_driver_iqama"></datalist>
+    <datalist id="datalist_dyn_plate_chassis"></datalist>
+    <datalist id="datalist_dyn_plate_serial"></datalist>
+  `;
   $("#dynamicFormFields").append(listsHtml);
 
   // 🟢 ഒഴിവാക്കേണ്ട കോളങ്ങൾ (PAY FROM, OFFICE REMARK എന്നിവ Others-ലേക്ക് വരാൻ അനുവദിച്ചു)
@@ -3630,6 +3647,18 @@ function openAddEntryModal(dbId = null, clone = false) {
       if (plateIdx !== -1) {
         listAttr = `list="datalist_entry_${plateIdx}"`;
       }
+    } else if (
+      ["OWNERNUMBER", "MOBILEOWNER", "MOBILENUMBEROWNER"].includes(norm)
+    ) {
+      listAttr = `list="datalist_dyn_owner_mob"`;
+    } else if (["MOBILE", "MOBILES", "DRIVERMOBILE"].includes(norm)) {
+      listAttr = `list="datalist_dyn_driver_mob"`;
+    } else if (["IQAMANUMBER", "IQAMANO"].includes(norm)) {
+      listAttr = `list="datalist_dyn_driver_iqama"`;
+    } else if (["CHASISNO", "CHASSISNO", "CHASSISNUMBER"].includes(norm)) {
+      listAttr = `list="datalist_dyn_plate_chassis"`;
+    } else if (["SERIALNUMBER", "SERIALNO"].includes(norm)) {
+      listAttr = `list="datalist_dyn_plate_serial"`;
     }
 
     let inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" ${listAttr}>`;
@@ -3914,6 +3943,128 @@ function openAddEntryModal(dbId = null, clone = false) {
     })
     .val();
   updateModalStatusToggle(currentModalStatus);
+
+  // 🟢 ISOLATED DEPENDENT SUGGESTIONS ENGINE (Suggestions Only - Never Auto-Fills)
+  function refreshDependentSuggestions() {
+    if (!erpDataTable) return;
+    const allRows = erpDataTable.rows().data().toArray();
+    const findColIdx = (norms) =>
+      cachedHeaders.findIndex((h) => norms.includes(normStr(h)));
+
+    const idxOwner = findColIdx(["OWNER", "OWNERNAME"]);
+    const idxOwnerMob = findColIdx([
+      "OWNERNUMBER",
+      "MOBILEOWNER",
+      "MOBILENUMBEROWNER",
+    ]);
+    const idxDrv = findColIdx(["DRIVERNAME"]);
+    const idxDrvMob = findColIdx(["MOBILE", "MOBILES", "DRIVERMOBILE"]);
+    const idxDrvNat = findColIdx(["NATIONALITY"]);
+    const idxDrvIqama = findColIdx(["IQAMANUMBER", "IQAMANO"]);
+    const idxPlate = findColIdx(["PLATENUMBER", "PLATENO"]);
+    const idxChassis = findColIdx(["CHASISNO", "CHASSISNO", "CHASSISNUMBER"]);
+    const idxSerial = findColIdx(["SERIALNUMBER", "SERIALNO"]);
+
+    const getModalVal = (norms) => {
+      let val = "";
+      $(".entry-input").each(function () {
+        if (norms.includes(normStr($(this).data("colname")))) {
+          val = String($(this).val() || "").trim();
+        }
+      });
+      return val;
+    };
+
+    const buildDatalistOpts = (setObj) =>
+      Array.from(setObj)
+        .sort()
+        .map((v) => `<option value="${String(v).replace(/"/g, "&quot;")}">`)
+        .join("");
+
+    // 1. Owner -> Owner Number Suggestions
+    const selOwner = getModalVal(["OWNER", "OWNERNAME"]).toLowerCase();
+    const ownerMobs = new Set();
+    if (idxOwner !== -1 && idxOwnerMob !== -1 && selOwner) {
+      allRows.forEach((r) => {
+        const rOwner = String(r[idxOwner] || "").trim().toLowerCase();
+        const rMob = String(r[idxOwnerMob] || "").trim();
+        if (rOwner === selOwner && rMob) ownerMobs.add(rMob);
+      });
+    }
+    $("#datalist_dyn_owner_mob").html(buildDatalistOpts(ownerMobs));
+
+    // 2. Driver Name -> Mobile, Nationality, Iqama Number Suggestions
+    const selDrv = getModalVal(["DRIVERNAME"]).toLowerCase();
+    const drvMobs = new Set();
+    const drvNats = new Set();
+    const drvIqamas = new Set();
+    if (idxDrv !== -1 && selDrv) {
+      allRows.forEach((r) => {
+        const rDrv = String(r[idxDrv] || "").trim().toLowerCase();
+        if (rDrv === selDrv) {
+          if (idxDrvMob !== -1 && r[idxDrvMob])
+            drvMobs.add(String(r[idxDrvMob]).trim());
+          if (idxDrvNat !== -1 && r[idxDrvNat])
+            drvNats.add(formatPersonName(String(r[idxDrvNat]).trim()));
+          if (idxDrvIqama !== -1 && r[idxDrvIqama])
+            drvIqamas.add(String(r[idxDrvIqama]).trim());
+        }
+      });
+    }
+    $("#datalist_dyn_driver_mob").html(buildDatalistOpts(drvMobs));
+    $("#datalist_dyn_driver_iqama").html(buildDatalistOpts(drvIqamas));
+
+    // Update Nationality list: If driver has known nationalities, show them; otherwise keep all DB nationalities
+    const natInput = $(".entry-input").filter(function () {
+      return normStr($(this).data("colname")) === "NATIONALITY";
+    });
+    if (natInput.length) {
+      if (drvNats.size > 0) {
+        $("#datalist_dyn_driver_nat").html(buildDatalistOpts(drvNats));
+        natInput.attr("list", "datalist_dyn_driver_nat");
+      } else if (idxDrvNat !== -1) {
+        natInput.attr("list", `datalist_entry_${idxDrvNat}`);
+      }
+    }
+
+    // 3. Plate Number -> Chassis No & Serial Number Suggestions
+    const selPlate = formatPlateNumber(
+      getModalVal(["PLATENUMBER", "PLATENO"]),
+    ).toUpperCase();
+    const plateChassis = new Set();
+    const plateSerials = new Set();
+    if (idxPlate !== -1 && selPlate) {
+      allRows.forEach((r) => {
+        const rPlate = formatPlateNumber(
+          String(r[idxPlate] || ""),
+        ).toUpperCase();
+        if (rPlate === selPlate) {
+          if (idxChassis !== -1 && r[idxChassis])
+            plateChassis.add(String(r[idxChassis]).trim());
+          if (idxSerial !== -1 && r[idxSerial])
+            plateSerials.add(String(r[idxSerial]).trim());
+        }
+      });
+    }
+    $("#datalist_dyn_plate_chassis").html(buildDatalistOpts(plateChassis));
+    $("#datalist_dyn_plate_serial").html(buildDatalistOpts(plateSerials));
+  }
+
+  $(document)
+    .off("input.depSuggest change.depSuggest", ".entry-input")
+    .on("input.depSuggest change.depSuggest", ".entry-input", function () {
+      const colClean = normStr($(this).data("colname"));
+      if (
+        ["OWNER", "OWNERNAME", "DRIVERNAME", "PLATENUMBER", "PLATENO"].includes(
+          colClean,
+        )
+      ) {
+        refreshDependentSuggestions();
+      }
+    });
+
+  // Run once on open (useful when Editing or Cloning a row)
+  refreshDependentSuggestions();
 
   $("#entryModalOverlay").css("display", "flex");
 }
