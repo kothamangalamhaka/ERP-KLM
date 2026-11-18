@@ -3106,13 +3106,17 @@
           document.getElementById("watermarkLogo").style.display = "none";
         }
 
-        const addr = [comp.address_line_ar, comp.address_line_en]
-          .filter(Boolean)
-          .join(" | ");
-        document.getElementById("footerAddrContainer").innerText = addr;
-        document.getElementById("footerEmail").innerText = comp.email
-          ? `E-mail: ${comp.email}`
-          : "";
+        const ftParts = [];
+        if (comp.address_line_ar)
+          ftParts.push(`<span dir="rtl" style="unicode-bidi:isolate;">${comp.address_line_ar.trim()}</span>`);
+        if (comp.address_line_en)
+          ftParts.push(`<span dir="ltr" style="unicode-bidi:isolate;">${comp.address_line_en.trim()}</span>`);
+        if (comp.email)
+          ftParts.push(`<span dir="ltr" style="unicode-bidi:isolate;">${comp.email.trim()}</span>`);
+        document.getElementById("footerAddrContainer").innerHTML = ftParts
+          .map((p, i) => `<span style="white-space:nowrap;">${p}${i < ftParts.length - 1 ? " |" : ""}</span>`)
+          .join(" ");
+        document.getElementById("footerEmail").innerText = "";
 
         const currentInvNo = document
           .getElementById("invNoDisplay")

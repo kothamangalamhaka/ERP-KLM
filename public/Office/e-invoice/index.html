@@ -3399,11 +3399,17 @@
           document.getElementById("watermarkLogo").style.display = "none";
         }
 
-        const addrParts = [];
-        if (comp.address_line_ar) addrParts.push(comp.address_line_ar.trim());
-        if (comp.address_line_en) addrParts.push(comp.address_line_en.trim());
-        document.getElementById("footerAddrContainer").innerText = addrParts.join(" | ");
-        document.getElementById("footerEmail").innerText = comp.email ? `E-mail: ${comp.email}` : "";
+        const ftParts = [];
+        if (comp.address_line_ar)
+          ftParts.push(`<span dir="rtl" style="unicode-bidi:isolate;">${comp.address_line_ar.trim()}</span>`);
+        if (comp.address_line_en)
+          ftParts.push(`<span dir="ltr" style="unicode-bidi:isolate;">${comp.address_line_en.trim()}</span>`);
+        if (comp.email)
+          ftParts.push(`<span dir="ltr" style="unicode-bidi:isolate;">${comp.email.trim()}</span>`);
+        document.getElementById("footerAddrContainer").innerHTML = ftParts
+          .map((p, i) => `<span style="white-space:nowrap;">${p}${i < ftParts.length - 1 ? " |" : ""}</span>`)
+          .join(" ");
+        document.getElementById("footerEmail").innerText = "";
 
         if (existingInvNo && !sessionStorage.getItem("einv_force_new_seq")) {
           syncInvNoDisplays(existingInvNo);

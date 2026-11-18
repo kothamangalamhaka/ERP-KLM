@@ -23,9 +23,12 @@
       .upload-row-container {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 15px;
         margin-top: 5px;
+      }
+      .upload-row-container .form-group {
+        min-width: 0;
       }
       .custom-upload-btn {
         background: #f1f5f9;
@@ -58,7 +61,10 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 100%;
+        display: block;
+        width: 100%;
+        min-width: 0;
+        text-align: center;
       }
       table { width: 100%; border-collapse: collapse; margin-top: 25px; font-size: 13px; }
       th, td { border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; }
