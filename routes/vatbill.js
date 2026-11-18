@@ -98,7 +98,7 @@ router.get("/data", verifyVatCode, async (req, res) => {
       console.warn("vehicle_plate_log query warning:", plErr.message);
     }
 
-    // 2.1 Fetch Owner Logs with VAT status, LF and safe fallback
+    // 2.1 Fetch Owner Logs with VAT status, VAT No, Display Name, LF and safe fallback
     let ownerLogs = [];
     try {
       const ownerLogRes = await pool.query(
@@ -107,6 +107,8 @@ router.get("/data", verifyVatCode, async (req, res) => {
                     plate_no, 
                     owner_name, 
                     vat,
+                    COALESCE(vat_no, '') as vat_no,
+                    COALESCE(company_display_name, '') as company_display_name,
                     COALESCE(ledger_folio, '') as ledger_folio,
                     COALESCE(work_start_date, start_date) as start_date, 
                     COALESCE(work_end_date, end_date) as end_date 
@@ -127,6 +129,8 @@ router.get("/data", verifyVatCode, async (req, res) => {
           plate_no: r.plate_no,
           owner_name: r.owner_name,
           vat: r.vat,
+          vat_no: r.vat_no || "",
+          company_display_name: r.company_display_name || "",
           ledger_folio: r.ledger_folio || "",
           start_date: r.work_start_date || r.start_date,
           end_date: r.work_end_date || r.end_date,
@@ -136,7 +140,7 @@ router.get("/data", verifyVatCode, async (req, res) => {
       }
     }
 
-    // Helper to determine accurate owner, VAT, and LF status for a specific site & month
+    // Helper to determine accurate owner, VAT, VAT No, Display Name, and LF status for a specific site & month
     const getOwnerLogForMonth = (
       plateNo,
       mIdx,
@@ -145,6 +149,8 @@ router.get("/data", verifyVatCode, async (req, res) => {
       fallbackLf = "",
       siteStart = null,
       siteEnd = null,
+      fallbackVatNo = "",
+      fallbackDisplay = "",
     ) => {
       const mStart = new Date(currentYear, mIdx, 1, 0, 0, 0, 0);
       const mEnd = new Date(currentYear, mIdx + 1, 0, 23, 59, 59, 999);
@@ -194,13 +200,26 @@ router.get("/data", verifyVatCode, async (req, res) => {
             )
           : fallbackVat;
         const lf = (active.ledger_folio || "").trim() || fallbackLf;
-        return { owner: oName, isVat: isVat, ledger_folio: lf };
+        const vNo = (active.vat_no || "").trim() || fallbackVatNo;
+        const dName =
+          (active.company_display_name || "").trim() || fallbackDisplay;
+        return {
+          owner: oName,
+          isVat: isVat,
+          ledger_folio: lf,
+          vat_no: vNo,
+          display_name: dName,
+          start_date: active.start_date || "2000-01-01",
+        };
       }
 
       return {
         owner: fallbackOwner,
         isVat: fallbackVat,
         ledger_folio: fallbackLf,
+        vat_no: fallbackVatNo,
+        display_name: fallbackDisplay,
+        start_date: "2000-01-01",
       };
     };
 
@@ -343,6 +362,8 @@ router.get("/data", verifyVatCode, async (req, res) => {
             defaultLf,
             sd,
             ed,
+            (vehicle.vat_no || "").trim(),
+            (vehicle.display_name || "").trim(),
           );
 
           // 🟢 STRICT CHECK: ആ പ്രത്യേക മാസത്തിൽ വാഹനം VAT അല്ലെങ്കിൽ VAT ട്രാക്കിംഗിൽ ചേർക്കില്ല!
@@ -369,8 +390,30 @@ router.get("/data", verifyVatCode, async (req, res) => {
               supplier: actualSupplier,
               vat_no: meta.vat_no || vehicle.vat_no || "",
               display_name: meta.display_name || vehicle.display_name || "",
+              period_history: [],
               sites: {},
             };
+          }
+
+          // 🟢 ഈ വർഷം ആക്റ്റീവ് ആയിരുന്ന ഓരോ VAT No / Display Name ചരിത്രവും രേഖപ്പെടുത്തുന്നു
+          const pVat = (ownerInfo.vat_no || "").trim();
+          const pDisp = (ownerInfo.display_name || "").trim();
+          const pDate = ownerInfo.start_date
+            ? new Date(ownerInfo.start_date).getTime()
+            : 0;
+          if (pVat || pDisp) {
+            const existsHist = groupedData[groupKey].period_history.find(
+              (h) => h.vat_no === pVat && h.display_name === pDisp,
+            );
+            if (!existsHist) {
+              groupedData[groupKey].period_history.push({
+                vat_no: pVat,
+                display_name: pDisp,
+                start_ts: pDate,
+              });
+            } else if (pDate < existsHist.start_ts) {
+              existsHist.start_ts = pDate;
+            }
           }
 
           if (!groupedData[groupKey].sites[siteKey]) {
@@ -533,6 +576,39 @@ router.get("/data", verifyVatCode, async (req, res) => {
 
     const finalArray = Object.values(groupedData)
       .filter((g) => g.sites.length > 0)
+      .map((g) => {
+        const sortedHist = (g.period_history || []).sort(
+          (a, b) => a.start_ts - b.start_ts,
+        );
+        const uniqueVats = [
+          ...new Set(sortedHist.map((h) => h.vat_no).filter(Boolean)),
+        ];
+        const uniqueDisplays = [
+          ...new Set(sortedHist.map((h) => h.display_name).filter(Boolean)),
+        ];
+
+        // 🟢 2027+ ആണെങ്കിൽ ഏറ്റവും പുതിയത് മാത്രം; 2026-ൽ ഒന്നിലധികം ഉണ്ടെങ്കിൽ Old -> New ക്രമത്തിൽ
+        const finalVats =
+          currentYear >= 2027 && uniqueVats.length > 0
+            ? [uniqueVats[uniqueVats.length - 1]]
+            : uniqueVats;
+        const finalDisplays =
+          currentYear >= 2027 && uniqueDisplays.length > 0
+            ? [uniqueDisplays[uniqueDisplays.length - 1]]
+            : uniqueDisplays;
+
+        return {
+          ...g,
+          vat_no:
+            finalVats.length > 0 ? finalVats[finalVats.length - 1] : g.vat_no,
+          display_name:
+            finalDisplays.length > 0
+              ? finalDisplays[finalDisplays.length - 1]
+              : g.display_name,
+          vat_no_list: finalVats,
+          display_name_list: finalDisplays,
+        };
+      })
       .sort(
         (a, b) =>
           a.company.localeCompare(b.company) ||
