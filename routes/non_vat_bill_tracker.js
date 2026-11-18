@@ -22,13 +22,7 @@ const verifyAccessCode = (req, res, next) => {
 };
 
 // 🟢 അനുവദനീയമായ സൈറ്റുകളുടെ മാസ്റ്റർ ലിസ്റ്റ് (Afif, Bisha, Humaij, Khushaibi, Taif)
-const KNOWN_SITES = [
-  "afif",
-  "bisha",
-  "humaij",
-  "khushaibi",
-  "taif"
-];
+const KNOWN_SITES = ["afif", "bisha", "humaij", "khushaibi", "taif"];
 
 function getSiteFirstName(siteName) {
   if (!siteName) return "";
@@ -64,7 +58,8 @@ function getCompanyFromSite(siteName, fallback = "Haka") {
   let s = siteName.toUpperCase().replace(/[\s\-_]/g, "");
   if (s.includes("ALJODA")) return "Aljoda";
   if (s.includes("MASARWHEELS") || s.includes("MASAR")) return "Masar Wheels";
-  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK")) return "We1 Track";
+  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK"))
+    return "We1 Track";
   if (s.includes("HAKA")) return "Haka";
   return fallback;
 }
@@ -96,7 +91,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       plateLogs = plateLogRes.rows;
 
       // Old plate numbers koodi query cheyyan vendi plates array-ilekku cherkkunnu
-      plateLogs.forEach(pl => {
+      plateLogs.forEach((pl) => {
         if (pl.old_plate_no && !plates.includes(pl.old_plate_no)) {
           plates.push(pl.old_plate_no);
         }
@@ -121,7 +116,13 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       console.warn("vehicle_owner_log query warning:", e.message);
     }
 
-    const getMonthOwnerInfo = (plateNo, mIdx, fallbackOwner, fallbackVat, fallbackLf = "") => {
+    const getMonthOwnerInfo = (
+      plateNo,
+      mIdx,
+      fallbackOwner,
+      fallbackVat,
+      fallbackLf = "",
+    ) => {
       const mStart = new Date(currentYear, mIdx, 1);
       const mEnd = new Date(currentYear, mIdx + 1, 0);
 
@@ -230,17 +231,19 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
       // Master vehicle-o athallekil plate_log vazhi link cheytha current plate-o kandethunnu
       let vehicle = vehicles.find(
-        (v) =>
-          (v.plate_no || "").trim().toUpperCase() === logPlateUpper,
+        (v) => (v.plate_no || "").trim().toUpperCase() === logPlateUpper,
       );
 
       if (!vehicle && plateLogs.length > 0) {
         const foundLog = plateLogs.find(
-          (pl) => (pl.old_plate_no || "").trim().toUpperCase() === logPlateUpper
+          (pl) =>
+            (pl.old_plate_no || "").trim().toUpperCase() === logPlateUpper,
         );
         if (foundLog) {
           vehicle = vehicles.find(
-            (v) => (v.plate_no || "").trim().toUpperCase() === (foundLog.new_plate_no || "").trim().toUpperCase()
+            (v) =>
+              (v.plate_no || "").trim().toUpperCase() ===
+              (foundLog.new_plate_no || "").trim().toUpperCase(),
           );
         }
       }
@@ -270,7 +273,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             m,
             defaultOwner,
             defaultVat,
-            defaultLf
+            defaultLf,
           );
 
           // 🟢 VAT 'Yes', 'True', '15' ഒഴികെയുള്ള എല്ലാ VAT 'No', Blank, NULL റെക്കോർഡുകളും എടുക്കുന്നു
@@ -318,7 +321,10 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
           suppliersMap[supName].sites[siteGroupKey].active_months[m] = true;
           const pKeyLog = (log.plate_no || "").trim().toUpperCase();
-          if (pKeyLog && !suppliersMap[supName].sites[siteGroupKey].plates.includes(pKeyLog)) {
+          if (
+            pKeyLog &&
+            !suppliersMap[supName].sites[siteGroupKey].plates.includes(pKeyLog)
+          ) {
             suppliersMap[supName].sites[siteGroupKey].plates.push(pKeyLog);
           }
           // 🟢 വണ്ടിയുടെ കമ്പനി രേഖപ്പെടുത്തുന്നു (Fixed siteGroupKey)
@@ -326,7 +332,8 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             if (!suppliersMap[supName].sites[siteGroupKey].plateCompanies) {
               suppliersMap[supName].sites[siteGroupKey].plateCompanies = {};
             }
-            suppliersMap[supName].sites[siteGroupKey].plateCompanies[pKeyLog] = getCompanyFromSite(log.site_name);
+            suppliersMap[supName].sites[siteGroupKey].plateCompanies[pKeyLog] =
+              getCompanyFromSite(log.site_name);
           }
         }
       }
@@ -349,20 +356,25 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           // 🟢 ഒരേ ഓണറുടെ ഒന്നിലധികം വണ്ടികൾ വെവ്വേറെ സേവ് ചെയ്താലും ആ മാസത്തെ മൊത്തം തുക കൃത്യമായി കൂട്ടിയെടുക്കുന്നു
           erpData.forEach((e) => {
             const bMonth = (e.raw_billing_month || "").trim().toLowerCase();
-            const isMonthMatch = bMonth.includes(shortM) || bMonth.includes(fullM);
+            const isMonthMatch =
+              bMonth.includes(shortM) || bMonth.includes(fullM);
             const eSiteFirst = getSiteFirstName(e.clean_site_name);
-            const isSiteMatch = (eSiteFirst === sFirst) || e.clean_site_name.includes(sFirst);
+            const isSiteMatch =
+              eSiteFirst === sFirst || e.clean_site_name.includes(sFirst);
 
             if (isMonthMatch && isSiteMatch && !isZSite(e.clean_site_name)) {
-              const isOwnerMatch = (e.norm_owner === normSup) || (e.clean_owner === cleanSup);
+              const isOwnerMatch =
+                e.norm_owner === normSup || e.clean_owner === cleanSup;
 
               if (isOwnerMatch) {
                 const rawPKey = (e.plate_no || "").trim().toUpperCase();
 
                 // '2380 XSB ➔ 1999 NTA' pole varunna arrow plate names clean cheythu base plates edukkunnu
-                const candidatePlates = rawPKey.includes("➔") 
-                  ? rawPKey.split("➔").map(p => p.trim()) 
-                  : (rawPKey.includes("->") ? rawPKey.split("->").map(p => p.trim()) : [rawPKey]);
+                const candidatePlates = rawPKey.includes("➔")
+                  ? rawPKey.split("➔").map((p) => p.trim())
+                  : rawPKey.includes("->")
+                    ? rawPKey.split("->").map((p) => p.trim())
+                    : [rawPKey];
 
                 let isVatVeh = false;
                 let vehicleMonthLf = "";
@@ -371,32 +383,52 @@ router.get("/data", verifyAccessCode, async (req, res) => {
                 for (const pKey of candidatePlates) {
                   if (!pKey) continue;
 
-                  let rowVeh = vehicles.find(v => (v.plate_no || "").trim().toUpperCase() === pKey);
+                  let rowVeh = vehicles.find(
+                    (v) => (v.plate_no || "").trim().toUpperCase() === pKey,
+                  );
                   let activePlateKey = pKey;
 
                   if (!rowVeh && plateLogs.length > 0) {
-                    const matchedPlateLog = plateLogs.find(pl => 
-                      (pl.old_plate_no || "").trim().toUpperCase() === pKey ||
-                      (pl.new_plate_no || "").trim().toUpperCase() === pKey
+                    const matchedPlateLog = plateLogs.find(
+                      (pl) =>
+                        (pl.old_plate_no || "").trim().toUpperCase() === pKey ||
+                        (pl.new_plate_no || "").trim().toUpperCase() === pKey,
                     );
                     if (matchedPlateLog) {
-                      rowVeh = vehicles.find(v => 
-                        (v.plate_no || "").trim().toUpperCase() === (matchedPlateLog.new_plate_no || "").trim().toUpperCase() ||
-                        (v.plate_no || "").trim().toUpperCase() === (matchedPlateLog.old_plate_no || "").trim().toUpperCase()
+                      rowVeh = vehicles.find(
+                        (v) =>
+                          (v.plate_no || "").trim().toUpperCase() ===
+                            (matchedPlateLog.new_plate_no || "")
+                              .trim()
+                              .toUpperCase() ||
+                          (v.plate_no || "").trim().toUpperCase() ===
+                            (matchedPlateLog.old_plate_no || "")
+                              .trim()
+                              .toUpperCase(),
                       );
                       activePlateKey = matchedPlateLog.new_plate_no || pKey;
                     }
                   }
 
-                  const ownerInfo = getMonthOwnerInfo(activePlateKey, m, (rowVeh ? rowVeh.owner_name : ""), (rowVeh ? rowVeh.vat : ""), (rowVeh ? rowVeh.ledger_folio : ""));
+                  const ownerInfo = getMonthOwnerInfo(
+                    activePlateKey,
+                    m,
+                    rowVeh ? rowVeh.owner_name : "",
+                    rowVeh ? rowVeh.vat : "",
+                    rowVeh ? rowVeh.ledger_folio : "",
+                  );
                   isVatVeh = ["yes", "true", "15"].includes(ownerInfo.vat);
-                  vehicleMonthLf = (ownerInfo.ledger_folio || "").trim().toLowerCase();
+                  vehicleMonthLf = (ownerInfo.ledger_folio || "")
+                    .trim()
+                    .toLowerCase();
                   resolvedPlateKey = activePlateKey;
 
                   if (rowVeh) break;
                 }
 
-                const currentCardLf = (siteObj.ledger_folio || "").trim().toLowerCase();
+                const currentCardLf = (siteObj.ledger_folio || "")
+                  .trim()
+                  .toLowerCase();
 
                 if (!isVatVeh && vehicleMonthLf === currentCardLf) {
                   // ഒരേ സൈറ്റ് നെയിം ഡ്യൂപ്ലിക്കേറ്റ് ആവാതിരിക്കാനും വ്യത്യസ്ത സൈറ്റുകൾ കൂട്ടിയെടുക്കാനും കീ പ്ലേറ്റും സൈറ്റും ചേർക്കുന്നു
@@ -410,14 +442,22 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             }
           });
 
-          const currentCardLf = String(siteObj.ledger_folio || "").trim().toLowerCase();
+          const currentCardLf = String(siteObj.ledger_folio || "")
+            .trim()
+            .toLowerCase();
           // 🟢 Supplier + Site + Ledger Folio match cheythu mathram saved quick dice edukkkunnu (Prevents cross-supplier collision on same LF)
           const savedBill = billingData.find(
             (b) =>
-              String(b.supplier || "").trim().toLowerCase() === normSup &&
-              String(b.site_name || "").toLowerCase().trim() === sFirst &&
-              String(b.ledger_folio || "").trim().toLowerCase() === currentCardLf &&
-              Number(b.month_index) === m
+              String(b.supplier || "")
+                .trim()
+                .toLowerCase() === normSup &&
+              String(b.site_name || "")
+                .toLowerCase()
+                .trim() === sFirst &&
+              String(b.ledger_folio || "")
+                .trim()
+                .toLowerCase() === currentCardLf &&
+              Number(b.month_index) === m,
           );
 
           siteObj.billing[m] = {
@@ -437,7 +477,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     const finalArray = Object.values(suppliersMap)
       .filter((s) => s.sites.length > 0)
       .sort((a, b) => a.supplier.localeCompare(b.supplier));
-      // 🟢 ഓരോ സൈറ്റിലെയും കമ്പനി തിരിച്ചുള്ള വണ്ടികളുടെ എണ്ണം കണക്കാക്കുന്നു
+    // 🟢 ഓരോ സൈറ്റിലെയും കമ്പനി തിരിച്ചുള്ള വണ്ടികളുടെ എണ്ണം കണക്കാക്കുന്നു
     Object.values(suppliersMap).forEach((sup) => {
       Object.values(sup.sites).forEach((siteObj) => {
         const companyCounts = {};
@@ -470,20 +510,28 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
     const cleanReqLf = (ledger_folio || "").trim().toLowerCase();
 
     // 🟢 വാഹനം VAT ആണോ എന്നും ledger_folio എന്താണെന്നും പരിശോധിക്കാൻ ഡാറ്റ എടുക്കുന്നു
-    const vRes = await pool.query(`SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio FROM timesheet_vehicles`);
+    const vRes = await pool.query(
+      `SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio FROM timesheet_vehicles`,
+    );
     const allVehs = vRes.rows;
-    const allPlates = allVehs.map(v => v.plate_no);
+    const allPlates = allVehs.map((v) => v.plate_no);
 
     let oLogs = [];
     let sLogs = [];
     try {
       const [oRes, sRes] = await Promise.all([
-        pool.query(`SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio, work_start_date, work_end_date FROM vehicle_owner_log WHERE plate_no = ANY($1)`, [allPlates]),
-        pool.query(`SELECT plate_no, site_name, work_start_date, work_end_date FROM vehicle_site_log WHERE plate_no = ANY($1)`, [allPlates])
+        pool.query(
+          `SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio, work_start_date, work_end_date FROM vehicle_owner_log WHERE plate_no = ANY($1)`,
+          [allPlates],
+        ),
+        pool.query(
+          `SELECT plate_no, site_name, work_start_date, work_end_date FROM vehicle_site_log WHERE plate_no = ANY($1)`,
+          [allPlates],
+        ),
       ]);
       oLogs = oRes.rows;
       sLogs = sRes.rows;
-    } catch(err) {}
+    } catch (err) {}
 
     let plateLogs = [];
     try {
@@ -554,27 +602,40 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
 
       const rowSiteClean = (row.site_name || "").trim().toLowerCase();
       const rowSiteFirst = getSiteFirstName(row.site_name);
-      const siteMatched = (rowSiteFirst === targetSiteFirst) || rowSiteClean.includes(targetSiteFirst);
+      const siteMatched =
+        rowSiteFirst === targetSiteFirst ||
+        rowSiteClean.includes(targetSiteFirst);
 
       if (!siteMatched) return;
 
-      const isOwnerMatch = (row.norm_owner === normSup) || (row.clean_owner === cleanSup);
+      const isOwnerMatch =
+        row.norm_owner === normSup || row.clean_owner === cleanSup;
 
       if (isOwnerMatch) {
         const rawP = row.plate_no;
-        const candidateP = rawP.includes("➔") 
-          ? rawP.split("➔").map(x => x.trim().toUpperCase()) 
-          : (rawP.includes("->") ? rawP.split("->").map(x => x.trim().toUpperCase()) : [rawP.trim().toUpperCase()]);
+        const candidateP = rawP.includes("➔")
+          ? rawP.split("➔").map((x) => x.trim().toUpperCase())
+          : rawP.includes("->")
+            ? rawP.split("->").map((x) => x.trim().toUpperCase())
+            : [rawP.trim().toUpperCase()];
 
         const p = candidateP[candidateP.length - 1] || rawP;
 
         // 🟢 ആ മാസം ഈ വാഹനം VAT ആണോ എന്ന് കൃത്യമായി പരിശോധിക്കുന്നു
         const mStart = new Date(parseInt(year), mIdx, 1);
         const mEnd = new Date(parseInt(year), mIdx + 1, 0);
-        const matched = oLogs.filter(l => {
-          if ((l.plate_no || '').trim().toUpperCase() !== (p || '').trim().toUpperCase()) return false;
-          const s = l.work_start_date ? new Date(l.work_start_date) : new Date(2000, 0, 1);
-          const e = l.work_end_date ? new Date(l.work_end_date) : new Date(2099, 11, 31);
+        const matched = oLogs.filter((l) => {
+          if (
+            (l.plate_no || "").trim().toUpperCase() !==
+            (p || "").trim().toUpperCase()
+          )
+            return false;
+          const s = l.work_start_date
+            ? new Date(l.work_start_date)
+            : new Date(2000, 0, 1);
+          const e = l.work_end_date
+            ? new Date(l.work_end_date)
+            : new Date(2099, 11, 31);
           return s <= mEnd && e >= mStart;
         });
 
@@ -582,16 +643,28 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
         let curLf = "";
         if (matched.length > 0) {
           const activeLog = matched[matched.length - 1];
-          curVat = String(activeLog.vat || '').trim().toLowerCase();
-          curLf = String(activeLog.ledger_folio || '').trim().toLowerCase();
+          curVat = String(activeLog.vat || "")
+            .trim()
+            .toLowerCase();
+          curLf = String(activeLog.ledger_folio || "")
+            .trim()
+            .toLowerCase();
         } else {
-          const vObj = allVehs.find(v => (v.plate_no || '').trim().toUpperCase() === (p || '').trim().toUpperCase());
-          curVat = String(vObj ? vObj.vat : '').trim().toLowerCase();
-          curLf = String(vObj ? vObj.ledger_folio : '').trim().toLowerCase();
+          const vObj = allVehs.find(
+            (v) =>
+              (v.plate_no || "").trim().toUpperCase() ===
+              (p || "").trim().toUpperCase(),
+          );
+          curVat = String(vObj ? vObj.vat : "")
+            .trim()
+            .toLowerCase();
+          curLf = String(vObj ? vObj.ledger_folio : "")
+            .trim()
+            .toLowerCase();
         }
 
         // 🟢 VAT ഉള്ള വാഹനം ആണെങ്കിൽ Non-VAT ബ്രേക്ക്ഡൗണിൽ ഉൾപ്പെടുത്തില്ല
-        if (['yes', 'true', '15'].includes(curVat)) return;
+        if (["yes", "true", "15"].includes(curVat)) return;
 
         if (cleanReqLf !== "" && curLf !== "" && curLf !== cleanReqLf) return;
 
@@ -604,19 +677,31 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
 
         // 🟢 ഒരേ പ്ലേറ്റിന് ഒന്നിലധികം സൈറ്റ് എൻട്രികൾ വന്നാൽ വെവ്വേറെ നിലനിർത്താൻ uniqueKey-യിൽ site_name കൂടി ചേർക്കുന്നു
         const rowSiteName = (row.site_name || "").trim();
-        const uniqueKey = p !== 'N/A' ? `${p}__${rowSiteName.toLowerCase()}` : `${p}_${row.after_adjustment}_${Math.random()}`;
+        const uniqueKey =
+          p !== "N/A"
+            ? `${p}__${rowSiteName.toLowerCase()}`
+            : `${p}_${row.after_adjustment}_${Math.random()}`;
 
         // 🟢 row.company നോക്കാതെ, ആ മാസത്തെ site_log നേരിട്ട് പരിശോധിച്ച് കമ്പനി നിർണ്ണയിക്കുന്നു
-        const matchedSiteLog = sLogs.find(l => {
-          if ((l.plate_no || "").trim().toUpperCase() !== (p || "").trim().toUpperCase()) return false;
-          const s = l.work_start_date ? new Date(l.work_start_date) : new Date(2000, 0, 1);
-          const e = l.work_end_date ? new Date(l.work_end_date) : new Date(2099, 11, 31);
+        const matchedSiteLog = sLogs.find((l) => {
+          if (
+            (l.plate_no || "").trim().toUpperCase() !==
+            (p || "").trim().toUpperCase()
+          )
+            return false;
+          const s = l.work_start_date
+            ? new Date(l.work_start_date)
+            : new Date(2000, 0, 1);
+          const e = l.work_end_date
+            ? new Date(l.work_end_date)
+            : new Date(2099, 11, 31);
           return s <= mEnd && e >= mStart;
         });
 
-        const activeSiteName = (matchedSiteLog && matchedSiteLog.site_name) 
-          ? matchedSiteLog.site_name 
-          : (row.site_name || "");
+        const activeSiteName =
+          matchedSiteLog && matchedSiteLog.site_name
+            ? matchedSiteLog.site_name
+            : row.site_name || "";
 
         // Khushaibi L&T പോലെയുള്ള സൈറ്റുകളിൽ We1 ഇല്ലാത്തതിനാൽ അത് We1 ആയി മാറില്ല
         const monthCompany = getCompanyFromSite(activeSiteName, "Haka");
@@ -634,7 +719,9 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
           // ഒരേ പ്ലേറ്റും ഒരേ സൈറ്റും തന്നെയുള്ള യഥാർത്ഥ ഡ്യൂപ്ലിക്കേറ്റുകൾ വരികയാണെങ്കിൽ മാത്രം കൂട്ടിച്ചേർക്കുന്നു
           plateGroups[uniqueKey].nr_hours += parseFloat(row.nhr || 0);
           plateGroups[uniqueKey].ot_hours += parseFloat(row.othr || 0);
-          plateGroups[uniqueKey].total_amount += parseFloat(row.after_adjustment || 0);
+          plateGroups[uniqueKey].total_amount += parseFloat(
+            row.after_adjustment || 0,
+          );
         }
       }
     });
@@ -686,7 +773,14 @@ function broadcastNonVatUpdate(payload) {
 // 3. UPSERT Quick Dice for Non-VAT per Supplier + Site + Ledger Folio
 router.post("/update-cell", verifyAccessCode, async (req, res) => {
   try {
-    const { year, supplier, site_first_name, ledger_folio, month_index, value } = req.body;
+    const {
+      year,
+      supplier,
+      site_first_name,
+      ledger_folio,
+      month_index,
+      value,
+    } = req.body;
     if (!year || !supplier || !site_first_name || month_index === undefined)
       throw new Error("Missing parameters");
 
@@ -707,7 +801,13 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
          AND LOWER(TRIM(site_name)) = $3 
          AND LOWER(TRIM(COALESCE(ledger_folio, ''))) = LOWER(TRIM($4)) 
          AND month_index = $5 LIMIT 1`,
-      [parseInt(year), cleanSup, cleanSiteName, cleanLfStr, parseInt(month_index)]
+      [
+        parseInt(year),
+        cleanSup,
+        cleanSiteName,
+        cleanLfStr,
+        parseInt(month_index),
+      ],
     );
 
     if (existingCheck.rows.length > 0) {
@@ -715,13 +815,20 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
         `UPDATE vat_billing_records 
          SET quick_dice = $1, updated_at = CURRENT_TIMESTAMP 
          WHERE id = $2`,
-        [valToSave, existingCheck.rows[0].id]
+        [valToSave, existingCheck.rows[0].id],
       );
     } else {
       await pool.query(
         `INSERT INTO vat_billing_records (year, company, supplier, site_name, ledger_folio, month_index, quick_dice)
          VALUES ($1, 'NON_VAT', $2, $3, $4, $5, $6)`,
-        [parseInt(year), cleanSup, site_first_name.trim().toLowerCase(), cleanLfStr, parseInt(month_index), valToSave]
+        [
+          parseInt(year),
+          cleanSup,
+          site_first_name.trim().toLowerCase(),
+          cleanLfStr,
+          parseInt(month_index),
+          valToSave,
+        ],
       );
     }
 
@@ -748,7 +855,9 @@ router.get("/notes", verifyAccessCode, async (req, res) => {
   try {
     const { supplier, ledger_folio, month, site_name } = req.query;
     if (!supplier) {
-      return res.status(400).json({ success: false, message: "Supplier name is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Supplier name is required" });
     }
 
     let query = `
@@ -763,12 +872,20 @@ router.get("/notes", verifyAccessCode, async (req, res) => {
     `;
     const params = [supplier.trim()];
 
-    if (ledger_folio !== undefined && ledger_folio !== null && String(ledger_folio).trim() !== "") {
+    if (
+      ledger_folio !== undefined &&
+      ledger_folio !== null &&
+      String(ledger_folio).trim() !== ""
+    ) {
       params.push(String(ledger_folio).trim());
       query += ` AND (ledger_folio IS NULL OR ledger_folio = '' OR LOWER(TRIM(ledger_folio)) = LOWER(TRIM($${params.length})))`;
     }
 
-    if (site_name !== undefined && site_name !== null && String(site_name).trim() !== "") {
+    if (
+      site_name !== undefined &&
+      site_name !== null &&
+      String(site_name).trim() !== ""
+    ) {
       params.push(String(site_name).trim());
       query += ` AND (site_name IS NULL OR site_name = '' OR LOWER(TRIM(site_name)) = LOWER(TRIM($${params.length})))`;
     }
@@ -789,17 +906,34 @@ router.get("/notes", verifyAccessCode, async (req, res) => {
 
 router.post("/notes", verifyAccessCode, async (req, res) => {
   try {
-    const { supplier, title, content, ledger_folio, site_name, note_month, note_year } = req.body;
+    const {
+      supplier,
+      title,
+      content,
+      ledger_folio,
+      site_name,
+      note_month,
+      note_year,
+    } = req.body;
     if (!supplier || !content || !content.trim()) {
-      return res.status(400).json({ success: false, message: "Supplier and note content are required" });
+      return res.status(400).json({
+        success: false,
+        message: "Supplier and note content are required",
+      });
     }
 
     const cleanTitle = (title || "").trim() || "Remark";
     const cleanContent = content.trim();
     const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
     const cleanSite = site_name ? String(site_name).trim() : null;
-    const cleanMonth = (note_month !== undefined && note_month !== null && note_month !== "") ? parseInt(note_month, 10) : null;
-    const cleanYear = (note_year !== undefined && note_year !== null && note_year !== "") ? parseInt(note_year, 10) : null;
+    const cleanMonth =
+      note_month !== undefined && note_month !== null && note_month !== ""
+        ? parseInt(note_month, 10)
+        : null;
+    const cleanYear =
+      note_year !== undefined && note_year !== null && note_year !== ""
+        ? parseInt(note_year, 10)
+        : null;
 
     const insertRes = await pool.query(
       `INSERT INTO supplier_notes (supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year)
@@ -807,7 +941,15 @@ router.post("/notes", verifyAccessCode, async (req, res) => {
        RETURNING id, supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year,
                  TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
                  created_at`,
-      [supplier.trim(), cleanTitle, cleanContent, cleanLf, cleanSite, cleanMonth, cleanYear]
+      [
+        supplier.trim(),
+        cleanTitle,
+        cleanContent,
+        cleanLf,
+        cleanSite,
+        cleanMonth,
+        cleanYear,
+      ],
     );
 
     res.json({ success: true, data: insertRes.rows[0] });
@@ -820,17 +962,26 @@ router.post("/notes", verifyAccessCode, async (req, res) => {
 router.put("/notes/:id", verifyAccessCode, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, ledger_folio, site_name, note_month, note_year } = req.body;
+    const { title, content, ledger_folio, site_name, note_month, note_year } =
+      req.body;
     if (!content || !content.trim()) {
-      return res.status(400).json({ success: false, message: "Content is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Content is required" });
     }
 
     const cleanTitle = (title || "").trim() || "Remark";
     const cleanContent = content.trim();
     const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
     const cleanSite = site_name ? String(site_name).trim() : null;
-    const cleanMonth = (note_month !== undefined && note_month !== null && note_month !== "") ? parseInt(note_month, 10) : null;
-    const cleanYear = (note_year !== undefined && note_year !== null && note_year !== "") ? parseInt(note_year, 10) : null;
+    const cleanMonth =
+      note_month !== undefined && note_month !== null && note_month !== ""
+        ? parseInt(note_month, 10)
+        : null;
+    const cleanYear =
+      note_year !== undefined && note_year !== null && note_year !== ""
+        ? parseInt(note_year, 10)
+        : null;
 
     const updateRes = await pool.query(
       `UPDATE supplier_notes 
@@ -843,11 +994,21 @@ router.put("/notes/:id", verifyAccessCode, async (req, res) => {
        WHERE id = $7 
        RETURNING id, supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year,
                  TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date`,
-      [cleanTitle, cleanContent, cleanLf, cleanSite, cleanMonth, cleanYear, parseInt(id)]
+      [
+        cleanTitle,
+        cleanContent,
+        cleanLf,
+        cleanSite,
+        cleanMonth,
+        cleanYear,
+        parseInt(id),
+      ],
     );
 
     if (updateRes.rows.length === 0) {
-      return res.status(404).json({ success: false, message: "Note not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Note not found" });
     }
 
     res.json({ success: true, data: updateRes.rows[0] });
@@ -860,7 +1021,9 @@ router.put("/notes/:id", verifyAccessCode, async (req, res) => {
 router.delete("/notes/:id", verifyAccessCode, async (req, res) => {
   try {
     const { id } = req.params;
-    await pool.query(`DELETE FROM supplier_notes WHERE id = $1`, [parseInt(id)]);
+    await pool.query(`DELETE FROM supplier_notes WHERE id = $1`, [
+      parseInt(id),
+    ]);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

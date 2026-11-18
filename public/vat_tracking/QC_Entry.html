@@ -1589,7 +1589,10 @@
           const site = supData.sites.find((s) => {
             const sMatch = s.site_name === siteName;
             if (currentYear >= 2027 && inputLf) {
-              return sMatch && (s.ledger_folio || "").trim().toLowerCase() === inputLf;
+              return (
+                sMatch &&
+                (s.ledger_folio || "").trim().toLowerCase() === inputLf
+              );
             }
             return sMatch;
           });
@@ -1662,6 +1665,21 @@
         }
       }
 
+      // 🟢 .00 / .0 ഒഴിവാക്കാനും എന്നാൽ .01 പോലുള്ളവ നിലനിർത്താനുമുള്ള ഹെൽപ്പർ ഫംഗ്ഷൻ
+      function formatCleanDecimal(val) {
+        if (val === null || val === undefined) return "";
+        let str = String(val).trim();
+        if (str === "") return "";
+        let cleanNumStr = str.replace(/,/g, "");
+        if (/^-?\d+(\.\d+)?$/.test(cleanNumStr)) {
+          let num = Number(cleanNumStr);
+          if (!isNaN(num)) {
+            return Number(num.toFixed(2)).toString();
+          }
+        }
+        return str;
+      }
+
       // 🟢 + , - , * , / മാത്സ് ഫോർമുലകൾ കണക്കുകൂട്ടാനുള്ള ഫംഗ്ഷൻ
       function evaluateMathExpression(rawVal) {
         if (!rawVal) return "";
@@ -1678,7 +1696,7 @@
             }
           } catch (e) {}
         }
-        return rawVal.trim();
+        return formatCleanDecimal(rawVal);
       }
 
       // 🟡 ടൈപ്പ് ചെയ്യുമ്പോൾ യാതൊരു സേവിംഗും നടക്കില്ല; യെല്ലോ ഹൈലൈറ്റ് മാത്രം ലൈവായി കാണിക്കും
@@ -1739,7 +1757,9 @@
         const site = supData.sites.find((s) => {
           const sMatch = s.site_name === siteName;
           if (currentYear >= 2027 && inputLf) {
-            return sMatch && (s.ledger_folio || "").trim().toLowerCase() === inputLf;
+            return (
+              sMatch && (s.ledger_folio || "").trim().toLowerCase() === inputLf
+            );
           }
           return sMatch;
         });
@@ -1997,9 +2017,9 @@
             tbody.innerHTML += `
                         <tr>
                             <td style="font-weight: 600;">${escapeHTML(p.plate)}</td>
-                            <td>${p.nr}</td>
-                            <td>${p.ot}</td>
-                            <td style="font-weight: 600;">${p.total > 0 ? p.total.toFixed(2) : ""}</td>
+                            <td>${formatCleanDecimal(p.nr)}</td>
+                            <td>${formatCleanDecimal(p.ot)}</td>
+                            <td style="font-weight: 600;">${p.total > 0 ? formatCleanDecimal(p.total) : ""}</td>
                         </tr>
                     `;
           });
@@ -2007,9 +2027,9 @@
           tfoot.innerHTML = `
                     <tr>
                         <td>Total</td>
-                        <td>${totalNr.toFixed(2)}</td>
-                        <td>${totalOt.toFixed(2)}</td>
-                        <td style="color: #0f766e;">${grandTotal > 0 ? grandTotal.toFixed(2) : ""}</td>
+                        <td>${formatCleanDecimal(totalNr)}</td>
+                        <td>${formatCleanDecimal(totalOt)}</td>
+                        <td style="color: #0f766e;">${grandTotal > 0 ? formatCleanDecimal(grandTotal) : ""}</td>
                     </tr>
                 `;
         }
@@ -2066,11 +2086,13 @@
               quick_dice: "",
             };
             const erpVal = bill.erp_total
-              ? Number(bill.erp_total).toFixed(2)
+              ? formatCleanDecimal(bill.erp_total)
               : "";
             const billVal = escapeHTML(bill.bill_no || "");
-            const amtVal = escapeHTML(bill.amount || "");
-            const qDiceVal = escapeHTML(bill.quick_dice || "");
+            const amtVal = escapeHTML(formatCleanDecimal(bill.amount || ""));
+            const qDiceVal = escapeHTML(
+              formatCleanDecimal(bill.quick_dice || ""),
+            );
             const hasValue = qDiceVal.trim() !== "";
             const hlClass = hasValue ? "qc-highlight" : "";
 
@@ -2208,11 +2230,13 @@
 
         supData.sites.forEach((site, sIdx) => {
           const tot = siteTotals[sIdx];
-          const amtFormatted = tot.amount > 0 ? tot.amount.toFixed(2) : "";
-          const tsFormatted = tot.vendor_ts > 0 ? tot.vendor_ts.toFixed(2) : "";
+          const amtFormatted =
+            tot.amount > 0 ? formatCleanDecimal(tot.amount) : "";
+          const tsFormatted =
+            tot.vendor_ts > 0 ? formatCleanDecimal(tot.vendor_ts) : "";
           const qdFormatted =
             tot.quick_dice_total > 0
-              ? tot.quick_dice_total.toFixed(2)
+              ? formatCleanDecimal(tot.quick_dice_total)
               : tot.quick_dice_count > 0
                 ? `${tot.quick_dice_count} Billed`
                 : "";
@@ -2223,7 +2247,7 @@
           let diffText = "";
 
           if (tot.amount > 0 || tot.quick_dice_total > 0) {
-            diffText = diff.toFixed(2);
+            diffText = formatCleanDecimal(diff);
             if (diff > 0) {
               // 🟢 Positive: Green Fill, Black Text
               diffStyle =

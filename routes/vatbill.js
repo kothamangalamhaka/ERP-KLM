@@ -9,12 +9,10 @@ const verifyVatCode = (req, res, next) => {
   const serverCode = process.env.VAT_TRACKER_CODE;
 
   if (!serverCode) {
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server configuration error: VAT_TRACKER_CODE not set",
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Server configuration error: VAT_TRACKER_CODE not set",
+    });
   }
 
   if (clientCode === serverCode) {
@@ -88,7 +86,7 @@ router.get("/data", verifyVatCode, async (req, res) => {
     let plateLogs = [];
     try {
       const plRes = await pool.query(
-        `SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC, id ASC`
+        `SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC, id ASC`,
       );
       plateLogs = plRes.rows;
       plateLogs.forEach((pl) => {
@@ -215,8 +213,17 @@ router.get("/data", verifyVatCode, async (req, res) => {
         `;
     const siteLogResult = await pool.query(siteLogQuery, [plates]);
 
-    // 4. Fetch billing records & ERP Totals
-    const billingQuery = `SELECT * FROM vat_billing_records WHERE year = $1 ORDER BY COALESCE(NULLIF(TRIM(quick_dice), ''), '0') DESC, updated_at DESC, id DESC`;
+    // 4. Fetch billing records & ERP Totals (Prioritizes records having bill_no, amount, or quick_dice)
+    const billingQuery = `
+      SELECT * FROM vat_billing_records 
+      WHERE year = $1 
+      ORDER BY 
+        (CASE WHEN COALESCE(TRIM(bill_no), '') != '' THEN 1 ELSE 0 END +
+         CASE WHEN COALESCE(TRIM(amount), '') != '' THEN 1 ELSE 0 END +
+         CASE WHEN COALESCE(TRIM(quick_dice), '') != '' THEN 1 ELSE 0 END) DESC,
+        updated_at DESC, 
+        id DESC
+    `;
     const billingResult = await pool.query(billingQuery, [currentYear]);
     const billingData = billingResult.rows;
 
@@ -283,15 +290,20 @@ router.get("/data", verifyVatCode, async (req, res) => {
 
     siteLogResult.rows.forEach((log) => {
       const logPlateUpper = (log.plate_no || "").trim().toUpperCase();
-      let vehicle = vehicles.find((v) => (v.plate_no || "").trim().toUpperCase() === logPlateUpper);
+      let vehicle = vehicles.find(
+        (v) => (v.plate_no || "").trim().toUpperCase() === logPlateUpper,
+      );
 
       if (!vehicle && plateLogs.length > 0) {
         const foundLog = plateLogs.find(
-          (pl) => (pl.old_plate_no || "").trim().toUpperCase() === logPlateUpper
+          (pl) =>
+            (pl.old_plate_no || "").trim().toUpperCase() === logPlateUpper,
         );
         if (foundLog) {
           vehicle = vehicles.find(
-            (v) => (v.plate_no || "").trim().toUpperCase() === (foundLog.new_plate_no || "").trim().toUpperCase()
+            (v) =>
+              (v.plate_no || "").trim().toUpperCase() ===
+              (foundLog.new_plate_no || "").trim().toUpperCase(),
           );
         }
       }
@@ -399,16 +411,13 @@ router.get("/data", verifyVatCode, async (req, res) => {
 
           // 🟢 2027 muthal Owner Name maariyaalum data miss aavathe LF + Site vechu match cheyyunnu
           const bill = billingData.find((b) => {
+            if (b.company === "NON_VAT") return false;
             const billSiteClean = cleanSiteName(b.site_name);
             const isSiteMatch =
               b.site_name === siteObj.site_name ||
               billSiteClean === targetSiteClean;
 
-            if (
-              b.company !== group.company ||
-              !isSiteMatch ||
-              b.month_index !== i
-            ) {
+            if (!isSiteMatch || b.month_index !== i) {
               return false;
             }
             if (currentYear >= 2027 && siteLf) {
@@ -461,7 +470,8 @@ router.get("/data", verifyVatCode, async (req, res) => {
                 : rawPKey.includes("->")
                   ? rawPKey.split("->").map((p) => p.trim())
                   : [rawPKey];
-              const pKey = candidatePlates[candidatePlates.length - 1] || rawPKey;
+              const pKey =
+                candidatePlates[candidatePlates.length - 1] || rawPKey;
 
               if (currentYear >= 2027) {
                 // 🟢 2027 muthal mathram Ledger Folio (LF) vechu check cheyyunnu
@@ -561,20 +571,31 @@ router.post("/update-cell", verifyVatCode, async (req, res) => {
     const currentYearNum = parseInt(year);
     const cleanLf = currentYearNum >= 2027 ? (ledger_folio || "").trim() : "";
     const cleanSup = (supplier || "").trim();
-    const cleanSite = (site_name || "").trim();
+    const cleanSite = (site_name || "")
+      .replace(/[\s\-_]*re[\s\-_]*running/gi, "")
+      .replace(/[\s\-_]*running/gi, "")
+      .trim();
+
+    const normCleanSite = cleanSite
+      .toLowerCase()
+      .replace(/[\s\-_]/g, "")
+      .trim();
 
     let checkQuery = `
             SELECT id FROM vat_billing_records 
-            WHERE year = $1 AND company = $2 
-              AND LOWER(TRIM(supplier)) = LOWER(TRIM($3))
-              AND LOWER(TRIM(site_name)) = LOWER(TRIM($4))
+            WHERE year = $1 AND company != 'NON_VAT'
+              AND LOWER(TRIM(supplier)) = LOWER(TRIM($2))
+              AND (
+                LOWER(TRIM(site_name)) = LOWER(TRIM($3))
+                OR LOWER(REGEXP_REPLACE(REGEXP_REPLACE(site_name, 're[\\s\\-_]*running|running', '', 'gi'), '[\\s\\-_]', '', 'g')) = $4
+              )
               AND month_index = $5
         `;
     const checkParams = [
       currentYearNum,
-      company,
       cleanSup,
       cleanSite,
+      normCleanSite,
       parseInt(month_index),
     ];
 
@@ -666,19 +687,30 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
         const cleanLf = cleanYear >= 2027 ? (ledger_folio || "").trim() : "";
         const cleanSup = (supplier || "").trim();
 
-        const cleanSite = (site_name || "").trim();
+        const cleanSite = (site_name || "")
+          .replace(/[\s\-_]*re[\s\-_]*running/gi, "")
+          .replace(/[\s\-_]*running/gi, "")
+          .trim();
+        const normCleanSite = cleanSite
+          .toLowerCase()
+          .replace(/[\s\-_]/g, "")
+          .trim();
+
         let checkQuery = `
                     SELECT id FROM vat_billing_records 
-                    WHERE year = $1 AND company = $2 
-                      AND LOWER(TRIM(supplier)) = LOWER(TRIM($3))
-                      AND LOWER(TRIM(site_name)) = LOWER(TRIM($4))
+                    WHERE year = $1 AND company != 'NON_VAT'
+                      AND LOWER(TRIM(supplier)) = LOWER(TRIM($2))
+                      AND (
+                        LOWER(TRIM(site_name)) = LOWER(TRIM($3))
+                        OR LOWER(REGEXP_REPLACE(REGEXP_REPLACE(site_name, 're[\\s\\-_]*running|running', '', 'gi'), '[\\s\\-_]', '', 'g')) = $4
+                      )
                       AND month_index = $5
                 `;
         const checkParams = [
           cleanYear,
-          company,
           cleanSup,
           cleanSite,
+          normCleanSite,
           month_index,
         ];
 
@@ -712,7 +744,7 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
               cleanSup,
               vat_no,
               display_name,
-              site_name,
+              cleanSite,
               cleanLf,
               month_index,
               valToSave,

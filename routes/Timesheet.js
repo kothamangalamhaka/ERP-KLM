@@ -659,8 +659,13 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
           `SELECT owner_name FROM vehicle_owner_log WHERE id = $1`,
           [id],
         );
-        const oldOwnerVal = prevOwnerRes.rows[0]?.owner_name ? prevOwnerRes.rows[0].owner_name.trim() : null;
-        if (oldOwnerVal && oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()) {
+        const oldOwnerVal = prevOwnerRes.rows[0]?.owner_name
+          ? prevOwnerRes.rows[0].owner_name.trim()
+          : null;
+        if (
+          oldOwnerVal &&
+          oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()
+        ) {
           // 🟢 Cascade rename across all companies in vat_billing_records (VAT & NON_VAT)
           await client.query(
             `UPDATE vat_billing_records 
@@ -1246,12 +1251,36 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
         [newSite, cleanPlate, previousSiteName],
       );
 
-      // 4. Update vat_billing_records
+      // 4. Update vat_billing_records ONLY for this vehicle's owner(s), active period, and without duplicate constraint conflict
       await client.query(
-        `UPDATE vat_billing_records 
-         SET site_name = $1 
-         WHERE LOWER(TRIM(site_name)) = LOWER(TRIM($2))`,
-        [newSite, previousSiteName],
+        `UPDATE vat_billing_records vbr
+         SET site_name = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE LOWER(TRIM(vbr.site_name)) = LOWER(TRIM($2))
+           AND vbr.company != 'NON_VAT'
+           AND (vbr.year * 12 + vbr.month_index) >= (EXTRACT(YEAR FROM $4::date)::int * 12 + EXTRACT(MONTH FROM $4::date)::int - 1)
+           AND (vbr.year * 12 + vbr.month_index) <= (EXTRACT(YEAR FROM $5::date)::int * 12 + EXTRACT(MONTH FROM $5::date)::int - 1)
+           AND (
+             EXISTS (
+               SELECT 1 FROM timesheet_vehicles tv
+               WHERE UPPER(TRIM(tv.plate_no)) = $3
+                 AND LOWER(TRIM(tv.owner_name)) = LOWER(TRIM(vbr.supplier))
+             )
+             OR EXISTS (
+               SELECT 1 FROM vehicle_owner_log vol
+               WHERE UPPER(TRIM(vol.plate_no)) = $3
+                 AND LOWER(TRIM(vol.owner_name)) = LOWER(TRIM(vbr.supplier))
+             )
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM vat_billing_records ex
+             WHERE ex.year = vbr.year
+               AND ex.company = vbr.company
+               AND LOWER(TRIM(ex.supplier)) = LOWER(TRIM(vbr.supplier))
+               AND LOWER(TRIM(ex.site_name)) = LOWER(TRIM($1))
+               AND COALESCE(ex.ledger_folio, '') = COALESCE(vbr.ledger_folio, '')
+               AND ex.month_index = vbr.month_index
+           )`,
+        [newSite, previousSiteName, cleanPlate, sDate, eDate],
       );
     }
 
@@ -1904,12 +1933,36 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
             [newSite, cleanPlate, oldSiteName],
           );
 
-          // 4. Update vat_billing_records
+          // 4. Update vat_billing_records ONLY for this vehicle's owner, active period, and without duplicate constraint conflict
           await pool.query(
-            `UPDATE vat_billing_records 
-             SET site_name = $1 
-             WHERE LOWER(TRIM(site_name)) = LOWER(TRIM($2))`,
-            [newSite, oldSiteName],
+            `UPDATE vat_billing_records vbr
+             SET site_name = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE LOWER(TRIM(vbr.site_name)) = LOWER(TRIM($2))
+               AND vbr.company != 'NON_VAT'
+               AND (vbr.year * 12 + vbr.month_index) >= (EXTRACT(YEAR FROM $4::date)::int * 12 + EXTRACT(MONTH FROM $4::date)::int - 1)
+               AND (vbr.year * 12 + vbr.month_index) <= (EXTRACT(YEAR FROM $5::date)::int * 12 + EXTRACT(MONTH FROM $5::date)::int - 1)
+               AND (
+                 EXISTS (
+                   SELECT 1 FROM timesheet_vehicles tv
+                   WHERE UPPER(TRIM(tv.plate_no)) = $3
+                     AND LOWER(TRIM(tv.owner_name)) = LOWER(TRIM(vbr.supplier))
+                 )
+                 OR EXISTS (
+                   SELECT 1 FROM vehicle_owner_log vol
+                   WHERE UPPER(TRIM(vol.plate_no)) = $3
+                     AND LOWER(TRIM(vol.owner_name)) = LOWER(TRIM(vbr.supplier))
+                 )
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM vat_billing_records ex
+                 WHERE ex.year = vbr.year
+                   AND ex.company = vbr.company
+                   AND LOWER(TRIM(ex.supplier)) = LOWER(TRIM(vbr.supplier))
+                   AND LOWER(TRIM(ex.site_name)) = LOWER(TRIM($1))
+                   AND COALESCE(ex.ledger_folio, '') = COALESCE(vbr.ledger_folio, '')
+                   AND ex.month_index = vbr.month_index
+               )`,
+            [newSite, oldSiteName, cleanPlate, sDate, eDate],
           );
         }
       }
@@ -2019,7 +2072,10 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
           );
 
           // Sync vat_billing_records for matching periods and supplier names
-          if (oldOwnerName && oldOwnerName.toLowerCase() !== newOwner.toLowerCase()) {
+          if (
+            oldOwnerName &&
+            oldOwnerName.toLowerCase() !== newOwner.toLowerCase()
+          ) {
             await pool.query(
               `UPDATE vat_billing_records 
                SET supplier = $1, updated_at = CURRENT_TIMESTAMP 

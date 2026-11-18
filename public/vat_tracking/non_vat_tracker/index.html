@@ -1701,6 +1701,20 @@
         }
       }
 
+      function formatCleanDecimal(val) {
+        if (val === null || val === undefined) return "";
+        let str = String(val).trim();
+        if (str === "") return "";
+        let cleanNumStr = str.replace(/,/g, "");
+        if (/^-?\d+(\.\d+)?$/.test(cleanNumStr)) {
+          let num = Number(cleanNumStr);
+          if (!isNaN(num)) {
+            return Number(num.toFixed(2)).toString();
+          }
+        }
+        return str;
+      }
+
       function evaluateMathExpression(rawVal) {
         if (!rawVal) return "";
         let expr = String(rawVal).trim();
@@ -1715,7 +1729,7 @@
             }
           } catch (e) {}
         }
-        return rawVal.trim();
+        return formatCleanDecimal(rawVal);
       }
 
       function renderSiteTables(supData) {
