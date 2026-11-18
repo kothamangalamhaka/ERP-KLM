@@ -7,10 +7,47 @@ let token = getAuthToken();
 const userStr = localStorage.getItem("timesheetUser");
 
 if (!token || !userStr) {
-  window.location.href = "index.html";
+  logout();
 } else {
   localStorage.setItem("lastActive", String(Date.now()));
 }
+
+// 🟢 Verify session immediately on page load, back-forward cache, or tab wake-up (before user feeds data)
+async function verifyEntrySessionOnLoad() {
+  const activeToken = getAuthToken();
+  const activeUser = localStorage.getItem("timesheetUser");
+  if (!activeToken || !activeUser) {
+    return logout();
+  }
+  try {
+    const res = await fetch("/timesheet/api/verify-session", {
+      headers: {
+        Authorization: "Bearer " + activeToken,
+        "Cache-Control": "no-cache",
+      },
+      cache: "no-store",
+    });
+    if (res.status === 401 || res.status === 403) {
+      openTimesheetReLoginModal(() => init());
+    }
+  } catch (e) {
+    console.warn("Session verify network bypass:", e.message);
+  }
+}
+
+verifyEntrySessionOnLoad();
+
+window.addEventListener("pageshow", function (event) {
+  if (event.persisted || !getAuthToken()) {
+    verifyEntrySessionOnLoad();
+  }
+});
+
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState === "visible") {
+    verifyEntrySessionOnLoad();
+  }
+});
 
 const dDate = new Date();
 document.getElementById("selYear").value = dDate.getFullYear();
@@ -106,13 +143,15 @@ document.getElementById("selMonth").addEventListener("change", releaseLock);
 document.getElementById("selYear").addEventListener("change", releaseLock);
 
 async function init() {
+  const activeInitToken = getAuthToken();
+  token = activeInitToken;
   const ts = new Date().getTime();
 
   let rRes;
   try {
     rRes = await fetch(`/timesheet/api/rules?_t=${ts}`, {
       headers: {
-        Authorization: "Bearer " + token,
+        Authorization: "Bearer " + activeInitToken,
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
       },
@@ -538,9 +577,11 @@ async function triggerFetch() {
     '<tr class="loading-row"><td colspan="13">Fetching database records...</td></tr>';
 
   try {
+    const activeAuthToken = getAuthToken();
+    token = activeAuthToken;
     const ts = new Date().getTime();
     const headers = {
-      Authorization: "Bearer " + token,
+      Authorization: "Bearer " + activeAuthToken,
       "Cache-Control": "no-cache",
       Pragma: "no-cache",
     };
@@ -560,7 +601,7 @@ async function triggerFetch() {
       lockRes = await fetch("/timesheet/api/record-lock/request", {
         method: "POST",
         headers: {
-          Authorization: "Bearer " + token,
+          Authorization: "Bearer " + activeAuthToken,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ plate: p, month: m, year: y }),
@@ -575,6 +616,9 @@ async function triggerFetch() {
     }
 
     if (lockRes.status === 401 || lockRes.status === 403) {
+      btn.disabled = false;
+      text.innerText = "Fetch Data";
+      loader.style.display = "none";
       openTimesheetReLoginModal(() => triggerFetch());
       return;
     }
@@ -633,6 +677,9 @@ async function triggerFetch() {
 
     if (res.status === 401 || res.status === 403) {
       releaseLock();
+      btn.disabled = false;
+      text.innerText = "Fetch Data";
+      loader.style.display = "none";
       openTimesheetReLoginModal(() => triggerFetch());
       return;
     }
@@ -2801,6 +2848,7 @@ function startRecordPoll(p, m, y) {
   const generation = recordPollGeneration; // 🟢 നിലവിലെ ജനറേഷൻ ഓർത്തു വെക്കുന്നു
   recordPollTimer = setInterval(async () => {
     if (generation !== recordPollGeneration) return; // 🟢 പ്ലേറ്റ് മാറിയാൽ പഴയ പോൾ തടയുന്നു
+    if (window.pauseEntryRecordPoll) return; // 🟢 Heavy file action (PDF/Rotate) നടക്കുമ്പോൾ പോളിംഗ് താൽക്കാലികമായി നിർത്തിവെക്കുന്നു
 
     try {
       const ts = new Date().getTime();
@@ -3337,6 +3385,29 @@ function playTimesheetAlertSound() {
 }
 
 function openTimesheetReLoginModal(resumeCallback) {
+  let currentUsername = "";
+  const latestUserStr = localStorage.getItem("timesheetUser");
+  if (latestUserStr) {
+    try {
+      const uObj = JSON.parse(latestUserStr);
+      currentUsername = (uObj.username || "").trim();
+    } catch (e) {}
+  }
+  if (!currentUsername) {
+    const lToken = localStorage.getItem("timesheetToken");
+    if (lToken) {
+      try {
+        const payload = JSON.parse(atob(lToken.split(".")[1]));
+        currentUsername = (payload.username || payload.user || "").trim();
+      } catch (e) {}
+    }
+  }
+
+  // 🟢 Username കണ്ടെത്താൻ കഴിഞ്ഞില്ലെങ്കിൽ കാലിയായ പോപ്പപ്പ് കാണിക്കാതെ ഉടൻ Logout ആക്കുന്നു
+  if (!currentUsername) {
+    return logout();
+  }
+
   pendingTimesheetAction = resumeCallback;
   playTimesheetAlertSound();
 
@@ -3347,23 +3418,6 @@ function openTimesheetReLoginModal(resumeCallback) {
 
   if (errDiv) errDiv.style.display = "none";
   if (passInput) passInput.value = "";
-
-  let currentUsername = "";
-  if (userStr) {
-    try {
-      const uObj = JSON.parse(userStr);
-      currentUsername = uObj.username || "";
-    } catch (e) {}
-  }
-  if (!currentUsername) {
-    const lToken = localStorage.getItem("timesheetToken");
-    if (lToken) {
-      try {
-        const payload = JSON.parse(atob(lToken.split(".")[1]));
-        currentUsername = payload.username || payload.user || "";
-      } catch (e) {}
-    }
-  }
 
   if (userInput) userInput.value = currentUsername;
   if (modal) modal.style.display = "flex";

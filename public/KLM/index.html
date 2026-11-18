@@ -5,43 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Haka Rentals (P) Ltd - KLM Branch Office</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="klm.css" />
+    <meta name="theme-color" content="#0b1329" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <style>
+      @font-face {
+        font-family: "Inter";
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Montserrat";
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Montserrat-Bold.woff2") format("woff2");
+      }
+    </style>
+    <link rel="stylesheet" href="style/klm.css" />
   </head>
 
   <body>
     <div id="authModal" class="modal-overlay">
-      <div class="security-box">
-        <h3>🔒 KLM Branch Office Window</h3>
-        <p>Please enter the KLM office security code.</p>
+      <div class="security-box" id="securityBox">
+        <div class="sec-icon-wrap">🔒</div>
+        <h3>KLM Branch Office</h3>
+        <p>Enter the authorized KLM security passcode to continue.</p>
         <input
           type="password"
           id="securityCode"
-          placeholder="Enter Code"
+          placeholder="••••••••"
           autocomplete="off"
-          onkeypress="handleEnter(event)"
+          onkeydown="handleEnter(event)"
         />
-        <br />
-        <button onclick="verifyCode()">Verify & Access</button>
+        <div class="sec-actions">
+          <a href="../index.html" class="btn-sec-back">← Home</a>
+          <button id="verifyBtn" onclick="verifyCode()">Verify &amp; Access</button>
+        </div>
         <div id="error-msg">Incorrect Code. Redirecting...</div>
       </div>
     </div>
 
-    <div id="main-content" style="display: none">
-      <h1
-        class="animate animate-title"
-        style="text-align: center; margin-bottom: 40px"
-      >
-        Haka Rentals (P) Ltd - KLM
-      </h1>
+    <div id="main-content" class="klm-wrapper" style="display: none">
+      <nav class="klm-topbar">
+        <a href="../index.html" class="nav-pill">← Main Portal</a>
+        <button type="button" class="nav-pill nav-lock" onclick="lockBranchWindow()">
+          🔒 Lock Window
+        </button>
+      </nav>
+
+      <header class="klm-header animate animate-title">
+        <h1>Haka Rentals (P) Ltd - KLM</h1>
+        <p class="klm-subtitle">
+          Employee Timesheets, Payroll &amp; Branch Expense Management
+        </p>
+        <div class="klm-divider"></div>
+      </header>
 
       <main>
         <div class="action-grid-box animate animate-actions">
+          <!-- 1. KLM EMP TS -->
           <a href="../EMP/Employee_Timesheet_Card.html" class="action-card">
             <div class="card-icon">👥</div>
             <div class="card-content">
@@ -50,16 +81,18 @@
             </div>
           </a>
 
+          <!-- 2. KLM EMP Payroll -->
           <a href="../EMP/staff_salary.html" class="action-card">
-            <div class="card-icon">🧮</div>
+            <div class="card-icon">💵</div>
             <div class="card-content">
               <h3>KLM EMP Payroll</h3>
-              <p>Manage and Keep individual employee Payroll records.</p>
+              <p>Manage and maintain individual employee payroll records.</p>
             </div>
           </a>
 
+          <!-- 3. KLM Monthly Expense -->
           <a href="../expense/monthly_expense.html" class="action-card">
-            <div class="card-icon">💰</div>
+            <div class="card-icon">📊</div>
             <div class="card-content">
               <h3>KLM Monthly Expense</h3>
               <p>
@@ -67,6 +100,8 @@
               </p>
             </div>
           </a>
+
+          <!-- Future Cards (5-8 more buttons) can be added directly below here -->
         </div>
       </main>
     </div>
@@ -74,36 +109,41 @@
     <script>
       let autoLogoutTimer;
 
-      // 1. Check session on page load
       document.addEventListener("DOMContentLoaded", () => {
         const expiry = sessionStorage.getItem("klm_auth_expiry");
+        const codeInput = document.getElementById("securityCode");
 
-        if (expiry && Date.now() < parseInt(expiry)) {
-          // Valid session exists, calculate remaining time
-          const timeLeft = parseInt(expiry) - Date.now();
+        if (expiry && Date.now() < parseInt(expiry, 10)) {
+          const timeLeft = parseInt(expiry, 10) - Date.now();
           grantAccess(timeLeft);
         } else {
-          // No valid session or expired, clear storage and show modal
           sessionStorage.removeItem("klm_auth_expiry");
+          if (codeInput) setTimeout(() => codeInput.focus(), 100);
         }
       });
 
       function handleEnter(event) {
         if (event.key === "Enter") {
+          event.preventDefault();
           verifyCode();
         }
       }
 
       async function verifyCode() {
-        const codeInput = document.getElementById("securityCode").value;
+        const codeInputEl = document.getElementById("securityCode");
+        const codeInput = codeInputEl.value.trim();
         const errorMsg = document.getElementById("error-msg");
-        const btn = document.querySelector(".security-box button");
+        const btn = document.getElementById("verifyBtn");
+        const box = document.getElementById("securityBox");
 
-        if (!codeInput) return;
+        if (!codeInput) {
+          codeInputEl.focus();
+          return;
+        }
 
-        // Visual feedback during API call
         btn.innerText = "Verifying...";
         btn.disabled = true;
+        errorMsg.style.display = "none";
 
         try {
           const response = await fetch("/timesheet/api/verify-klm", {
@@ -115,45 +155,52 @@
           const data = await response.json();
 
           if (data.success) {
-            // Set session for 30 minutes (30 * 60 * 1000 = 1,800,000 ms)
-            const sessionDuration = 1800000;
+            const sessionDuration = 30 * 60 * 1000;
             sessionStorage.setItem(
               "klm_auth_expiry",
-              Date.now() + sessionDuration,
+              String(Date.now() + sessionDuration),
             );
             grantAccess(sessionDuration);
           } else {
             errorMsg.style.display = "block";
+            box.classList.remove("shake");
+            void box.offsetWidth;
+            box.classList.add("shake");
             setTimeout(() => {
               window.location.replace("../index.html");
             }, 1500);
           }
         } catch (error) {
           console.error("Authentication Error", error);
-          alert("Network or Server Error! Check Console.");
-          window.location.replace("../index.html");
+          errorMsg.innerText = "Server unreachable. Redirecting...";
+          errorMsg.style.display = "block";
+          setTimeout(() => {
+            window.location.replace("../index.html");
+          }, 1500);
         } finally {
           btn.innerText = "Verify & Access";
           btn.disabled = false;
         }
       }
 
-      // Function to handle successful login and timer setup
       function grantAccess(timeLeft) {
         document.getElementById("authModal").style.display = "none";
         document.getElementById("main-content").style.display = "block";
 
-        // Setup auto logout timer
         clearTimeout(autoLogoutTimer);
         autoLogoutTimer = setTimeout(() => {
           executeLogout();
         }, timeLeft);
       }
 
-      // Function to handle auto-logout
+      function lockBranchWindow() {
+        clearTimeout(autoLogoutTimer);
+        sessionStorage.removeItem("klm_auth_expiry");
+        window.location.reload();
+      }
+
       function executeLogout() {
         sessionStorage.removeItem("klm_auth_expiry");
-        alert("Session Expired. Please login again.");
         window.location.reload();
       }
     </script>

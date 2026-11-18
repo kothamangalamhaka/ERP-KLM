@@ -542,6 +542,7 @@ async function generatePdfFromFiles(
 
   btnElement.disabled = true;
   btnElement.innerHTML = `Processing...`;
+  window.pauseEntryRecordPoll = true; // 🟢 Pause background polling during parallel PDF download
 
   try {
     const pdfLibObj = window.PDFLib || (typeof PDFLib !== "undefined" ? PDFLib : null);
@@ -550,59 +551,68 @@ async function generatePdfFromFiles(
     }
 
     const { PDFDocument } = pdfLibObj;
-    const jsPdfLib = window.jspdf ? (window.jspdf.jsPDF || window.jspdf) : (typeof jsPDF !== "undefined" ? jsPDF : null);
-    if (!jsPdfLib) {
-      throw new Error("jsPDF library not loaded. Please verify /node_xlsx_scripts/jspdf.umd.min.js");
-    }
-    const jsPDF = jsPdfLib;
-
-    // ഇമേജുകൾ ചേർക്കാൻ ഒരു താൽക്കാലിക മാസ്റ്റർ PDF ഉണ്ടാക്കുന്നു
     const mergedPdf = await PDFDocument.create();
     const activeToken = localStorage.getItem("timesheetToken");
     const reqHeaders = { Authorization: "Bearer " + activeToken };
 
-    for (let i = 0; i < filesArray.length; i++) {
-      const file = filesArray[i];
-      const res = await fetch(
-        `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
-        { headers: reqHeaders },
+    // 🟢 Fetch and prepare files in parallel batches of 5 while preserving exact page order
+    const CHUNK_SIZE = 5;
+    for (let i = 0; i < filesArray.length; i += CHUNK_SIZE) {
+      const chunk = filesArray.slice(i, i + CHUNK_SIZE);
+      btnElement.innerHTML = `${Math.min(i + CHUNK_SIZE, filesArray.length)}/${filesArray.length}...`;
+
+      const fetchedItems = await Promise.all(
+        chunk.map(async (file) => {
+          try {
+            const res = await fetch(
+              `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+              { headers: reqHeaders },
+            );
+            if (!res.ok) return null;
+            const blob = await res.blob();
+
+            if (file.mime && file.mime.includes("pdf")) {
+              const arrayBuffer = await blob.arrayBuffer();
+              return { type: "pdf", arrayBuffer };
+            } else {
+              const bitmap = await createImageBitmap(blob, {
+                imageOrientation: "from-image",
+              });
+              const canvas = document.createElement("canvas");
+              canvas.width = bitmap.width;
+              canvas.height = bitmap.height;
+              canvas.getContext("2d").drawImage(bitmap, 0, 0);
+              const cleanDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+              return { type: "img", cleanDataUrl };
+            }
+          } catch (err) {
+            return null;
+          }
+        }),
       );
-      if (!res.ok) continue;
 
-      const blob = await res.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-
-      if (file.mime && file.mime.includes("pdf")) {
-        // PDF anengil direct pages copy cheythu merge cheyyunnu
-        const existingPdf = await PDFDocument.load(arrayBuffer);
-        const copiedPages = await mergedPdf.copyPages(
-          existingPdf,
-          existingPdf.getPageIndices(),
-        );
-        copiedPages.forEach((page) => mergedPdf.addPage(page));
-      } else {
-        // 🟢 FIX: EXIF Orientation & Rotation Fix (UI-il kaanunna athe pole straight aavum)
-        const bitmap = await createImageBitmap(blob, {
-          imageOrientation: "from-image"
-        });
-        const canvas = document.createElement("canvas");
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(bitmap, 0, 0);
-
-        // Canvas വഴി high-quality JPG Data URL aakki embed cheyyunnu
-        const cleanDataUrl = canvas.toDataURL("image/jpeg", 0.95);
-        const embeddedImage = await mergedPdf.embedJpg(cleanDataUrl);
-
-        // Exact image size-il mathram page create cheyyunnu (Zero excess white space)
-        const page = mergedPdf.addPage([embeddedImage.width, embeddedImage.height]);
-        page.drawImage(embeddedImage, {
-          x: 0,
-          y: 0,
-          width: embeddedImage.width,
-          height: embeddedImage.height,
-        });
+      for (const item of fetchedItems) {
+        if (!item) continue;
+        if (item.type === "pdf") {
+          const existingPdf = await PDFDocument.load(item.arrayBuffer);
+          const copiedPages = await mergedPdf.copyPages(
+            existingPdf,
+            existingPdf.getPageIndices(),
+          );
+          copiedPages.forEach((page) => mergedPdf.addPage(page));
+        } else if (item.type === "img") {
+          const embeddedImage = await mergedPdf.embedJpg(item.cleanDataUrl);
+          const page = mergedPdf.addPage([
+            embeddedImage.width,
+            embeddedImage.height,
+          ]);
+          page.drawImage(embeddedImage, {
+            x: 0,
+            y: 0,
+            width: embeddedImage.width,
+            height: embeddedImage.height,
+          });
+        }
       }
     }
 
@@ -616,6 +626,7 @@ async function generatePdfFromFiles(
     console.error("PDF Merge Error:", e);
     customAlert("Failed to generate combined PDF.", "Error");
   } finally {
+    window.pauseEntryRecordPoll = false; // 🟢 Resume background polling immediately
     btnElement.disabled = false;
     btnElement.innerHTML = originalBtnText;
   }
@@ -677,48 +688,118 @@ async function downloadSelectedAsPdf() {
   );
 }
 
-// ✅ 3. Download CURRENT Image directly
-async function downloadCurrentImage() {
+// ✅ 3. Copy CURRENT Logsheet as High-Quality Image to Clipboard
+async function copyCurrentLogsheetToClipboard() {
   if (currentFileIndex === -1 || !logsheetFiles[currentFileIndex]) {
-    customAlert("No image is currently being viewed.", "Notice");
+    customAlert("No logsheet is currently being viewed.", "Notice");
+    return;
+  }
+
+  if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
+    customAlert(
+      "Clipboard image copy requires HTTPS or localhost in your browser.",
+      "Unsupported Browser",
+    );
     return;
   }
 
   const file = logsheetFiles[currentFileIndex];
-  const btn = document.getElementById("btnDownloadCurrent");
+  const btn = document.getElementById("btnCopyCurrentImage");
   btn.disabled = true;
-  btn.innerText = "Wait...";
+  btn.innerText = "⏳";
 
   try {
     const activeToken = localStorage.getItem("timesheetToken");
-    const reqHeaders = {
-      Authorization: "Bearer " + activeToken,
-    };
-
     const res = await fetch(
       `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
-      { headers: reqHeaders },
+      { headers: { Authorization: "Bearer " + activeToken } },
     );
 
     if (!res.ok) throw new Error("Fetch failed");
-
     const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.basename;
-    document.body.appendChild(a);
-    a.click();
+    let sourceCanvas = null;
 
-    window.URL.revokeObjectURL(url);
-    a.remove();
+    if (file.mime && file.mime.includes("pdf")) {
+      // Render PDF page at high resolution (scale 2.5x) for crisp clipboard image
+      const arrayBuffer = await blob.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 2.5 });
+
+      sourceCanvas = document.createElement("canvas");
+      sourceCanvas.width = viewport.width;
+      sourceCanvas.height = viewport.height;
+      const ctx = sourceCanvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+    } else {
+      // Load full-resolution original image respecting EXIF orientation
+      const bitmap = await createImageBitmap(blob, {
+        imageOrientation: "from-image",
+      });
+      sourceCanvas = document.createElement("canvas");
+      sourceCanvas.width = bitmap.width;
+      sourceCanvas.height = bitmap.height;
+      const ctx = sourceCanvas.getContext("2d");
+      ctx.drawImage(bitmap, 0, 0);
+    }
+
+    // Apply current visual rotation if the user rotated the image in viewer
+    const angle = ((currentRotation % 360) + 360) % 360;
+    let finalCanvas = sourceCanvas;
+
+    if (angle !== 0) {
+      finalCanvas = document.createElement("canvas");
+      const rCtx = finalCanvas.getContext("2d");
+      if (angle === 90 || angle === 270) {
+        finalCanvas.width = sourceCanvas.height;
+        finalCanvas.height = sourceCanvas.width;
+      } else {
+        finalCanvas.width = sourceCanvas.width;
+        finalCanvas.height = sourceCanvas.height;
+      }
+      rCtx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
+      rCtx.rotate((angle * Math.PI) / 180);
+      rCtx.drawImage(
+        sourceCanvas,
+        -sourceCanvas.width / 2,
+        -sourceCanvas.height / 2,
+      );
+    }
+
+    // Convert canvas to lossless high-quality PNG Blob for system clipboard
+    const pngBlob = await new Promise((resolve) =>
+      finalCanvas.toBlob(resolve, "image/png", 1.0),
+    );
+
+    if (!pngBlob) throw new Error("Failed to encode PNG image");
+
+    await navigator.clipboard.write([
+      new ClipboardItem({ "image/png": pngBlob }),
+    ]);
+
+    btn.innerText = "✅";
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "High-quality image copied to clipboard! 📋",
+      showConfirmButton: false,
+      timer: 1800,
+    });
   } catch (error) {
-    console.error("Download Error:", error);
-    customAlert("Failed to download current image.", "Error");
+    console.error("Clipboard Copy Error:", error);
+    customAlert(
+      "Failed to copy image to clipboard. Ensure you are using HTTPS.",
+      "Error",
+    );
   } finally {
     btn.disabled = false;
-    btn.innerText = "⬇ Current";
+    setTimeout(() => {
+      if (btn) btn.innerText = "📋";
+    }, 1200);
   }
 }
 
@@ -909,6 +990,7 @@ async function saveCurrentRotation() {
     btn.disabled = true;
     btn.innerText = "⏳";
   }
+  window.pauseEntryRecordPoll = true; // 🟢 Pause background polling during rotation save
 
   try {
     const activeToken = localStorage.getItem("timesheetToken");
@@ -943,9 +1025,10 @@ async function saveCurrentRotation() {
     console.error("Save Rotation Error:", err);
     await customAlert("Network error while saving rotation", "Error");
   } finally {
+    window.pauseEntryRecordPoll = false; // 🟢 Resume background polling
     if (btn) {
-      btn.disabled = false;
       btn.innerText = "💾";
+      updateSaveRotationBtnState();
     }
   }
 }

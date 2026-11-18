@@ -7,22 +7,101 @@
 
     <meta name="theme-color" content="#1e293b" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700&display=swap"
-      rel="stylesheet"
-    />
+    <style>
+      @font-face {
+        font-family: "Inter";
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Montserrat";
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Montserrat-Bold.woff2") format("woff2");
+      }
+
+      /* 🟢 Professional Enterprise Header Styling */
+      .pro-brand-header {
+        text-align: center;
+        padding: 28px 16px 14px;
+        margin-bottom: 6px;
+        position: relative;
+      }
+      .pro-brand-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        color: #7dd3fc;
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .pro-brand-badge .pulse-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #38bdf8;
+        box-shadow: 0 0 8px #38bdf8;
+      }
+      .pro-brand-header h1.pro-title {
+        margin: 0;
+        font-family: "Montserrat", sans-serif;
+        font-size: clamp(30px, 5vw, 44px);
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        background: linear-gradient(180deg, #ffffff 30%, #cbd5e1 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+      }
+      .pro-brand-subtitle {
+        margin: 6px 0 0;
+        font-family: "Inter", sans-serif;
+        font-size: 13.5px;
+        font-weight: 400;
+        color: #94a3b8;
+        letter-spacing: 0.4px;
+      }
+      .pro-brand-divider {
+        width: 90px;
+        height: 3px;
+        margin: 14px auto 0;
+        border-radius: 99px;
+        background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      }
+    </style>
     <link rel="stylesheet" href="style/main.css" />
   </head>
 
   <body>
-    <h1 class="animate animate-title">Haka Rentals (P) Ltd</h1>
+    <header class="pro-brand-header animate animate-title">
+      <h1 class="pro-title">Haka Rentals (P) Ltd</h1>
+      <p class="pro-brand-subtitle">
+        Equipment Fleet, Operations &amp; Financial Management Portal
+      </p>
+      <div class="pro-brand-divider"></div>
+    </header>
 
     <main>
-      <div class="connect-wrapper">
-        
-      </div>
+      <div class="connect-wrapper"></div>
 
       <div class="action-grid-box animate animate-actions">
         <a href="./Master_Data_Base/index.html" class="action-card">
@@ -30,7 +109,7 @@
           <div class="card-content">
             <h3>Master Data Base</h3>
             <p>
-              Access and manage core company records during the entire period.
+              Access & Manage Core-Company Records During The Entire Period.
             </p>
           </div>
         </a>
@@ -87,12 +166,10 @@
           <div class="card-icon">👷‍♂️</div>
           <div class="card-content">
             <h3>Site Co-ordinators</h3>
-            <p>
-              Access and manage core Activity records.
-            </p>
+            <p>Access and manage core Activity records.</p>
           </div>
         </a>
-     
+
         <a href="./invoice_data/report.html" class="action-card">
           <div class="card-icon">📊</div>
           <div class="card-content">
@@ -108,14 +185,12 @@
             <p>Manage and process Vendor timesheets for payment.</p>
           </div>
         </a>
-        
+
         <a href="Employee_Tracker/index.html" class="action-card">
           <div class="card-icon">👥</div>
           <div class="card-content">
             <h3>Emp Tracker</h3>
-            <p>
-              Overall Employee Tracker to manage employee Data.
-            </p>
+            <p>Overall Employee Tracker to manage employee Data.</p>
           </div>
         </a>
 
@@ -123,28 +198,17 @@
           <div class="card-icon">🚜</div>
           <div class="card-content">
             <h3>Own Equipment</h3>
-            <p>
-              Manage EQ Tracker, Database, and Payroll.
-            </p>
+            <p>Manage EQ Tracker, Database, and Payroll.</p>
           </div>
         </a>
 
-        <a href="Employee_Tracker/staff_salary/" class="action-card">
-          <div class="card-icon">💰</div>
-          <div class="card-content">
-            <h3>Staff Payroll</h3>
-            <p>
-              Manage & track Staff Payroll.
-            </p>
-          </div>
-
-          <a href="./Debit_Notes/" class="action-card">
+        <a href="./Debit_Notes/" class="action-card">
           <div class="card-icon">📉</div>
           <div class="card-content">
             <h3>Debit Notes</h3>
             <p>To Manage & Record Debit Notes..</p>
           </div>
-          </a>
+        </a>
 
         <a href="./vat_tracking/" class="action-card">
           <div class="card-icon">📑</div>
@@ -152,63 +216,68 @@
             <h3>Track VAT Bills</h3>
             <p>To Manage & Record Vat Bills, Amount.</p>
           </div>
-          </a>
-         
-          <a href="Office/index.html" class="action-card">
-          <div class="card-icon">🏢</div>
-          <div class="card-content">
-            <h3>Office</h3>
-            <p>
-              Manage bill summary and PO creation.
-            </p>
-          </div>
         </a>
 
         <a href="./KLM/" class="action-card">
           <div class="card-icon">🏢</div>
           <div class="card-content">
             <h3>KLM Branch Off</h3>
-            <p>
-              KLM Branch office operational data.
-            </p>
+            <p>KLM Branch office operational data.</p>
           </div>
         </a>
-          
-        <a href="javascript:void(0);" onclick="openBackupModal()" class="action-card" style="cursor: pointer;">
+
+        <a href="Office/index.html" class="action-card">
+          <div class="card-icon">🏢</div>
+          <div class="card-content">
+            <h3>Office</h3>
+            <p>Manage bill summary and PO creation.</p>
+          </div>
+        </a>
+
+        <a
+          href="javascript:void(0);"
+          onclick="openBackupModal()"
+          class="action-card"
+          style="cursor: pointer"
+        >
           <div class="card-icon">💾</div>
           <div class="card-content">
             <h3>SQL Backup</h3>
             <p>Securely create, manage, and restore SQL backups.</p>
           </div>
         </a>
-
       </div>
     </main>
 
-<!-- Unregister Existing Service Workers -->
+    <!-- Unregister Existing Service Workers -->
     <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-            console.log('Old Service Worker Unregistered successfully.');
-          }
-        });
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then(function (registrations) {
+            for (let registration of registrations) {
+              registration.unregister();
+              console.log("Old Service Worker Unregistered successfully.");
+            }
+          });
       }
 
       // Automatically switch Connect URL based on current network access
-      (function() {
+      (function () {
         const hostname = window.location.hostname;
-        const connectBtn = document.getElementById('connectBtn');
+        const connectBtn = document.getElementById("connectBtn");
 
         if (connectBtn) {
           // Check if accessed locally via LAN IP or localhost
-          const isLocal = hostname.startsWith('192.168.') || hostname === 'localhost' || hostname === '127.0.0.1';
+          const isLocal =
+            hostname.startsWith("192.168.") ||
+            hostname === "localhost" ||
+            hostname === "127.0.0.1";
 
           if (isLocal) {
-            connectBtn.href = 'https://192.168.1.15:8443';
+            connectBtn.href = "https://192.168.1.15:8443";
           } else {
-            connectBtn.href = 'https://fefei.tail129892.ts.net:10000';
+            connectBtn.href = "https://fefei.tail129892.ts.net:10000";
           }
         }
       })();
@@ -263,11 +332,13 @@
             setTimeout(() => closeBackupModal(), 2500);
           } else {
             statusMsg.className = "status-msg status-error";
-            statusMsg.innerText = "❌ Access Denied: " + (data.message || "Invalid Passcode.");
+            statusMsg.innerText =
+              "❌ Access Denied: " + (data.message || "Invalid Passcode.");
           }
         } catch (err) {
           statusMsg.className = "status-msg status-error";
-          statusMsg.innerText = "❌ Communication Failure: Backend server not reachable.";
+          statusMsg.innerText =
+            "❌ Communication Failure: Backend server not reachable.";
         } finally {
           confirmBtn.disabled = false;
           cancelBtn.disabled = false;
@@ -276,7 +347,11 @@
     </script>
 
     <!-- In-Page SQL Backup Modal -->
-    <div id="passcodeModal" class="modal-overlay" onclick="if(event.target===this) closeBackupModal()">
+    <div
+      id="passcodeModal"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeBackupModal();"
+    >
       <div class="modal-content">
         <h3>🔒 Admin Authorization</h3>
         <input
@@ -284,11 +359,23 @@
           id="passcodeInput"
           placeholder="Enter Master Passcode"
           autocomplete="off"
-          onkeydown="if(event.key==='Enter') triggerBackup();"
+          onkeydown="if (event.key === 'Enter') triggerBackup();"
         />
         <div class="modal-actions">
-          <button id="cancelBackupBtn" class="btn-cancel" onclick="closeBackupModal()">Cancel</button>
-          <button id="confirmBackupBtn" class="btn-confirm" onclick="triggerBackup()">Verify & Run</button>
+          <button
+            id="cancelBackupBtn"
+            class="btn-cancel"
+            onclick="closeBackupModal()"
+          >
+            Cancel
+          </button>
+          <button
+            id="confirmBackupBtn"
+            class="btn-confirm"
+            onclick="triggerBackup()"
+          >
+            Verify & Run
+          </button>
         </div>
         <div id="modalStatusMsg" class="status-msg"></div>
       </div>

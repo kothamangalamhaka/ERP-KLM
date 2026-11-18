@@ -9,16 +9,76 @@
     <script src="/node_xlsx_scripts/xlsx.full.min.js"></script>
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <script src="/node_xlsx_scripts/pdf-lib.min.js"></script>
+    <script src="/node_xlsx_scripts/pdf.min.js"></script>
+    <script>
+      if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "/node_xlsx_scripts/pdf.worker.min.js";
+      }
+    </script>
     <script src="/node_xlsx_scripts/jszip.min.js"></script>
     <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
-    />
+    <!-- Local Fonts (Offline / CDN-Free) -->
+    <style>
+      @font-face {
+        font-family: "Inter";
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-Medium.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-Bold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 800;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-ExtraBold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Material Icons";
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+        src: url("/webfonts/material-icons.woff2") format("woff2");
+      }
+      .material-icons {
+        font-family: "Material Icons";
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        font-feature-settings: "liga";
+        -webkit-font-smoothing: antialiased;
+      }
+    </style>
 
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style/blank.css" />
@@ -338,12 +398,12 @@
           <h3 id="logsheetTitle">Logsheet Viewer</h3>
           <div style="display: flex; gap: 10px; align-items: center">
             <button
-              id="btnDownloadCurrent"
-              onclick="downloadCurrentImage()"
-              style="background: #e0f2fe; border: 1px solid #0284c7; border-radius: 4px; color: #0284c7; font-size: 11px; font-weight: bold; padding: 4px 8px; cursor: pointer; transition: all 0.2s;"
-              title="Download Currently Viewing Image"
+              id="btnCopyCurrentImage"
+              onclick="copyCurrentLogsheetToClipboard()"
+              style="background: #e0f2fe; border: 1px solid #0284c7; border-radius: 4px; color: #0284c7; font-size: 14px; font-weight: bold; padding: 3px 9px; cursor: pointer; transition: all 0.2s; line-height: 1.2;"
+              title="Copy Logsheet as High-Quality Image to Clipboard"
             >
-              ⬇ Current
+              📋
             </button>
             <button
               id="btnDownloadSelected"

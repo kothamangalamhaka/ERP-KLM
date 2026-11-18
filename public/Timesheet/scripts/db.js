@@ -1,10 +1,42 @@
-const token = localStorage.getItem("timesheetToken");
+let token = localStorage.getItem("timesheetToken");
 if (!token) {
   const currentPage = encodeURIComponent(
     window.location.pathname.split("/").pop() + window.location.search,
   );
-  window.location.href = "index.html?redirect=" + currentPage;
+  window.location.replace("index.html?redirect=" + currentPage);
 }
+
+// 🟢 Verify token with server immediately on page load, back-forward cache, or tab wake-up
+async function verifySessionOnEntry() {
+  const currentToken = localStorage.getItem("timesheetToken");
+  if (!currentToken) {
+    return handleUnauthorizedSession();
+  }
+  try {
+    const res = await fetch("/timesheet/api/verify-session", {
+      headers: { Authorization: "Bearer " + currentToken },
+    });
+    if (res.status === 401 || res.status === 403) {
+      handleUnauthorizedSession();
+    }
+  } catch (e) {
+    console.warn("Session check network bypass:", e.message);
+  }
+}
+
+verifySessionOnEntry();
+
+window.addEventListener("pageshow", function (event) {
+  if (event.persisted || !localStorage.getItem("timesheetToken")) {
+    verifySessionOnEntry();
+  }
+});
+
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState === "visible") {
+    verifySessionOnEntry();
+  }
+});
 
 let userRole = "";
 const userStr = localStorage.getItem("timesheetUser");
@@ -1104,10 +1136,113 @@ function handleUnauthorizedSession() {
   window.location.href = "index.html?redirect=" + currentPage;
 }
 
-async function safeFetch(url, options) {
+let reLoginPromise = null;
+
+function promptInPlaceReLogin() {
+  if (reLoginPromise) return reLoginPromise;
+
+  reLoginPromise = new Promise((resolve) => {
+    const savedUser = JSON.parse(localStorage.getItem("timesheetUser") || "{}");
+    const modalId = "inlineReLoginOverlay";
+    let modal = document.getElementById(modalId);
+
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = modalId;
+      modal.style.cssText =
+        "position:fixed; inset:0; background:rgba(15,23,42,0.8); z-index:99999; display:flex; justify-content:center; align-items:center; backdrop-filter:blur(4px);";
+      modal.innerHTML = `
+        <div style="background:#fff; padding:24px; border-radius:10px; width:340px; max-width:90vw; box-shadow:0 10px 25px rgba(0,0,0,0.3); font-family:Inter,sans-serif;">
+          <h3 style="margin:0 0 8px 0; color:#0f172a; font-size:17px;">Session Expired</h3>
+          <p style="margin:0 0 14px 0; color:#475569; font-size:13px;">Please re-enter your password to continue and save your pending changes without losing data.</p>
+          <input type="text" id="reLoginUser" value="${escapeHTML(savedUser.username || "")}" placeholder="Username" style="width:100%; padding:9px 12px; margin-bottom:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+          <input type="password" id="reLoginPass" placeholder="Password" style="width:100%; padding:9px 12px; margin-bottom:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+          <div id="reLoginErr" style="color:#dc2626; font-size:12px; min-height:16px; margin-bottom:8px;"></div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" id="reLoginCancelBtn" style="padding:8px 14px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:6px; cursor:pointer;">Logout</button>
+            <button type="button" id="reLoginSubmitBtn" style="padding:8px 16px; border:none; background:#0284c7; color:#fff; font-weight:600; border-radius:6px; cursor:pointer;">Unlock & Save</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    } else {
+      modal.style.display = "flex";
+    }
+
+    const passInput = document.getElementById("reLoginPass");
+    const errDiv = document.getElementById("reLoginErr");
+    passInput.value = "";
+    errDiv.innerText = "";
+    setTimeout(() => passInput.focus(), 100);
+
+    const doReLogin = async () => {
+      const u = document.getElementById("reLoginUser").value.trim();
+      const p = passInput.value;
+      if (!u || !p) {
+        errDiv.innerText = "Please enter username and password.";
+        return;
+      }
+      errDiv.style.color = "#0284c7";
+      errDiv.innerText = "Verifying...";
+      try {
+        const res = await fetch("/timesheet/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p }),
+        });
+        const data = await res.json();
+        if (data.success && data.token) {
+          token = data.token;
+          localStorage.setItem("timesheetToken", data.token);
+          localStorage.setItem("timesheetUser", JSON.stringify(data.user));
+          modal.style.display = "none";
+          reLoginPromise = null;
+          resolve(data.token);
+        } else {
+          errDiv.style.color = "#dc2626";
+          errDiv.innerText = data.message || "Invalid credentials.";
+        }
+      } catch (e) {
+        errDiv.style.color = "#dc2626";
+        errDiv.innerText = "Network error.";
+      }
+    };
+
+    document.getElementById("reLoginSubmitBtn").onclick = doReLogin;
+    passInput.onkeydown = (e) => {
+      if (e.key === "Enter") doReLogin();
+    };
+    document.getElementById("reLoginCancelBtn").onclick = () => {
+      modal.style.display = "none";
+      reLoginPromise = null;
+      handleUnauthorizedSession();
+      resolve(null);
+    };
+  });
+
+  return reLoginPromise;
+}
+
+async function safeFetch(url, options = {}) {
   try {
     const res = await fetch(url, options);
     if (res.status === 401) {
+      // If this was a write/edit action (POST), allow user to re-login in-place so their edit is NOT lost!
+      const method = (options.method || "GET").toUpperCase();
+      if (method === "POST") {
+        const newToken = await promptInPlaceReLogin();
+        if (newToken) {
+          const retryOptions = {
+            ...options,
+            headers: {
+              ...(options.headers || {}),
+              Authorization: "Bearer " + newToken,
+            },
+          };
+          const retryRes = await fetch(url, retryOptions);
+          if (retryRes.ok) return await retryRes.json();
+        }
+      }
       handleUnauthorizedSession();
       throw new Error("Unauthorized");
     }

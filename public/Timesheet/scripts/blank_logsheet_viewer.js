@@ -231,10 +231,12 @@ function loadViewerContent(filePath, mimeType, token) {
             <button class="zoom-btn" onclick="resetZoomRotate()" title="Reset">🔄</button>
             <button class="zoom-btn" onclick="adjustZoom(0.2)" title="Zoom In">➕</button>
             <button class="zoom-btn" onclick="rotateImage()" title="Rotate" style="color:#f59e0b;">⟳</button>
+            <button class="zoom-btn" id="btnSaveRotation" onclick="saveCurrentRotation()" title="Save Rotation Permanently to File" disabled style="color:#10b981; font-weight:bold; margin-left: 4px; opacity: 0.3; cursor: not-allowed; pointer-events: none;">💾</button>
           </div>
         `;
         applyTransform();
         attachMouseEvents();
+        updateSaveRotationBtnState();
       }
     })
     .catch((err) => {
@@ -253,6 +255,7 @@ function rotateImage() {
   currentRotation += 90;
   if (currentRotation >= 360) currentRotation = 0;
   applyTransform();
+  updateSaveRotationBtnState();
 }
 
 function resetZoomRotate() {
@@ -261,6 +264,73 @@ function resetZoomRotate() {
   posX = 0;
   posY = 0;
   applyTransform();
+  updateSaveRotationBtnState();
+}
+
+function updateSaveRotationBtnState() {
+  const btn = document.getElementById("btnSaveRotation");
+  if (!btn) return;
+  const isRotated = currentRotation % 360 !== 0;
+
+  if (isRotated) {
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+    btn.style.pointerEvents = "auto";
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = "0.3";
+    btn.style.cursor = "not-allowed";
+    btn.style.pointerEvents = "none";
+  }
+}
+
+async function saveCurrentRotation() {
+  if (currentFileIndex === -1 || !logsheetFiles[currentFileIndex]) return;
+  const file = logsheetFiles[currentFileIndex];
+
+  const angle = currentRotation % 360;
+  if (angle === 0) return;
+
+  const btn = document.getElementById("btnSaveRotation");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "⏳";
+  }
+
+  try {
+    const activeToken = localStorage.getItem("timesheetToken");
+    const res = await fetch("/timesheet/api/logsheets/rotate-file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + activeToken,
+      },
+      body: JSON.stringify({
+        filePath: file.filename,
+        rotation: angle,
+      }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      currentRotation = 0;
+      if (btn) btn.innerText = "✅";
+      setTimeout(() => {
+        if (btn) btn.innerText = "💾";
+        updateSaveRotationBtnState();
+      }, 1000);
+    } else {
+      customAlert(data.message || "Failed to save rotation.", "Error");
+      if (btn) btn.innerText = "💾";
+      updateSaveRotationBtnState();
+    }
+  } catch (err) {
+    console.error("Save Rotation Error:", err);
+    customAlert("Network error while saving rotation.", "Error");
+    if (btn) btn.innerText = "💾";
+    updateSaveRotationBtnState();
+  }
 }
 
 function applyTransform() {
@@ -374,18 +444,15 @@ async function generatePdfFromFiles(filesArray, pdfFilename, btnElement, origina
         const ctx = canvas.getContext("2d");
         ctx.drawImage(bitmap, 0, 0);
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.9);
-        const singleImgPdf = new jsPDF({
-          orientation: bitmap.width > bitmap.height ? "l" : "p",
-          unit: "mm",
-          format: [bitmap.width * 0.264583, bitmap.height * 0.264583]
+        const cleanDataUrl = canvas.toDataURL("image/jpeg", 0.95);
+        const embeddedImage = await mergedPdf.embedJpg(cleanDataUrl);
+        const page = mergedPdf.addPage([embeddedImage.width, embeddedImage.height]);
+        page.drawImage(embeddedImage, {
+          x: 0,
+          y: 0,
+          width: embeddedImage.width,
+          height: embeddedImage.height,
         });
-        singleImgPdf.addImage(imgData, "JPEG", 0, 0, bitmap.width * 0.264583, bitmap.height * 0.264583, undefined, "FAST");
-        
-        const singlePdfBytes = singleImgPdf.output("arraybuffer");
-        const tempPdf = await PDFDocument.load(singlePdfBytes);
-        const [copiedPage] = await mergedPdf.copyPages(tempPdf, [0]);
-        mergedPdf.addPage(copiedPage);
       }
     }
 
@@ -440,40 +507,98 @@ async function downloadSelectedAsPdf() {
   await generatePdfFromFiles(selectedFiles, `${plate}_Selected_Logsheets.pdf`, btn, "📑 Selected");
 }
 
-async function downloadCurrentImage() {
+async function copyCurrentLogsheetToClipboard() {
   if (currentFileIndex === -1 || !logsheetFiles[currentFileIndex]) {
-    customAlert("No image is currently being viewed.", "Notice");
+    customAlert("No logsheet is currently being viewed.", "Notice");
+    return;
+  }
+
+  if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
+    customAlert(
+      "Clipboard image copy requires HTTPS or localhost in your browser.",
+      "Unsupported Browser",
+    );
     return;
   }
 
   const file = logsheetFiles[currentFileIndex];
-  const btn = document.getElementById("btnDownloadCurrent");
+  const btn = document.getElementById("btnCopyCurrentImage");
   btn.disabled = true;
-  btn.innerText = "Wait...";
+  btn.innerText = "⏳";
 
   try {
     const activeToken = localStorage.getItem("timesheetToken");
-    const reqHeaders = { Authorization: "Bearer " + activeToken };
-
-    const res = await fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`, { headers: reqHeaders });
+    const res = await fetch(
+      `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+      { headers: { Authorization: "Bearer " + activeToken } },
+    );
     if (!res.ok) throw new Error("Fetch failed");
 
     const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
+    let sourceCanvas = null;
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.basename;
-    document.body.appendChild(a);
-    a.click();
+    if (file.mime && file.mime.includes("pdf")) {
+      const arrayBuffer = await blob.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 2.5 });
 
-    window.URL.revokeObjectURL(url);
-    a.remove();
+      sourceCanvas = document.createElement("canvas");
+      sourceCanvas.width = viewport.width;
+      sourceCanvas.height = viewport.height;
+      const ctx = sourceCanvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+    } else {
+      const bitmap = await createImageBitmap(blob, {
+        imageOrientation: "from-image",
+      });
+      sourceCanvas = document.createElement("canvas");
+      sourceCanvas.width = bitmap.width;
+      sourceCanvas.height = bitmap.height;
+      sourceCanvas.getContext("2d").drawImage(bitmap, 0, 0);
+    }
+
+    const angle = ((currentRotation % 360) + 360) % 360;
+    let finalCanvas = sourceCanvas;
+
+    if (angle !== 0) {
+      finalCanvas = document.createElement("canvas");
+      const rCtx = finalCanvas.getContext("2d");
+      if (angle === 90 || angle === 270) {
+        finalCanvas.width = sourceCanvas.height;
+        finalCanvas.height = sourceCanvas.width;
+      } else {
+        finalCanvas.width = sourceCanvas.width;
+        finalCanvas.height = sourceCanvas.height;
+      }
+      rCtx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
+      rCtx.rotate((angle * Math.PI) / 180);
+      rCtx.drawImage(
+        sourceCanvas,
+        -sourceCanvas.width / 2,
+        -sourceCanvas.height / 2,
+      );
+    }
+
+    const pngBlob = await new Promise((resolve) =>
+      finalCanvas.toBlob(resolve, "image/png", 1.0),
+    );
+    if (!pngBlob) throw new Error("Failed to encode PNG image");
+
+    await navigator.clipboard.write([
+      new ClipboardItem({ "image/png": pngBlob }),
+    ]);
+
+    btn.innerText = "✅";
   } catch (error) {
-    console.error("Download Error:", error);
-    customAlert("Failed to download current image.", "Error");
+    console.error("Clipboard Copy Error:", error);
+    customAlert("Failed to copy image to clipboard.", "Error");
   } finally {
     btn.disabled = false;
-    btn.innerText = "⬇ Current";
+    setTimeout(() => {
+      if (btn) btn.innerText = "📋";
+    }, 1200);
   }
 }

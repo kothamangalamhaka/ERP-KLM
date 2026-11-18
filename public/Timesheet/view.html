@@ -13,7 +13,41 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = "/node_xlsx_scripts/pdf.worker.min.js";
     </script>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+      @font-face {
+        font-family: "Inter";
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-Medium.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-Bold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 800;
+        font-style: normal;
+        font-display: swap;
+        src: url("/webfonts/Inter-ExtraBold.woff2") format("woff2");
+      }
 
       body {
         font-family: "Inter", sans-serif;
@@ -843,20 +877,22 @@
           <h3 id="logsheetTitlePanel">Logsheet Viewer</h3>
           <div style="display: flex; gap: 8px; align-items: center">
             <button
-              id="btnPanelDownloadCurrent"
-              onclick="downloadPanelCurrentImage()"
+              id="btnPanelCopyCurrentImage"
+              onclick="copyPanelCurrentToClipboard()"
+              title="Copy Logsheet as High-Quality Image to Clipboard"
               style="
                 background: #e0f2fe;
                 border: 1px solid #0284c7;
                 border-radius: 4px;
                 color: #0284c7;
-                font-size: 11px;
+                font-size: 14px;
                 font-weight: bold;
-                padding: 4px 8px;
+                padding: 3px 9px;
                 cursor: pointer;
+                line-height: 1.2;
               "
             >
-              Current
+              📋
             </button>
             <button
               id="btnPanelDownloadSelected"
@@ -2193,6 +2229,7 @@
       // 🟢 LOGSHEET VIEWER LOGIC (Embedded for Split Panel)
       // ==========================================
       let panelFiles = [];
+      let panelCurrentFileIndex = -1;
       let currentZoom = 1;
       let currentRotation = 0;
       let posX = 0,
@@ -2237,6 +2274,7 @@
           if (data.files.length === 0) {
             sidebar.innerHTML = `<div style="padding:10px; color:#64748b; text-align:center;">No files found.</div>`;
             panelFiles = [];
+            panelCurrentFileIndex = -1;
             return;
           }
 
@@ -2271,6 +2309,8 @@
       }
 
       function selectPanelFile(index) {
+        if (index < 0 || index >= panelFiles.length) return;
+        panelCurrentFileIndex = index;
         document
           .querySelectorAll("#logsheetFileListPanel .logsheet-file-item")
           .forEach((el) => el.classList.remove("active"));
@@ -2345,14 +2385,16 @@
                   </div>
                 </div>
                 <div class="zoom-controls">
-                  <button class="zoom-btn" onclick="panelAdjustZoom(-0.2)">➖</button>
-                  <button class="zoom-btn" onclick="panelResetZoom()">🔄</button>
-                  <button class="zoom-btn" onclick="panelAdjustZoom(0.2)">➕</button>
-                  <button class="zoom-btn" onclick="panelRotate()" style="color:#f59e0b;">⟳</button>
+                  <button class="zoom-btn" onclick="panelAdjustZoom(-0.2)" title="Zoom Out">➖</button>
+                  <button class="zoom-btn" onclick="panelResetZoom()" title="Reset">🔄</button>
+                  <button class="zoom-btn" onclick="panelAdjustZoom(0.2)" title="Zoom In">➕</button>
+                  <button class="zoom-btn" onclick="panelRotate()" title="Rotate" style="color:#f59e0b;">⟳</button>
+                  <button class="zoom-btn" id="btnPanelSaveRotation" onclick="savePanelCurrentRotation()" title="Save Rotation Permanently to File" disabled style="color:#10b981; font-weight:bold; margin-left: 4px; opacity: 0.3; cursor: not-allowed; pointer-events: none;">💾</button>
                 </div>
               `;
               panelApplyTransform();
               attachPanelEvents();
+              updatePanelSaveRotationBtnState();
             }
           })
           .catch(() => {
@@ -2370,6 +2412,7 @@
         currentRotation += 90;
         if (currentRotation >= 360) currentRotation = 0;
         panelApplyTransform();
+        updatePanelSaveRotationBtnState();
       }
       function panelResetZoom() {
         currentZoom = 1;
@@ -2377,6 +2420,73 @@
         posX = 0;
         posY = 0;
         panelApplyTransform();
+        updatePanelSaveRotationBtnState();
+      }
+
+      function updatePanelSaveRotationBtnState() {
+        const btn = document.getElementById("btnPanelSaveRotation");
+        if (!btn) return;
+        const isRotated = currentRotation % 360 !== 0;
+
+        if (isRotated) {
+          btn.disabled = false;
+          btn.style.opacity = "1";
+          btn.style.cursor = "pointer";
+          btn.style.pointerEvents = "auto";
+        } else {
+          btn.disabled = true;
+          btn.style.opacity = "0.3";
+          btn.style.cursor = "not-allowed";
+          btn.style.pointerEvents = "none";
+        }
+      }
+
+      async function savePanelCurrentRotation() {
+        if (panelCurrentFileIndex === -1 || !panelFiles[panelCurrentFileIndex]) return;
+        const file = panelFiles[panelCurrentFileIndex];
+
+        const angle = currentRotation % 360;
+        if (angle === 0) return;
+
+        const btn = document.getElementById("btnPanelSaveRotation");
+        if (btn) {
+          btn.disabled = true;
+          btn.innerText = "⏳";
+        }
+
+        try {
+          const activeToken = localStorage.getItem("timesheetToken");
+          const res = await fetch("/timesheet/api/logsheets/rotate-file", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + activeToken,
+            },
+            body: JSON.stringify({
+              filePath: file.filename,
+              rotation: angle,
+            }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            currentRotation = 0;
+            if (btn) btn.innerText = "✅";
+            setTimeout(() => {
+              if (btn) btn.innerText = "💾";
+              updatePanelSaveRotationBtnState();
+            }, 1000);
+          } else {
+            alert(data.message || "Failed to save rotation.");
+            if (btn) btn.innerText = "💾";
+            updatePanelSaveRotationBtnState();
+          }
+        } catch (err) {
+          console.error("Save Panel Rotation Error:", err);
+          alert("Network error while saving rotation.");
+          if (btn) btn.innerText = "💾";
+          updatePanelSaveRotationBtnState();
+        }
       }
 
       function panelApplyTransform() {
@@ -2540,15 +2650,20 @@
         );
       }
 
-      async function downloadPanelCurrentImage() {
-        if (currentFileIndex === -1 || !panelFiles[currentFileIndex]) {
+      async function copyPanelCurrentToClipboard() {
+        if (panelCurrentFileIndex === -1 || !panelFiles[panelCurrentFileIndex]) {
           alert("No file selected.");
           return;
         }
-        const file = panelFiles[currentFileIndex];
-        const btn = document.getElementById("btnPanelDownloadCurrent");
+        if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
+          alert("Clipboard image copy requires HTTPS or localhost.");
+          return;
+        }
+
+        const file = panelFiles[panelCurrentFileIndex];
+        const btn = document.getElementById("btnPanelCopyCurrentImage");
         btn.disabled = true;
-        btn.innerHTML = "...";
+        btn.innerHTML = "⏳";
 
         try {
           const token = localStorage.getItem("timesheetToken");
@@ -2556,16 +2671,74 @@
             `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
             { headers: { Authorization: "Bearer " + token } },
           );
+          if (!res.ok) throw new Error("Fetch failed");
           const blob = await res.blob();
-          const a = document.createElement("a");
-          a.href = window.URL.createObjectURL(blob);
-          a.download = file.basename;
-          a.click();
+
+          let sourceCanvas = null;
+
+          if (file.mime && file.mime.includes("pdf")) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.5 });
+
+            sourceCanvas = document.createElement("canvas");
+            sourceCanvas.width = viewport.width;
+            sourceCanvas.height = viewport.height;
+            const ctx = sourceCanvas.getContext("2d");
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+          } else {
+            const bitmap = await createImageBitmap(blob, {
+              imageOrientation: "from-image",
+            });
+            sourceCanvas = document.createElement("canvas");
+            sourceCanvas.width = bitmap.width;
+            sourceCanvas.height = bitmap.height;
+            sourceCanvas.getContext("2d").drawImage(bitmap, 0, 0);
+          }
+
+          const angle = ((currentRotation % 360) + 360) % 360;
+          let finalCanvas = sourceCanvas;
+
+          if (angle !== 0) {
+            finalCanvas = document.createElement("canvas");
+            const rCtx = finalCanvas.getContext("2d");
+            if (angle === 90 || angle === 270) {
+              finalCanvas.width = sourceCanvas.height;
+              finalCanvas.height = sourceCanvas.width;
+            } else {
+              finalCanvas.width = sourceCanvas.width;
+              finalCanvas.height = sourceCanvas.height;
+            }
+            rCtx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
+            rCtx.rotate((angle * Math.PI) / 180);
+            rCtx.drawImage(
+              sourceCanvas,
+              -sourceCanvas.width / 2,
+              -sourceCanvas.height / 2,
+            );
+          }
+
+          const pngBlob = await new Promise((resolve) =>
+            finalCanvas.toBlob(resolve, "image/png", 1.0),
+          );
+          if (!pngBlob) throw new Error("Failed to encode image");
+
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": pngBlob }),
+          ]);
+
+          btn.innerHTML = "✅";
         } catch (error) {
-          alert("Download failed.");
+          console.error("Clipboard Copy Error:", error);
+          alert("Failed to copy image to clipboard.");
         } finally {
           btn.disabled = false;
-          btn.innerHTML = "Current";
+          setTimeout(() => {
+            if (btn) btn.innerHTML = "📋";
+          }, 1200);
         }
       }
 

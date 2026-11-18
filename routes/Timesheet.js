@@ -179,6 +179,18 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// 🟢 Instant Session Verification on Page Load
+router.get("/api/verify-session", verifyToken, (req, res) => {
+  res.json({
+    success: true,
+    user: {
+      username: req.user.username,
+      role: req.user.role,
+      email: req.user.email,
+    },
+  });
+});
+
 router.post("/forgot-password/request", async (req, res) => {
   try {
     const { email } = req.body;

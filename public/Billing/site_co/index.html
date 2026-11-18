@@ -674,39 +674,153 @@
       .auth-modal {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.95);
+        background: radial-gradient(circle at top left, #0f172a 0%, #1e293b 45%, #020617 100%);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 9999;
+        padding: 16px;
+        overflow: hidden;
+      }
+
+      .auth-modal::before,
+      .auth-modal::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(75px);
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      .auth-modal::before {
+        width: 320px;
+        height: 320px;
+        background: rgba(56, 189, 248, 0.25);
+        top: 12%;
+        left: 22%;
+      }
+
+      .auth-modal::after {
+        width: 340px;
+        height: 340px;
+        background: rgba(37, 99, 235, 0.28);
+        bottom: 10%;
+        right: 20%;
       }
 
       .auth-box {
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        width: 360px;
+        position: relative;
+        z-index: 1;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        padding: 36px 32px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          0 25px 50px -12px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        width: 100%;
+        max-width: 380px;
         text-align: center;
+        color: #f8fafc;
+      }
+
+      .auth-box .auth-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: #7dd3fc;
+        background: rgba(56, 189, 248, 0.14);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-radius: 999px;
+        margin-bottom: 10px;
+      }
+
+      .auth-box h2 {
+        margin: 0 0 6px 0;
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+
+      .auth-box .auth-sub {
+        margin: 0 0 22px 0;
+        font-size: 12.5px;
+        color: #94a3b8;
       }
 
       .auth-box input {
         width: 100%;
-        padding: 10px;
-        margin-bottom: 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 10px;
         box-sizing: border-box;
+        color: #ffffff;
+        font-size: 13.5px;
+        outline: none;
+        transition: all 0.2s ease;
+      }
+
+      .auth-box input::placeholder {
+        color: #94a3b8;
+      }
+
+      .auth-box input:focus {
+        border-color: #38bdf8;
+        background: rgba(15, 23, 42, 0.78);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
       }
 
       .auth-box button {
         width: 100%;
-        padding: 10px;
-        background: #2563eb;
-        color: white;
+        padding: 12px;
+        margin-top: 4px;
+        background: linear-gradient(135deg, #38bdf8, #2563eb);
+        color: #ffffff;
         border: none;
-        border-radius: 6px;
+        border-radius: 10px;
+        font-size: 14px;
         font-weight: 700;
+        letter-spacing: 0.4px;
         cursor: pointer;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        transition: all 0.2s ease;
+      }
+
+      .auth-box button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(56, 189, 248, 0.45);
+        filter: brightness(1.06);
+      }
+
+      .auth-box button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+
+      .auth-box .auth-switch-text {
+        margin-top: 18px;
+        font-size: 12.5px;
+        color: #cbd5e1;
+      }
+
+      .auth-box .auth-switch-text a {
+        color: #38bdf8;
+        font-weight: 700;
+        text-decoration: none;
+        margin-left: 4px;
+      }
+
+      .auth-box .auth-switch-text a:hover {
+        text-decoration: underline;
       }
 
       #toast {
@@ -809,15 +923,18 @@
 
     <div id="authModal" class="auth-modal">
       <div class="auth-box">
-        <h2 id="authTitle" style="margin-top: 0; color: #0f172a">
-          View Bill Login
-        </h2>
+        <div class="auth-badge">Vendor Bill Portal</div>
+        <h2 id="authTitle">View Bill Login</h2>
+        <p id="authSubtitle" class="auth-sub">
+          Sign in to access billing &amp; dashboard reports
+        </p>
 
         <div id="loginForm">
           <input
             type="text"
             id="loginUsername"
             placeholder="Username"
+            autocomplete="off"
             onkeypress="if (event.key === 'Enter') executeViewBillLogin();"
           />
 
@@ -830,12 +947,11 @@
 
           <button id="loginBtn" onclick="executeViewBillLogin()">Login</button>
 
-          <p style="margin-top: 15px; font-size: 12px; color: #64748b">
+          <p class="auth-switch-text">
             New Site Coordinator?
             <a
               href="#"
-              onclick="toggleAuthMode('signup')"
-              style="color: #2563eb"
+              onclick="event.preventDefault(); toggleAuthMode('signup');"
             >
               Sign Up
             </a>
@@ -843,18 +959,17 @@
         </div>
 
         <div id="signupForm" style="display: none">
-          <input type="text" id="signupName" placeholder="Full Name" />
-          <input type="text" id="signupUsername" placeholder="Username" />
+          <input type="text" id="signupName" placeholder="Full Name" autocomplete="off" />
+          <input type="text" id="signupUsername" placeholder="Username" autocomplete="off" />
           <input type="password" id="signupPassword" placeholder="Password" />
 
           <button onclick="executeViewBillSignup()">Request Access</button>
 
-          <p style="margin-top: 15px; font-size: 12px; color: #64748b">
+          <p class="auth-switch-text">
             Already have an account?
             <a
               href="#"
-              onclick="toggleAuthMode('login')"
-              style="color: #2563eb"
+              onclick="event.preventDefault(); toggleAuthMode('login');"
             >
               Login
             </a>
@@ -1440,6 +1555,14 @@
 
         document.getElementById("authTitle").innerText =
           mode === "login" ? "View Bill Login" : "Request Access";
+
+        const sub = document.getElementById("authSubtitle");
+        if (sub) {
+          sub.innerText =
+            mode === "login"
+              ? "Sign in to access billing & dashboard reports"
+              : "Create a coordinator account for approval";
+        }
       }
 
       async function executeViewBillLogin() {
