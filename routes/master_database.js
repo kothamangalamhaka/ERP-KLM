@@ -12,26 +12,26 @@ module.exports = function (pool, middlewares, helpers) {
   // 📌 GLOBAL CONFIGURATIONS & CONSTANTS
   // ==========================================
   const COLUMNS = {
-  SN: "SN",
-  PLATE_NUMBER: "PLATE NUMBER",
-  SITE: "SITE",
-  STATUS: "STATUS",
-  COMPANY: "COMPANY",
-  CUSTOMER: "CUSTOMER",
-  IF_SUB: "IF SUB",
-  WORK_START: "WORK START",
-  LAST_WORKING_DAY: "LAST WORKING DAY",
-  DAYS_WORKED: "DAYS WORKED",
-  MOBILIZATION: "EQUIPMENT REACHED AT SITE",
-  RELEASE_DATE: "RELEASE DATE",
-  REPLACED_DATE: "REPLACED DATE",
-  OLD_DRIVER: "OLD DRIVER NAME",
-  OD_MOB: "OD MOB",
-  OD_WORK_END: "OD WRK END",
-  DRIVER_NAME: "DRIVER NAME",
-  MOBILE: "MOBILE",
-  DRIVER_START_DATE: "DRIVER START DATE",
-};
+    SN: "SN",
+    PLATE_NUMBER: "PLATE NUMBER",
+    SITE: "SITE",
+    STATUS: "STATUS",
+    COMPANY: "COMPANY",
+    CUSTOMER: "CUSTOMER",
+    IF_SUB: "IF SUB",
+    WORK_START: "WORK START",
+    LAST_WORKING_DAY: "LAST WORKING DAY",
+    DAYS_WORKED: "DAYS WORKED",
+    MOBILIZATION: "EQUIPMENT REACHED AT SITE",
+    RELEASE_DATE: "RELEASE DATE",
+    REPLACED_DATE: "REPLACED DATE",
+    OLD_DRIVER: "OLD DRIVER NAME",
+    OD_MOB: "OD MOB",
+    OD_WORK_END: "OD WRK END",
+    DRIVER_NAME: "DRIVER NAME",
+    MOBILE: "MOBILE",
+    DRIVER_START_DATE: "DRIVER START DATE",
+  };
 
   const FIXED_COLUMNS = [
     COLUMNS.MOBILIZATION,
@@ -58,7 +58,7 @@ module.exports = function (pool, middlewares, helpers) {
   // ==========================================
 
   // 🟢 NEW CODE: In-Memory Cell Lock System (Zero Memory Leak)
-  const activeCellLocks = {}; 
+  const activeCellLocks = {};
 
   // Auto-cleanup stale locks (Unlocks cell if abandoned for more than 2 minutes)
   setInterval(() => {
@@ -78,7 +78,7 @@ module.exports = function (pool, middlewares, helpers) {
     if (activeCellLocks[key] && activeCellLocks[key].user !== currentUser) {
       return res.json({ locked: true, lockedBy: activeCellLocks[key].user });
     }
-    
+
     activeCellLocks[key] = { user: currentUser, time: Date.now() };
     res.json({ locked: false });
   });
@@ -86,8 +86,11 @@ module.exports = function (pool, middlewares, helpers) {
   router.post("/unlock-cell", verifyToken, (req, res) => {
     const { dbId, colName } = req.body;
     const key = `${dbId}_${colName}`;
-    
-    if (activeCellLocks[key] && activeCellLocks[key].user === req.user.username) {
+
+    if (
+      activeCellLocks[key] &&
+      activeCellLocks[key].user === req.user.username
+    ) {
       delete activeCellLocks[key];
     }
     res.json({ success: true });
@@ -110,13 +113,19 @@ module.exports = function (pool, middlewares, helpers) {
       changeLogs.forEach((item) => {
         const plate = item.plate || "N/A";
         const colHeader = item.colName || "N/A";
-        const oldVal = item.oldVal !== undefined && item.oldVal !== "" ? item.oldVal : "(Blank)";
-        const newVal = item.newVal !== undefined && item.newVal !== "" ? item.newVal : "(Blank)";
+        const oldVal =
+          item.oldVal !== undefined && item.oldVal !== ""
+            ? item.oldVal
+            : "(Blank)";
+        const newVal =
+          item.newVal !== undefined && item.newVal !== ""
+            ? item.newVal
+            : "(Blank)";
 
         alertBlocks.push(
           `🚚 <b>PLATE NO:</b> [ <code>${plate}</code> ]\n` +
-          `📌 <b>COLUMN:</b> <b>${colHeader}</b>\n` +
-          `🔄 <b>CHANGE:</b> <del>${oldVal}</del> ➔ <b>${newVal}</b>`
+            `📌 <b>COLUMN:</b> <b>${colHeader}</b>\n` +
+            `🔄 <b>CHANGE:</b> <del>${oldVal}</del> ➔ <b>${newVal}</b>`,
         );
       });
 
@@ -152,7 +161,8 @@ module.exports = function (pool, middlewares, helpers) {
       const existing = buffer.items.find(
         (item) =>
           String(item.dbId) === String(c.dbId) &&
-          String(item.colName).toUpperCase() === String(c.colName).toUpperCase(),
+          String(item.colName).toUpperCase() ===
+            String(c.colName).toUpperCase(),
       );
       if (existing) {
         existing.newVal = c.newVal;
@@ -164,8 +174,10 @@ module.exports = function (pool, middlewares, helpers) {
           sn: c.sn || "N/A",
           plate: c.plate || "N/A",
           colName: c.colName || "N/A",
-          oldVal: c.oldVal !== undefined && c.oldVal !== "" ? c.oldVal : "(Blank)",
-          newVal: c.newVal !== undefined && c.newVal !== "" ? c.newVal : "(Blank)",
+          oldVal:
+            c.oldVal !== undefined && c.oldVal !== "" ? c.oldVal : "(Blank)",
+          newVal:
+            c.newVal !== undefined && c.newVal !== "" ? c.newVal : "(Blank)",
         });
       }
     });
@@ -259,8 +271,12 @@ module.exports = function (pool, middlewares, helpers) {
     let currentMsg = headerMeta;
 
     for (let i = 0; i < recordBlocks.length; i++) {
-      const block = recordBlocks[i] + "\n\n-----------------------------------\n\n";
-      if (currentMsg.length + block.length > MAX_LEN && currentMsg !== headerMeta) {
+      const block =
+        recordBlocks[i] + "\n\n-----------------------------------\n\n";
+      if (
+        currentMsg.length + block.length > MAX_LEN &&
+        currentMsg !== headerMeta
+      ) {
         await sendActivityTelegramMessage(currentMsg);
         currentMsg = headerMeta + `<i>(Continued...)</i>\n\n` + block;
       } else {
@@ -344,7 +360,9 @@ module.exports = function (pool, middlewares, helpers) {
 
   function isPersonNameCol(colName) {
     if (!colName) return false;
-    const clean = String(colName).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    const clean = String(colName)
+      .replace(/[^A-Z0-9]/gi, "")
+      .toUpperCase();
     return [
       "DRIVERNAME",
       "OLDDRIVERNAME",
@@ -437,7 +455,9 @@ module.exports = function (pool, middlewares, helpers) {
               ? mNames.indexOf(p[1].toUpperCase().substring(0, 3))
               : parseInt(p[1], 10) - 1;
             let y =
-              p[2].length === 2 ? 2000 + parseInt(p[2], 10) : parseInt(p[2], 10);
+              p[2].length === 2
+                ? 2000 + parseInt(p[2], 10)
+                : parseInt(p[2], 10);
 
             if (!isNaN(d) && m !== -1 && !isNaN(y)) {
               return new Date(y, m, d);
@@ -514,7 +534,8 @@ module.exports = function (pool, middlewares, helpers) {
         );
         const dNameCol = getCol(COLUMNS.DRIVER_NAME);
         const dMobCol = getCol(COLUMNS.MOBILE);
-        const dStartCol = getCol(COLUMNS.DRIVER_START_DATE) || getCol("DRIVER START DATE");
+        const dStartCol =
+          getCol(COLUMNS.DRIVER_START_DATE) || getCol("DRIVER START DATE");
 
         if (
           pLwdCol &&
@@ -583,7 +604,10 @@ module.exports = function (pool, middlewares, helpers) {
                   Math.random().toString(36).substr(2, 5),
                 name: prevData[dNameCol],
                 mob: prevData[dMobCol] || "",
-                start: (dStartCol && prevData[dStartCol]) ? prevData[dStartCol] : "IDK",
+                start:
+                  dStartCol && prevData[dStartCol]
+                    ? prevData[dStartCol]
+                    : "IDK",
                 end: autoLwdVal,
                 updated_by: "System",
               });
@@ -619,38 +643,44 @@ module.exports = function (pool, middlewares, helpers) {
   // 🚀 API ROUTES (Memory-Optimized)
   // ==========================================
 
-// 🟢 NEW CODE: Add Column 
+  // 🟢 NEW CODE: Add Column
   router.post("/add-column", verifyToken, async (req, res) => {
     try {
       if (req.user.role !== "Super Admin") {
-         return res.json({ success: false, message: "Super Admin Access Required." });
+        return res.json({
+          success: false,
+          message: "Super Admin Access Required.",
+        });
       }
       const { colName, colType } = req.body;
-      if (!colName) return res.json({ success: false, message: "Column name required." });
+      if (!colName)
+        return res.json({ success: false, message: "Column name required." });
 
       // നിലവിൽ ആ പേരിൽ ഒരു കോളം ഉണ്ടോയെന്ന് നോക്കുക
       const checkRes = await pool.query(
-        "SELECT id FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL", 
-        [colName]
+        "SELECT id FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL",
+        [colName],
       );
       if (checkRes.rows.length > 0) {
         return res.json({ success: false, message: "Column already exists." });
       }
 
       // ഏറ്റവും വലിയ col_order കണ്ടുപിടിക്കുക
-      const orderRes = await pool.query("SELECT MAX(col_order) as max_order FROM erp_headers");
+      const orderRes = await pool.query(
+        "SELECT MAX(col_order) as max_order FROM erp_headers",
+      );
       let nextOrder = (orderRes.rows[0].max_order || 0) + 1;
 
       // പുതിയ കോളം ടേബിളിൽ ചേർക്കുക
       await pool.query(
         "INSERT INTO erp_headers (header_name, col_type, col_order) VALUES ($1, $2, $3)",
-        [colName, colType || "varchar", nextOrder]
+        [colName, colType || "varchar", nextOrder],
       );
 
       // ആക്ടിവിറ്റി ലോഗ് ചെയ്യുക
       await pool.query(
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'ADD_COLUMN', $2)",
-        [req.user.username, JSON.stringify({ colName: colName })]
+        [req.user.username, JSON.stringify({ colName: colName })],
       );
 
       res.json({ success: true, message: "Column added successfully." });
@@ -663,15 +693,19 @@ module.exports = function (pool, middlewares, helpers) {
   router.post("/add-column-relative", verifyToken, async (req, res) => {
     try {
       if (req.user.role !== "Super Admin") {
-         return res.json({ success: false, message: "Super Admin Access Required." });
+        return res.json({
+          success: false,
+          message: "Super Admin Access Required.",
+        });
       }
       const { colName, relativeTo, position, colType } = req.body;
-      if (!colName || !relativeTo) return res.json({ success: false, message: "Missing data." });
+      if (!colName || !relativeTo)
+        return res.json({ success: false, message: "Missing data." });
 
       // നിലവിൽ ആ പേരിൽ ഒരു കോളം ഉണ്ടോയെന്ന് നോക്കുക
       const checkRes = await pool.query(
-        "SELECT id FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL", 
-        [colName]
+        "SELECT id FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL",
+        [colName],
       );
       if (checkRes.rows.length > 0) {
         return res.json({ success: false, message: "Column already exists." });
@@ -680,11 +714,14 @@ module.exports = function (pool, middlewares, helpers) {
       // relativeTo കോളത്തിന്റെ ഓർഡർ കണ്ടുപിടിക്കുക
       const targetRes = await pool.query(
         "SELECT col_order FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL",
-        [relativeTo]
+        [relativeTo],
       );
-      
+
       if (targetRes.rows.length === 0) {
-        return res.json({ success: false, message: "Target column not found." });
+        return res.json({
+          success: false,
+          message: "Target column not found.",
+        });
       }
 
       let targetOrder = targetRes.rows[0].col_order;
@@ -693,19 +730,26 @@ module.exports = function (pool, middlewares, helpers) {
       // ബാക്കിയുള്ള കോളങ്ങളുടെ ഓർഡർ അഡ്ജസ്റ്റ് ചെയ്യുക
       await pool.query(
         "UPDATE erp_headers SET col_order = col_order + 1 WHERE col_order >= $1 AND deleted_at IS NULL",
-        [newOrder]
+        [newOrder],
       );
 
       // പുതിയ കോളം ടേബിളിൽ ചേർക്കുക
       await pool.query(
         "INSERT INTO erp_headers (header_name, col_type, col_order) VALUES ($1, $2, $3)",
-        [colName, colType || "varchar", newOrder]
+        [colName, colType || "varchar", newOrder],
       );
 
       // ആക്ടിവിറ്റി ലോഗ് ചെയ്യുക
       await pool.query(
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'ADD_COLUMN_RELATIVE', $2)",
-        [req.user.username, JSON.stringify({ colName: colName, relativeTo: relativeTo, position: position })]
+        [
+          req.user.username,
+          JSON.stringify({
+            colName: colName,
+            relativeTo: relativeTo,
+            position: position,
+          }),
+        ],
       );
 
       res.json({ success: true, message: "Column added successfully." });
@@ -735,7 +779,8 @@ module.exports = function (pool, middlewares, helpers) {
       let filterQuery = "deleted_at IS NULL";
       let params = [];
       if (role !== "Admin" && role !== "Super Admin" && role !== "Viewer") {
-        filterQuery += " AND TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))";
+        filterQuery +=
+          " AND TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))";
         params.push(site);
       }
 
@@ -748,7 +793,7 @@ module.exports = function (pool, middlewares, helpers) {
            (SELECT COUNT(*) FROM erp_headers WHERE deleted_at IS NULL) as hdr_count
          FROM erp_records 
          WHERE ${filterQuery}`,
-        params
+        params,
       );
 
       const r = verRes.rows[0];
@@ -757,7 +802,7 @@ module.exports = function (pool, middlewares, helpers) {
       res.json({
         success: true,
         version: versionSignature,
-        activeUsers: activeUsersList
+        activeUsers: activeUsersList,
       });
     } catch (error) {
       res.json({ success: false, version: null, activeUsers: [] });
@@ -822,16 +867,16 @@ module.exports = function (pool, middlewares, helpers) {
         headers.forEach((h) => {
           let val = dbRow.record_data[h];
           if (val === undefined || val === null || String(val).trim() === "") {
-             // Case-insensitive fallback if exact case is missing or empty
-             let foundKey = Object.keys(dbRow.record_data).find(
-               (k) =>
-                 k.replace(/\s+/g, "").toUpperCase() ===
-                   h.replace(/\s+/g, "").toUpperCase() &&
-                 dbRow.record_data[k] !== undefined &&
-                 dbRow.record_data[k] !== null &&
-                 String(dbRow.record_data[k]).trim() !== "",
-             );
-             if (foundKey) val = dbRow.record_data[foundKey];
+            // Case-insensitive fallback if exact case is missing or empty
+            let foundKey = Object.keys(dbRow.record_data).find(
+              (k) =>
+                k.replace(/\s+/g, "").toUpperCase() ===
+                  h.replace(/\s+/g, "").toUpperCase() &&
+                dbRow.record_data[k] !== undefined &&
+                dbRow.record_data[k] !== null &&
+                String(dbRow.record_data[k]).trim() !== "",
+            );
+            if (foundKey) val = dbRow.record_data[foundKey];
           }
           rowArray.push(val || "");
         });
@@ -840,7 +885,9 @@ module.exports = function (pool, middlewares, helpers) {
       });
 
       // 🟢 FIX: Get global max SN regardless of user role or site filter
-      const snResult = await pool.query("SELECT MAX(sn) as max_sn FROM erp_records");
+      const snResult = await pool.query(
+        "SELECT MAX(sn) as max_sn FROM erp_records",
+      );
       let globalNextSN = (snResult.rows[0].max_sn || 0) + 1;
 
       res.json({
@@ -859,7 +906,7 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
-   // Master Database issue-audit screen. Returns the same role-scoped records as
+  // Master Database issue-audit screen. Returns the same role-scoped records as
   // the main grid, including the hidden JSONB review metadata.
   router.get("/mdb-issues", verifyToken, async (req, res) => {
     try {
@@ -910,17 +957,28 @@ module.exports = function (pool, middlewares, helpers) {
 
       const recordId = Number.parseInt(req.body.recordId, 10);
       const issueKey = String(req.body.issueKey || "").trim();
-      const allowedIssueKeys = new Set(["work_start_gap", "plate_owner_conflict", "owner_mobile_conflict"]);
-      const remark = String(req.body.remark || "").trim().slice(0, 2000);
+      const allowedIssueKeys = new Set([
+        "work_start_gap",
+        "plate_owner_conflict",
+        "owner_mobile_conflict",
+      ]);
+      const remark = String(req.body.remark || "")
+        .trim()
+        .slice(0, 2000);
       const review = {
         cleared: Boolean(req.body.cleared),
         remark,
         updatedBy: req.user.username,
         updatedAt: new Date().toISOString(),
       };
-      const canReviewAllSites = req.user.role === "Admin" || req.user.role === "Super Admin";
+      const canReviewAllSites =
+        req.user.role === "Admin" || req.user.role === "Super Admin";
 
-      if (!Number.isInteger(recordId) || recordId <= 0 || !allowedIssueKeys.has(issueKey)) {
+      if (
+        !Number.isInteger(recordId) ||
+        recordId <= 0 ||
+        !allowedIssueKeys.has(issueKey)
+      ) {
         return res.status(400).json({
           success: false,
           message: "Invalid issue review data.",
@@ -947,16 +1005,27 @@ module.exports = function (pool, middlewares, helpers) {
              OR TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($5))
            )
          RETURNING id`,
-        [issueKey, JSON.stringify(review), recordId, canReviewAllSites, req.user.site || ""],
+        [
+          issueKey,
+          JSON.stringify(review),
+          recordId,
+          canReviewAllSites,
+          req.user.site || "",
+        ],
       );
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ success: false, message: "Record not found." });
+        return res
+          .status(404)
+          .json({ success: false, message: "Record not found." });
       }
 
       await pool.query(
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'MDB_ISSUE_REVIEW', $2)",
-        [req.user.username, JSON.stringify({ recordId, issueKey, cleared: review.cleared })],
+        [
+          req.user.username,
+          JSON.stringify({ recordId, issueKey, cleared: review.cleared }),
+        ],
       );
 
       res.json({ success: true, review });
@@ -964,7 +1033,6 @@ module.exports = function (pool, middlewares, helpers) {
       handleError(res, error, req.user.role, "SAVE_MDB_ISSUE_REVIEW");
     }
   });
-
 
   // ==========================================
   // 🟢 NEW CODE: DYNAMIC COMPANIES LIST API
@@ -978,7 +1046,7 @@ module.exports = function (pool, middlewares, helpers) {
          WHERE deleted_at IS NULL 
            AND record_data->>'Company' IS NOT NULL 
            AND TRIM(record_data->>'Company') != '' 
-         ORDER BY company_name ASC`
+         ORDER BY company_name ASC`,
       );
 
       let companies = companyRes.rows.map((r) => r.company_name);
@@ -1033,10 +1101,16 @@ module.exports = function (pool, middlewares, helpers) {
 
         let currentData = recordRes.rows[0].record_data || {};
         let recordSn = recordRes.rows[0].sn || currentData["SN"] || "N/A";
-        
+
         // 🟢 FIX 1: Null/Undefined സുരക്ഷിതമായി സ്ട്രിങ്ങിലേക്ക് മാറ്റുന്നു
-        let rawOldVal = currentData[colName] !== undefined && currentData[colName] !== null ? String(currentData[colName]).trim() : "";
-        let rawNewVal = newValue !== undefined && newValue !== null ? String(newValue).trim() : "";
+        let rawOldVal =
+          currentData[colName] !== undefined && currentData[colName] !== null
+            ? String(currentData[colName]).trim()
+            : "";
+        let rawNewVal =
+          newValue !== undefined && newValue !== null
+            ? String(newValue).trim()
+            : "";
 
         // 🟢 FIX 2: പ്ലേറ്റ് നമ്പർ കൃത്യമായി കിട്ടാൻ DB കോളവും ഒപ്പം ഫ്രണ്ട്-എൻഡിൽ നിന്ന് വരുന്ന പ്ലേറ്റ് നമ്പറും ചെക്ക് ചെയ്യുന്നു
         let plateNo =
@@ -1083,7 +1157,10 @@ module.exports = function (pool, middlewares, helpers) {
 
       // 🟢 ISOLATED CHECK: Batch Timer ON aanenkil buffer-lekk, allengil Fire-and-forget live alert (Zero UI Lag)
       if (changeLogs.length > 0) {
-        if (batchAlertMode || userBatchAlertBuffers[req.user.username]?.active) {
+        if (
+          batchAlertMode ||
+          userBatchAlertBuffers[req.user.username]?.active
+        ) {
           addChangesToBatchBuffer(req.user.username, changeLogs);
         } else {
           sendLiveTelegramAlert(req.user.username, changeLogs).catch((err) =>
@@ -1108,19 +1185,26 @@ module.exports = function (pool, middlewares, helpers) {
         return res.json({ success: false, message: "Access Denied." });
       }
       const { dbId } = req.body;
-      
-      const recordRes = await pool.query("SELECT plate_number FROM erp_records WHERE id = $1", [dbId]);
-      let plate = recordRes.rows.length > 0 ? recordRes.rows[0].plate_number : "Unknown";
 
-      await pool.query("UPDATE erp_records SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1", [dbId]);
-      
+      const recordRes = await pool.query(
+        "SELECT plate_number FROM erp_records WHERE id = $1",
+        [dbId],
+      );
+      let plate =
+        recordRes.rows.length > 0 ? recordRes.rows[0].plate_number : "Unknown";
+
+      await pool.query(
+        "UPDATE erp_records SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1",
+        [dbId],
+      );
+
       await pool.query(
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'DELETE_ROW', $2)",
-        [req.user.username, JSON.stringify({ dbId, plate })]
+        [req.user.username, JSON.stringify({ dbId, plate })],
       );
 
       await sendActivityTelegramMessage(
-        `🗑️ <b>ROW DELETED (To Recycle Bin)</b>\n\n<b>Plate:</b> ${plate}\n<b>Deleted by:</b> @${req.user.username}`
+        `🗑️ <b>ROW DELETED (To Recycle Bin)</b>\n\n<b>Plate:</b> ${plate}\n<b>Deleted by:</b> @${req.user.username}`,
       );
 
       res.json({ success: true, message: "Row moved to recycle bin." });
@@ -1147,9 +1231,16 @@ module.exports = function (pool, middlewares, helpers) {
       let plateCol = getColName("PLATENUMBER") || getColName("PLATENO");
       let siteCol = getColName("SITE");
 
-      let sn = parseInt((snCol ? rowDataObj[snCol] : rowDataObj[COLUMNS.SN]) || 1, 10);
-      let plate = formatPlateNumber((plateCol ? rowDataObj[plateCol] : rowDataObj[COLUMNS.PLATE_NUMBER]) || "");
-      let site = (siteCol ? rowDataObj[siteCol] : rowDataObj[COLUMNS.SITE]) || "";
+      let sn = parseInt(
+        (snCol ? rowDataObj[snCol] : rowDataObj[COLUMNS.SN]) || 1,
+        10,
+      );
+      let plate = formatPlateNumber(
+        (plateCol ? rowDataObj[plateCol] : rowDataObj[COLUMNS.PLATE_NUMBER]) ||
+          "",
+      );
+      let site =
+        (siteCol ? rowDataObj[siteCol] : rowDataObj[COLUMNS.SITE]) || "";
 
       let calculatedUpdates = calculateDependentFields(rowDataObj);
       Object.assign(rowDataObj, calculatedUpdates);
@@ -1158,9 +1249,14 @@ module.exports = function (pool, middlewares, helpers) {
       let wsValNew = wsColNew ? rowDataObj[wsColNew] : null;
 
       // 🟢 FIX 1: WORK START ഉണ്ടെങ്കിൽ DRIVER START DATE-ലേക്കും അസൈൻ ചെയ്യുന്നു
-      let drvStartCol = getColName(COLUMNS.DRIVER_START_DATE) || getColName("DRIVER START DATE");
+      let drvStartCol =
+        getColName(COLUMNS.DRIVER_START_DATE) ||
+        getColName("DRIVER START DATE");
       if (drvStartCol) {
-        if (!rowDataObj[drvStartCol] || String(rowDataObj[drvStartCol]).trim() === "") {
+        if (
+          !rowDataObj[drvStartCol] ||
+          String(rowDataObj[drvStartCol]).trim() === ""
+        ) {
           if (wsValNew && String(wsValNew).trim() !== "") {
             rowDataObj[drvStartCol] = wsValNew;
           }
@@ -1189,45 +1285,71 @@ module.exports = function (pool, middlewares, helpers) {
 
       let alertDetails = [
         `🚚 <b>PLATE NO:</b> [ <code>${plate || "N/A"}</code> ]`,
-        `📍 <b>Site:</b> ${site || "N/A"}`
+        `📍 <b>Site:</b> ${site || "N/A"}`,
       ];
 
       let compCol = getColName("COMPANY");
-      if (compCol && rowDataObj[compCol]) alertDetails.push(`🏢 <b>Company:</b> ${rowDataObj[compCol]}`);
+      if (compCol && rowDataObj[compCol])
+        alertDetails.push(`🏢 <b>Company:</b> ${rowDataObj[compCol]}`);
 
       let custCol = getColName("CUSTOMER");
-      if (custCol && rowDataObj[custCol]) alertDetails.push(`🤝 <b>Customer:</b> ${rowDataObj[custCol]}`);
+      if (custCol && rowDataObj[custCol])
+        alertDetails.push(`🤝 <b>Customer:</b> ${rowDataObj[custCol]}`);
 
       let statusCol = getColName("STATUS");
-      if (statusCol && rowDataObj[statusCol]) alertDetails.push(`⚡ <b>Status:</b> ${rowDataObj[statusCol]}`);
+      if (statusCol && rowDataObj[statusCol])
+        alertDetails.push(`⚡ <b>Status:</b> ${rowDataObj[statusCol]}`);
 
       let drvCol = getColName("DRIVERNAME");
       let mobCol = getColName("MOBILE");
       if (drvCol && rowDataObj[drvCol]) {
-        alertDetails.push(`👤 <b>Driver:</b> ${rowDataObj[drvCol]} ${mobCol && rowDataObj[mobCol] ? `(${rowDataObj[mobCol]})` : ""}`);
+        alertDetails.push(
+          `👤 <b>Driver:</b> ${rowDataObj[drvCol]} ${mobCol && rowDataObj[mobCol] ? `(${rowDataObj[mobCol]})` : ""}`,
+        );
       }
 
       // തീയതികളും എക്സ്പയറി അലർട്ടുകളും കണ്ടെത്തുന്നു
       let dateAlerts = [];
-      if (wsColNew && rowDataObj[wsColNew]) dateAlerts.push(`📅 <b>Work Start:</b> ${rowDataObj[wsColNew]}`);
+      if (wsColNew && rowDataObj[wsColNew])
+        dateAlerts.push(`📅 <b>Work Start:</b> ${rowDataObj[wsColNew]}`);
 
       let mobReachedCol = getColName("EQUIPMENTREACHEDATSITE");
-      if (mobReachedCol && rowDataObj[mobReachedCol]) dateAlerts.push(`🚛 <b>Mobilization:</b> ${rowDataObj[mobReachedCol]}`);
+      if (mobReachedCol && rowDataObj[mobReachedCol])
+        dateAlerts.push(`🚛 <b>Mobilization:</b> ${rowDataObj[mobReachedCol]}`);
 
-      let iqamaExpCol = getColName("IQAMAEXPIREDATE") || getColName("IQAMAEXPIRE");
-      if (iqamaExpCol && rowDataObj[iqamaExpCol]) dateAlerts.push(`🪪 <b>Iqama Expire:</b> <code>${rowDataObj[iqamaExpCol]}</code>`);
+      let iqamaExpCol =
+        getColName("IQAMAEXPIREDATE") || getColName("IQAMAEXPIRE");
+      if (iqamaExpCol && rowDataObj[iqamaExpCol])
+        dateAlerts.push(
+          `🪪 <b>Iqama Expire:</b> <code>${rowDataObj[iqamaExpCol]}</code>`,
+        );
 
-      let licExpCol = getColName("LICENSEEXPIREDATE") || getColName("LICENCEEXPIREDATE") || getColName("LICENSEEXPIRE");
-      if (licExpCol && rowDataObj[licExpCol]) dateAlerts.push(`💳 <b>License Expire:</b> <code>${rowDataObj[licExpCol]}</code>`);
+      let licExpCol =
+        getColName("LICENSEEXPIREDATE") ||
+        getColName("LICENCEEXPIREDATE") ||
+        getColName("LICENSEEXPIRE");
+      if (licExpCol && rowDataObj[licExpCol])
+        dateAlerts.push(
+          `💳 <b>License Expire:</b> <code>${rowDataObj[licExpCol]}</code>`,
+        );
 
       let insExpCol = getColName("EQINSURAN");
-      if (insExpCol && rowDataObj[insExpCol]) dateAlerts.push(`🛡️ <b>Insurance Expire:</b> <code>${rowDataObj[insExpCol]}</code>`);
+      if (insExpCol && rowDataObj[insExpCol])
+        dateAlerts.push(
+          `🛡️ <b>Insurance Expire:</b> <code>${rowDataObj[insExpCol]}</code>`,
+        );
 
       let fahsExpCol = getColName("FAHSMVPI");
-      if (fahsExpCol && rowDataObj[fahsExpCol]) dateAlerts.push(`🔍 <b>Fahs MVPI Expire:</b> <code>${rowDataObj[fahsExpCol]}</code>`);
+      if (fahsExpCol && rowDataObj[fahsExpCol])
+        dateAlerts.push(
+          `🔍 <b>Fahs MVPI Expire:</b> <code>${rowDataObj[fahsExpCol]}</code>`,
+        );
 
       if (dateAlerts.length > 0) {
-        alertDetails.push(`-----------------------------------\n<b>📌 DATE & EXPIRY DETAILS:</b>\n` + dateAlerts.join("\n"));
+        alertDetails.push(
+          `-----------------------------------\n<b>📌 DATE & EXPIRY DETAILS:</b>\n` +
+            dateAlerts.join("\n"),
+        );
       }
 
       const telegramMsg =
@@ -1237,7 +1359,9 @@ module.exports = function (pool, middlewares, helpers) {
         `-----------------------------------\n` +
         alertDetails.join("\n");
 
-      await sendActivityTelegramMessage(telegramMsg).catch((e) => console.error("Telegram Error:", e));
+      await sendActivityTelegramMessage(telegramMsg).catch((e) =>
+        console.error("Telegram Error:", e),
+      );
 
       res.json({ success: true });
     } catch (error) {
@@ -1344,7 +1468,7 @@ module.exports = function (pool, middlewares, helpers) {
       }
 
       let changeLogs = [];
-      let additionalEdits = []; 
+      let additionalEdits = [];
 
       for (let edit of edits) {
         let { dbId, colName, newValue, plate } = edit;
@@ -1355,9 +1479,20 @@ module.exports = function (pool, middlewares, helpers) {
         if (recordRes.rows.length > 0) {
           let currentData = recordRes.rows[0].record_data || {};
           let recordSn = recordRes.rows[0].sn || currentData["SN"] || "N/A";
-          let rawOldVal = currentData[colName] !== undefined && currentData[colName] !== null ? String(currentData[colName]).trim() : "";
-          let rawNewVal = newValue !== undefined && newValue !== null ? String(newValue).trim() : "";
-          let plateNo = plate || recordRes.rows[0].plate_number || currentData["PLATE NUMBER"] || currentData["Plate Number"] || "N/A";
+          let rawOldVal =
+            currentData[colName] !== undefined && currentData[colName] !== null
+              ? String(currentData[colName]).trim()
+              : "";
+          let rawNewVal =
+            newValue !== undefined && newValue !== null
+              ? String(newValue).trim()
+              : "";
+          let plateNo =
+            plate ||
+            recordRes.rows[0].plate_number ||
+            currentData["PLATE NUMBER"] ||
+            currentData["Plate Number"] ||
+            "N/A";
 
           if (rawOldVal !== rawNewVal) {
             changeLogs.push({
@@ -1373,15 +1508,15 @@ module.exports = function (pool, middlewares, helpers) {
           // 🟢 FIX: പൈത്തണിലേക്ക് അയക്കുന്നതിന് മുൻപ് Node.js-ൽ വെച്ച് തന്നെ Days Worked കാൽക്കുലേറ്റ് ചെയ്യുന്നു
           let simulatedRow = { ...currentData, [colName]: newValue };
           let calculatedUpdates = calculateDependentFields(simulatedRow);
-          
+
           for (let calcCol in calculatedUpdates) {
-             if (calculatedUpdates[calcCol] !== currentData[calcCol]) {
-                additionalEdits.push({
-                   dbId: dbId,
-                   colName: calcCol,
-                   newValue: calculatedUpdates[calcCol]
-                });
-             }
+            if (calculatedUpdates[calcCol] !== currentData[calcCol]) {
+              additionalEdits.push({
+                dbId: dbId,
+                colName: calcCol,
+                newValue: calculatedUpdates[calcCol],
+              });
+            }
           }
         }
       }
@@ -1403,15 +1538,18 @@ module.exports = function (pool, middlewares, helpers) {
         .query(
           "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE_PY', $2)",
           [
-            req.user.username, 
-            JSON.stringify({ count: edits.length, changes: changeLogs })
+            req.user.username,
+            JSON.stringify({ count: edits.length, changes: changeLogs }),
           ],
         )
         .catch((err) => console.error("Log error:", err.message));
 
       // 🟢 ISOLATED CHECK: Batch Timer ON aanenkil buffer-lekk, allengil Fire-and-forget live alert (Zero UI Lag)
       if (changeLogs.length > 0) {
-        if (batchAlertMode || userBatchAlertBuffers[req.user.username]?.active) {
+        if (
+          batchAlertMode ||
+          userBatchAlertBuffers[req.user.username]?.active
+        ) {
           addChangesToBatchBuffer(req.user.username, changeLogs);
         } else {
           sendLiveTelegramAlert(req.user.username, changeLogs).catch((err) =>
@@ -1475,151 +1613,222 @@ module.exports = function (pool, middlewares, helpers) {
 
   router.post("/admin/migrate-legacy-logs", verifyToken, async (req, res) => {
     try {
-      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Super Admin Access Required." });
-      
-      const records = await pool.query("SELECT id, record_data FROM erp_records WHERE deleted_at IS NULL");
+      if (req.user.role !== "Super Admin")
+        return res.json({
+          success: false,
+          message: "Super Admin Access Required.",
+        });
+
+      const records = await pool.query(
+        "SELECT id, record_data FROM erp_records WHERE deleted_at IS NULL",
+      );
       let migratedCount = 0;
 
       for (let row of records.rows) {
         let data = row.record_data;
-        const getCol = (matchStr) => Object.keys(data).find((k) => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
-        
+        const getCol = (matchStr) =>
+          Object.keys(data).find(
+            (k) =>
+              k.replace(/\s+/g, "").toUpperCase() ===
+              matchStr.replace(/\s+/g, "").toUpperCase(),
+          ) || matchStr;
+
         let oldDriverCol = getCol("Old Driver Name");
         let odMobCol = getCol("OD Mob");
         let odEndCol = getCol("OD Wrk End");
         let statusRemarkCol = getCol("Driver Status Remark");
-        
+
         let oldName = data[oldDriverCol];
         if (oldName && String(oldName).trim() !== "") {
           if (!data.driver_history) data.driver_history = [];
-          
-          let alreadyExists = data.driver_history.find(h => h.name === oldName && h.end === (data[odEndCol] || "01-Jan-1990"));
-          
+
+          let alreadyExists = data.driver_history.find(
+            (h) =>
+              h.name === oldName && h.end === (data[odEndCol] || "01-Jan-1990"),
+          );
+
           if (!alreadyExists) {
             data.driver_history.push({
-              id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+              id:
+                Date.now().toString(36) +
+                Math.random().toString(36).substr(2, 5),
               name: oldName,
               mob: data[odMobCol] || "",
               start: "IDK",
-              end: data[odEndCol] && String(data[odEndCol]).trim() !== "" ? data[odEndCol] : "01-Jan-1990",
+              end:
+                data[odEndCol] && String(data[odEndCol]).trim() !== ""
+                  ? data[odEndCol]
+                  : "01-Jan-1990",
               status_remark: data[statusRemarkCol] || "",
               updated_by: "System Migration",
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
-            
-            await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [data, row.id]);
+
+            await pool.query(
+              "UPDATE erp_records SET record_data = $1 WHERE id = $2",
+              [data, row.id],
+            );
             migratedCount++;
           }
         }
       }
-      res.json({ success: true, message: `Successfully migrated ${migratedCount} legacy records.` });
+      res.json({
+        success: true,
+        message: `Successfully migrated ${migratedCount} legacy records.`,
+      });
     } catch (error) {
       handleError(res, error, req.user.role, "MIGRATE_LEGACY");
     }
   });
 
   // 🟢 /update-driver API: WORK START ഡേറ്റിൽ തൊടാതെ DRIVER START DATE മാത്രം അപ്‌ഡേറ്റ് ചെയ്യുന്നു
-router.post("/update-driver", verifyToken, async (req, res) => {
-  try {
-    if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
-
-    const { dbId, plate_number, currentDriver, currentMob, oldWorkStart, workEnd, newDriver, newMob, newWorkStart, statusRemark, iqamaNo, iqamaExp, licenceExp, iqamaNote, licenceNote, nationality } = req.body;
-    
-    const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
-    if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
-    
-    let prevData = recordRes.rows[0].record_data;
-    if (!prevData.driver_history) prevData.driver_history = [];
-
-    let finalWorkEnd = workEnd && workEnd.trim() !== "" ? workEnd : "01-Jan-1990";
-    
-    if (currentDriver && currentDriver.trim() !== "") {
-      prevData.driver_history.push({
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-        name: currentDriver,
-        mob: currentMob || "",
-        start: oldWorkStart || "IDK",
-        end: finalWorkEnd,
-        status_remark: statusRemark || "",
-        updated_by: req.user.username,
-        timestamp: Date.now()
-      });
-    }
-
-    let latestLog = null;
-    if (prevData.driver_history.length > 0) {
-      let sortedHistory = [...prevData.driver_history].sort((a, b) => {
-         let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
-         let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
-         return timeA - timeB; 
-      });
-      latestLog = sortedHistory[sortedHistory.length - 1];
-    }
-
-    const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
-    
-    if (latestLog) {
-       prevData[getCol("Old Driver Name")] = latestLog.name;
-       prevData[getCol("OD Mob")] = latestLog.mob;
-       prevData[getCol("OD Wrk End")] = latestLog.end;
-       prevData[getCol("Driver Status Remark")] = latestLog.status_remark || "";
-    }
-
-    const drvStartCol = getCol("DRIVER START DATE") || "DRIVER START DATE";
-
-    if (newDriver) {
-       prevData[getCol("DRIVER NAME")] = newDriver;
-       prevData[getCol("MOBILE")] = newMob;
-       prevData[drvStartCol] = newWorkStart || "";
-       
-       // Set new document details or clear them if left blank
-       prevData[getCol("Iqama Number")] = iqamaNo !== undefined ? iqamaNo : "";
-       prevData[getCol("Iqama Expire Date")] = iqamaExp !== undefined ? iqamaExp : "";
-       prevData[getCol("License Expire Date")] = licenceExp !== undefined ? licenceExp : "";
-       prevData[getCol("Iqama Note")] = iqamaNote !== undefined ? iqamaNote : "";
-       prevData[getCol("Licence Note")] = licenceNote !== undefined ? licenceNote : "";
-       prevData[getCol("Nationality")] = nationality !== undefined ? nationality : "";
-    } else {
-       prevData[getCol("DRIVER NAME")] = "";
-       prevData[getCol("MOBILE")] = "";
-       prevData[drvStartCol] = "";
-       
-       // Clear documents when driver is removed completely
-       prevData[getCol("Iqama Number")] = "";
-       prevData[getCol("Iqama Expire Date")] = "";
-       prevData[getCol("License Expire Date")] = "";
-       prevData[getCol("Iqama Note")] = "";
-       prevData[getCol("Licence Note")] = "";
-       prevData[getCol("Nationality")] = "";
-    }
-
-    await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
-
-    // Telegram Alert
-    let alertMsg = `🔄 <b>DRIVER UPDATED / HANDOVER</b>\n\n<b>Plate:</b> ${plate_number || "N/A"}\n<b>Old Driver:</b> ${currentDriver || "None"}\n<b>New Driver:</b> ${newDriver || "None"}\n<b>Updated by:</b> @${req.user.username}`;
-    await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
-
-    res.json({ success: true, message: "Driver updated securely." });
-  } catch (error) {
-    handleError(res, error, req.user.role, "UPDATE_DRIVER");
-  }
-});
-
-  router.post("/add-past-driver-log", verifyToken, async (req, res) => {
+  router.post("/update-driver", verifyToken, async (req, res) => {
     try {
-      if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
+      if (req.user.role === "Viewer")
+        return res.json({ success: false, message: "Access Denied." });
 
-      const { dbId, driverName, mobile, workStart, workEnd, statusRemark } = req.body;
-      
-      // Fetching plate_number along with record_data
-      const recordRes = await pool.query("SELECT plate_number, record_data FROM erp_records WHERE id = $1", [dbId]);
-      if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
-      
+      const {
+        dbId,
+        plate_number,
+        currentDriver,
+        currentMob,
+        oldWorkStart,
+        workEnd,
+        newDriver,
+        newMob,
+        newWorkStart,
+        statusRemark,
+        iqamaNo,
+        iqamaExp,
+        licenceExp,
+        iqamaNote,
+        licenceNote,
+        nationality,
+      } = req.body;
+
+      const recordRes = await pool.query(
+        "SELECT record_data FROM erp_records WHERE id = $1",
+        [dbId],
+      );
+      if (recordRes.rows.length === 0)
+        return res.json({ success: false, message: "Record not found." });
+
       let prevData = recordRes.rows[0].record_data;
       if (!prevData.driver_history) prevData.driver_history = [];
 
-      let finalWorkEnd = workEnd && workEnd.trim() !== "" ? workEnd : "01-Jan-1990";
-      
+      let finalWorkEnd =
+        workEnd && workEnd.trim() !== "" ? workEnd : "01-Jan-1990";
+
+      if (currentDriver && currentDriver.trim() !== "") {
+        prevData.driver_history.push({
+          id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          name: currentDriver,
+          mob: currentMob || "",
+          start: oldWorkStart || "IDK",
+          end: finalWorkEnd,
+          status_remark: statusRemark || "",
+          updated_by: req.user.username,
+          timestamp: Date.now(),
+        });
+      }
+
+      let latestLog = null;
+      if (prevData.driver_history.length > 0) {
+        let sortedHistory = [...prevData.driver_history].sort((a, b) => {
+          let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+          let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+          return timeA - timeB;
+        });
+        latestLog = sortedHistory[sortedHistory.length - 1];
+      }
+
+      const getCol = (matchStr) =>
+        Object.keys(prevData).find(
+          (k) =>
+            k.replace(/\s+/g, "").toUpperCase() ===
+            matchStr.replace(/\s+/g, "").toUpperCase(),
+        ) || matchStr;
+
+      if (latestLog) {
+        prevData[getCol("Old Driver Name")] = latestLog.name;
+        prevData[getCol("OD Mob")] = latestLog.mob;
+        prevData[getCol("OD Wrk End")] = latestLog.end;
+        prevData[getCol("Driver Status Remark")] =
+          latestLog.status_remark || "";
+      }
+
+      const drvStartCol = getCol("DRIVER START DATE") || "DRIVER START DATE";
+
+      if (newDriver) {
+        prevData[getCol("DRIVER NAME")] = newDriver;
+        prevData[getCol("MOBILE")] = newMob;
+        prevData[drvStartCol] = newWorkStart || "";
+
+        // Set new document details or clear them if left blank
+        prevData[getCol("Iqama Number")] = iqamaNo !== undefined ? iqamaNo : "";
+        prevData[getCol("Iqama Expire Date")] =
+          iqamaExp !== undefined ? iqamaExp : "";
+        prevData[getCol("License Expire Date")] =
+          licenceExp !== undefined ? licenceExp : "";
+        prevData[getCol("Iqama Note")] =
+          iqamaNote !== undefined ? iqamaNote : "";
+        prevData[getCol("Licence Note")] =
+          licenceNote !== undefined ? licenceNote : "";
+        prevData[getCol("Nationality")] =
+          nationality !== undefined ? nationality : "";
+      } else {
+        prevData[getCol("DRIVER NAME")] = "";
+        prevData[getCol("MOBILE")] = "";
+        prevData[drvStartCol] = "";
+
+        // Clear documents when driver is removed completely
+        prevData[getCol("Iqama Number")] = "";
+        prevData[getCol("Iqama Expire Date")] = "";
+        prevData[getCol("License Expire Date")] = "";
+        prevData[getCol("Iqama Note")] = "";
+        prevData[getCol("Licence Note")] = "";
+        prevData[getCol("Nationality")] = "";
+      }
+
+      await pool.query(
+        "UPDATE erp_records SET record_data = $1 WHERE id = $2",
+        [prevData, dbId],
+      );
+
+      // Telegram Alert
+      let alertMsg = `🔄 <b>DRIVER UPDATED / HANDOVER</b>\n\n<b>Plate:</b> ${plate_number || "N/A"}\n<b>Old Driver:</b> ${currentDriver || "None"}\n<b>New Driver:</b> ${newDriver || "None"}\n<b>Updated by:</b> @${req.user.username}`;
+      await sendActivityTelegramMessage(alertMsg).catch((e) =>
+        console.error("Telegram Error:", e),
+      );
+
+      res.json({ success: true, message: "Driver updated securely." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "UPDATE_DRIVER");
+    }
+  });
+
+  router.post("/add-past-driver-log", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer")
+        return res.json({ success: false, message: "Access Denied." });
+
+      const { dbId, driverName, mobile, workStart, workEnd, statusRemark } =
+        req.body;
+
+      // Fetching plate_number along with record_data
+      const recordRes = await pool.query(
+        "SELECT plate_number, record_data FROM erp_records WHERE id = $1",
+        [dbId],
+      );
+      if (recordRes.rows.length === 0)
+        return res.json({ success: false, message: "Record not found." });
+
+      let prevData = recordRes.rows[0].record_data;
+      if (!prevData.driver_history) prevData.driver_history = [];
+
+      let finalWorkEnd =
+        workEnd && workEnd.trim() !== "" ? workEnd : "01-Jan-1990";
+
       prevData.driver_history.push({
         id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
         name: driverName,
@@ -1628,30 +1837,41 @@ router.post("/update-driver", verifyToken, async (req, res) => {
         end: finalWorkEnd,
         status_remark: statusRemark || "",
         updated_by: req.user.username,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       let sortedHistory = [...prevData.driver_history].sort((a, b) => {
-           let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
-           let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
-           return timeA - timeB; 
+        let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+        let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+        return timeA - timeB;
       });
       let latestLog = sortedHistory[sortedHistory.length - 1];
 
-      const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
-      
+      const getCol = (matchStr) =>
+        Object.keys(prevData).find(
+          (k) =>
+            k.replace(/\s+/g, "").toUpperCase() ===
+            matchStr.replace(/\s+/g, "").toUpperCase(),
+        ) || matchStr;
+
       if (latestLog) {
-         prevData[getCol("Old Driver Name")] = latestLog.name;
-         prevData[getCol("OD Mob")] = latestLog.mob;
-         prevData[getCol("OD Wrk End")] = latestLog.end;
-         prevData[getCol("Driver Status Remark")] = latestLog.status_remark || "";
+        prevData[getCol("Old Driver Name")] = latestLog.name;
+        prevData[getCol("OD Mob")] = latestLog.mob;
+        prevData[getCol("OD Wrk End")] = latestLog.end;
+        prevData[getCol("Driver Status Remark")] =
+          latestLog.status_remark || "";
       }
 
-      await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+      await pool.query(
+        "UPDATE erp_records SET record_data = $1 WHERE id = $2",
+        [prevData, dbId],
+      );
 
       // Telegram Alert
       let alertMsg = `📜 <b>PAST DRIVER LOG ADDED</b>\n\n<b>Plate:</b> ${recordRes.rows[0].plate_number || "N/A"}\n<b>Driver:</b> ${driverName}\n<b>Updated by:</b> @${req.user.username}`;
-      await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
+      await sendActivityTelegramMessage(alertMsg).catch((e) =>
+        console.error("Telegram Error:", e),
+      );
 
       res.json({ success: true, message: "Past driver log added." });
     } catch (error) {
@@ -1662,17 +1882,29 @@ router.post("/update-driver", verifyToken, async (req, res) => {
   router.post("/get-driver-logs", verifyToken, async (req, res) => {
     try {
       const { dbId } = req.body;
-      const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
-      if (recordRes.rows.length === 0) return res.json({ success: false, logs: [] });
-      
+      const recordRes = await pool.query(
+        "SELECT record_data FROM erp_records WHERE id = $1",
+        [dbId],
+      );
+      if (recordRes.rows.length === 0)
+        return res.json({ success: false, logs: [] });
+
       let recData = recordRes.rows[0].record_data || {};
       let pastLogs = [...(recData.driver_history || [])];
 
-      const getCol = (matchStr) => Object.keys(recData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+      const getCol = (matchStr) =>
+        Object.keys(recData).find(
+          (k) =>
+            k.replace(/\s+/g, "").toUpperCase() ===
+            matchStr.replace(/\s+/g, "").toUpperCase(),
+        ) || matchStr;
 
       let currentDriverName = recData[getCol("DRIVER NAME")];
       let currentMob = recData[getCol("MOBILE")];
-      let currentStart = recData[getCol("DRIVER START DATE")] || recData["driver_start_date"] || "";
+      let currentStart =
+        recData[getCol("DRIVER START DATE")] ||
+        recData["driver_start_date"] ||
+        "";
 
       let allLogs = [];
 
@@ -1685,18 +1917,22 @@ router.post("/update-driver", verifyToken, async (req, res) => {
           start: currentStart || "IDK",
           end: "Present",
           updated_by: "Active Driver",
-          is_current: true
+          is_current: true,
         });
       }
 
       // പഴയ ഡ്രൈവർമാരെ തീയതി ക്രമത്തിൽ ചേർക്കുന്നു (Newest First)
-      pastLogs.sort((a, b) => new Date(b.end === "01-Jan-1990" ? 0 : b.end) - new Date(a.end === "01-Jan-1990" ? 0 : a.end));
+      pastLogs.sort(
+        (a, b) =>
+          new Date(b.end === "01-Jan-1990" ? 0 : b.end) -
+          new Date(a.end === "01-Jan-1990" ? 0 : a.end),
+      );
       allLogs.push(...pastLogs);
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         logs: allLogs,
-        currentDriverStart: currentStart
+        currentDriverStart: currentStart,
       });
     } catch (error) {
       handleError(res, error, req.user.role, "GET_LOGS");
@@ -1706,19 +1942,34 @@ router.post("/update-driver", verifyToken, async (req, res) => {
   // 🟢 NEW API: Edit Driver Log
   router.post("/edit-driver-log", verifyToken, async (req, res) => {
     try {
-      if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
+      if (req.user.role === "Viewer")
+        return res.json({ success: false, message: "Access Denied." });
 
-      const { dbId, logId, driverName, mobile, workStart, workEnd, statusRemark } = req.body;
-      
+      const {
+        dbId,
+        logId,
+        driverName,
+        mobile,
+        workStart,
+        workEnd,
+        statusRemark,
+      } = req.body;
+
       // Fetching plate_number along with record_data
-      const recordRes = await pool.query("SELECT plate_number, record_data FROM erp_records WHERE id = $1", [dbId]);
-      if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
-      
-      let prevData = recordRes.rows[0].record_data;
-      if (!prevData.driver_history) return res.json({ success: false, message: "History not found." });
+      const recordRes = await pool.query(
+        "SELECT plate_number, record_data FROM erp_records WHERE id = $1",
+        [dbId],
+      );
+      if (recordRes.rows.length === 0)
+        return res.json({ success: false, message: "Record not found." });
 
-      let logIndex = prevData.driver_history.findIndex(l => l.id === logId);
-      if (logIndex === -1) return res.json({ success: false, message: "Log not found." });
+      let prevData = recordRes.rows[0].record_data;
+      if (!prevData.driver_history)
+        return res.json({ success: false, message: "History not found." });
+
+      let logIndex = prevData.driver_history.findIndex((l) => l.id === logId);
+      if (logIndex === -1)
+        return res.json({ success: false, message: "Log not found." });
 
       prevData.driver_history[logIndex].name = driverName;
       prevData.driver_history[logIndex].mob = mobile;
@@ -1730,26 +1981,37 @@ router.post("/update-driver", verifyToken, async (req, res) => {
 
       // Sort and update the main cell dependency
       let sortedHistory = [...prevData.driver_history].sort((a, b) => {
-           let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
-           let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
-           return timeA - timeB; 
+        let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+        let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+        return timeA - timeB;
       });
       let latestLog = sortedHistory[sortedHistory.length - 1];
 
-      const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
-      
+      const getCol = (matchStr) =>
+        Object.keys(prevData).find(
+          (k) =>
+            k.replace(/\s+/g, "").toUpperCase() ===
+            matchStr.replace(/\s+/g, "").toUpperCase(),
+        ) || matchStr;
+
       if (latestLog) {
-         prevData[getCol("Old Driver Name")] = latestLog.name;
-         prevData[getCol("OD Mob")] = latestLog.mob;
-         prevData[getCol("OD Wrk End")] = latestLog.end;
-         prevData[getCol("Driver Status Remark")] = latestLog.status_remark || "";
+        prevData[getCol("Old Driver Name")] = latestLog.name;
+        prevData[getCol("OD Mob")] = latestLog.mob;
+        prevData[getCol("OD Wrk End")] = latestLog.end;
+        prevData[getCol("Driver Status Remark")] =
+          latestLog.status_remark || "";
       }
 
-      await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+      await pool.query(
+        "UPDATE erp_records SET record_data = $1 WHERE id = $2",
+        [prevData, dbId],
+      );
 
       // Telegram Alert
       let alertMsg = `✏️ <b>DRIVER LOG EDITED</b>\n\n<b>Plate:</b> ${recordRes.rows[0].plate_number || "N/A"}\n<b>Driver:</b> ${driverName}\n<b>Updated by:</b> @${req.user.username}`;
-      await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
+      await sendActivityTelegramMessage(alertMsg).catch((e) =>
+        console.error("Telegram Error:", e),
+      );
 
       res.json({ success: true, message: "Log updated successfully." });
     } catch (error) {
@@ -1760,51 +2022,70 @@ router.post("/update-driver", verifyToken, async (req, res) => {
   // 🟢 NEW API: Delete Driver Log
   router.post("/delete-driver-log", verifyToken, async (req, res) => {
     try {
-      if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
+      if (req.user.role === "Viewer")
+        return res.json({ success: false, message: "Access Denied." });
 
       const { dbId, logId } = req.body;
-      
+
       // Fetching plate_number along with record_data
-      const recordRes = await pool.query("SELECT plate_number, record_data FROM erp_records WHERE id = $1", [dbId]);
-      if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
-      
+      const recordRes = await pool.query(
+        "SELECT plate_number, record_data FROM erp_records WHERE id = $1",
+        [dbId],
+      );
+      if (recordRes.rows.length === 0)
+        return res.json({ success: false, message: "Record not found." });
+
       let prevData = recordRes.rows[0].record_data;
-      if (!prevData.driver_history) return res.json({ success: false, message: "History not found." });
+      if (!prevData.driver_history)
+        return res.json({ success: false, message: "History not found." });
 
       // Identify the driver name before removing the log
-      let logToDelete = prevData.driver_history.find(l => l.id === logId);
+      let logToDelete = prevData.driver_history.find((l) => l.id === logId);
       let deletedDriverName = logToDelete ? logToDelete.name : "Unknown";
 
       // Remove the specific log
-      prevData.driver_history = prevData.driver_history.filter(l => l.id !== logId);
+      prevData.driver_history = prevData.driver_history.filter(
+        (l) => l.id !== logId,
+      );
 
-      const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+      const getCol = (matchStr) =>
+        Object.keys(prevData).find(
+          (k) =>
+            k.replace(/\s+/g, "").toUpperCase() ===
+            matchStr.replace(/\s+/g, "").toUpperCase(),
+        ) || matchStr;
 
       if (prevData.driver_history.length > 0) {
-          let sortedHistory = [...prevData.driver_history].sort((a, b) => {
-               let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
-               let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
-               return timeA - timeB; 
-          });
-          let latestLog = sortedHistory[sortedHistory.length - 1];
-          
-          prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
-          prevData[getCol("OD MOB")] = latestLog.mob;
-          prevData[getCol("OD WRK END")] = latestLog.end;
-          prevData[getCol("DRIVER STATUS REMARK")] = latestLog.status_remark || "";
+        let sortedHistory = [...prevData.driver_history].sort((a, b) => {
+          let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+          let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+          return timeA - timeB;
+        });
+        let latestLog = sortedHistory[sortedHistory.length - 1];
+
+        prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
+        prevData[getCol("OD MOB")] = latestLog.mob;
+        prevData[getCol("OD WRK END")] = latestLog.end;
+        prevData[getCol("DRIVER STATUS REMARK")] =
+          latestLog.status_remark || "";
       } else {
-          // If history is completely empty after deletion
-          prevData[getCol("Old Driver Name")] = "";
-          prevData[getCol("OD Mob")] = "";
-          prevData[getCol("OD Wrk End")] = "";
-          prevData[getCol("Driver Status Remark")] = "";
+        // If history is completely empty after deletion
+        prevData[getCol("Old Driver Name")] = "";
+        prevData[getCol("OD Mob")] = "";
+        prevData[getCol("OD Wrk End")] = "";
+        prevData[getCol("Driver Status Remark")] = "";
       }
 
-      await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+      await pool.query(
+        "UPDATE erp_records SET record_data = $1 WHERE id = $2",
+        [prevData, dbId],
+      );
 
       // Telegram Alert
       let alertMsg = `🗑️ <b>DRIVER LOG DELETED</b>\n\n<b>Plate:</b> ${recordRes.rows[0].plate_number || "N/A"}\n<b>Deleted Driver:</b> ${deletedDriverName}\n<b>Deleted by:</b> @${req.user.username}`;
-      await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
+      await sendActivityTelegramMessage(alertMsg).catch((e) =>
+        console.error("Telegram Error:", e),
+      );
 
       res.json({ success: true, message: "Log deleted successfully." });
     } catch (error) {
@@ -1821,7 +2102,10 @@ router.post("/update-driver", verifyToken, async (req, res) => {
     const client = await pool.connect();
     try {
       if (req.user.role !== "Super Admin") {
-        return res.json({ success: false, message: "Super Admin Access Required." });
+        return res.json({
+          success: false,
+          message: "Super Admin Access Required.",
+        });
       }
 
       const { oldName, newName, colType } = req.body;
@@ -1834,7 +2118,7 @@ router.post("/update-driver", verifyToken, async (req, res) => {
       // പുതിയ പേരിൽ കോളം നേരത്തെ ഉണ്ടോ എന്ന് നോക്കുന്നു
       const checkRes = await client.query(
         "SELECT id FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL",
-        [newName]
+        [newName],
       );
       if (checkRes.rows.length > 0) {
         throw new Error("A column with this new name already exists.");
@@ -1843,7 +2127,7 @@ router.post("/update-driver", verifyToken, async (req, res) => {
       // Header ടേബിളിൽ പേര് മാറ്റുന്നു
       await client.query(
         "UPDATE erp_headers SET header_name = $1, col_type = $2 WHERE header_name = $3",
-        [newName, colType || "varchar", oldName]
+        [newName, colType || "varchar", oldName],
       );
 
       // JSON റെക്കോർഡുകളിലെ പഴയ കീ മാറ്റി പുതിയ കീ ആക്കുന്നു (Data Loss ഇല്ലാതെ)
@@ -1851,12 +2135,12 @@ router.post("/update-driver", verifyToken, async (req, res) => {
         `UPDATE erp_records 
          SET record_data = (record_data - $1) || jsonb_build_object($2::text, record_data->> $1) 
          WHERE record_data ? $1`,
-        [oldName, newName]
+        [oldName, newName],
       );
 
       await client.query(
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'RENAME_COLUMN', $2)",
-        [req.user.username, JSON.stringify({ oldName, newName })]
+        [req.user.username, JSON.stringify({ oldName, newName })],
       );
 
       await client.query("COMMIT");
@@ -1873,18 +2157,25 @@ router.post("/update-driver", verifyToken, async (req, res) => {
   router.post("/admin/toggle-lock", verifyToken, async (req, res) => {
     try {
       if (req.user.role !== "Super Admin") {
-        return res.json({ success: false, message: "Super Admin Access Required." });
+        return res.json({
+          success: false,
+          message: "Super Admin Access Required.",
+        });
       }
 
       const { colName, isLocked } = req.body;
-      if (!colName) return res.json({ success: false, message: "Column name required." });
+      if (!colName)
+        return res.json({ success: false, message: "Column name required." });
 
       await pool.query(
         "UPDATE erp_headers SET is_locked = $1 WHERE header_name = $2",
-        [isLocked, colName]
+        [isLocked, colName],
       );
 
-      res.json({ success: true, message: `Column ${isLocked ? "Locked" : "Unlocked"} successfully.` });
+      res.json({
+        success: true,
+        message: `Column ${isLocked ? "Locked" : "Unlocked"} successfully.`,
+      });
     } catch (error) {
       handleError(res, error, req.user.role, "TOGGLE_LOCK");
     }
@@ -1893,15 +2184,16 @@ router.post("/update-driver", verifyToken, async (req, res) => {
   // 🟢 GET RECYCLE BIN ROWS WITH HEADERS
   router.get("/admin/recycle-bin/rows", verifyToken, async (req, res) => {
     try {
-      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
-      
+      if (req.user.role !== "Super Admin")
+        return res.json({ success: false, message: "Access Denied." });
+
       const headerRes = await pool.query(
-        "SELECT header_name FROM erp_headers WHERE deleted_at IS NULL ORDER BY col_order ASC"
+        "SELECT header_name FROM erp_headers WHERE deleted_at IS NULL ORDER BY col_order ASC",
       );
-      const headers = headerRes.rows.map(h => h.header_name);
+      const headers = headerRes.rows.map((h) => h.header_name);
 
       const result = await pool.query(
-        "SELECT id, plate_number, record_data, deleted_at FROM erp_records WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+        "SELECT id, plate_number, record_data, deleted_at FROM erp_records WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
       );
       res.json({ success: true, headers: headers, rows: result.rows });
     } catch (error) {
@@ -1910,22 +2202,33 @@ router.post("/update-driver", verifyToken, async (req, res) => {
   });
 
   // 🟢 RESTORE DELETED ROW
-  router.post("/admin/recycle-bin/restore-row", verifyToken, async (req, res) => {
-    try {
-      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
-      const { dbId } = req.body;
-      await pool.query("UPDATE erp_records SET deleted_at = NULL WHERE id = $1", [dbId]);
-      res.json({ success: true, message: "Row restored." });
-    } catch (error) {
-      handleError(res, error, req.user.role, "RESTORE_ROW");
-    }
-  });
+  router.post(
+    "/admin/recycle-bin/restore-row",
+    verifyToken,
+    async (req, res) => {
+      try {
+        if (req.user.role !== "Super Admin")
+          return res.json({ success: false, message: "Access Denied." });
+        const { dbId } = req.body;
+        await pool.query(
+          "UPDATE erp_records SET deleted_at = NULL WHERE id = $1",
+          [dbId],
+        );
+        res.json({ success: true, message: "Row restored." });
+      } catch (error) {
+        handleError(res, error, req.user.role, "RESTORE_ROW");
+      }
+    },
+  );
 
   // 🟢 GET RECYCLE BIN COLUMNS
   router.get("/admin/recycle-bin/columns", verifyToken, async (req, res) => {
     try {
-      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
-      const result = await pool.query("SELECT header_name, deleted_at FROM erp_headers WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC");
+      if (req.user.role !== "Super Admin")
+        return res.json({ success: false, message: "Access Denied." });
+      const result = await pool.query(
+        "SELECT header_name, deleted_at FROM erp_headers WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
+      );
       res.json({ success: true, columns: result.rows });
     } catch (error) {
       handleError(res, error, req.user.role, "GET_RECYCLE_BIN_COLUMNS");
@@ -1933,23 +2236,35 @@ router.post("/update-driver", verifyToken, async (req, res) => {
   });
 
   // 🟢 RESTORE DELETED COLUMN
-  router.post("/admin/recycle-bin/restore-column", verifyToken, async (req, res) => {
-    try {
-      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
-      const { colName } = req.body;
-      await pool.query("UPDATE erp_headers SET deleted_at = NULL WHERE header_name = $1", [colName]);
-      res.json({ success: true, message: "Column restored." });
-    } catch (error) {
-      handleError(res, error, req.user.role, "RESTORE_COLUMN");
-    }
-  });
+  router.post(
+    "/admin/recycle-bin/restore-column",
+    verifyToken,
+    async (req, res) => {
+      try {
+        if (req.user.role !== "Super Admin")
+          return res.json({ success: false, message: "Access Denied." });
+        const { colName } = req.body;
+        await pool.query(
+          "UPDATE erp_headers SET deleted_at = NULL WHERE header_name = $1",
+          [colName],
+        );
+        res.json({ success: true, message: "Column restored." });
+      } catch (error) {
+        handleError(res, error, req.user.role, "RESTORE_COLUMN");
+      }
+    },
+  );
 
   // 🟢 PURGE DELETED ROW (PERMANENT DELETE)
   router.post("/admin/recycle-bin/purge-row", verifyToken, async (req, res) => {
     try {
-      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
+      if (req.user.role !== "Super Admin")
+        return res.json({ success: false, message: "Access Denied." });
       const { dbId } = req.body;
-      await pool.query("DELETE FROM erp_records WHERE id = $1 AND deleted_at IS NOT NULL", [dbId]);
+      await pool.query(
+        "DELETE FROM erp_records WHERE id = $1 AND deleted_at IS NOT NULL",
+        [dbId],
+      );
       res.json({ success: true, message: "Row permanently deleted." });
     } catch (error) {
       handleError(res, error, req.user.role, "PURGE_ROW");
@@ -1957,49 +2272,80 @@ router.post("/update-driver", verifyToken, async (req, res) => {
   });
 
   // 🟢 PURGE DELETED COLUMN (PERMANENT DELETE)
-  router.post("/admin/recycle-bin/purge-column", verifyToken, async (req, res) => {
-    try {
-      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
-      const { colName } = req.body;
-      
-      // 1. Delete the header definition
-      await pool.query("DELETE FROM erp_headers WHERE header_name = $1 AND deleted_at IS NOT NULL", [colName]);
-      
-      // 2. Remove the key and data completely from JSON objects in all records to free up DB space
-      await pool.query("UPDATE erp_records SET record_data = record_data - $1 WHERE record_data ? $1", [colName]);
-      
-      res.json({ success: true, message: "Column and its data permanently deleted." });
-    } catch (error) {
-      handleError(res, error, req.user.role, "PURGE_COLUMN");
-    }
-  });
+  router.post(
+    "/admin/recycle-bin/purge-column",
+    verifyToken,
+    async (req, res) => {
+      try {
+        if (req.user.role !== "Super Admin")
+          return res.json({ success: false, message: "Access Denied." });
+        const { colName } = req.body;
+
+        // 1. Delete the header definition
+        await pool.query(
+          "DELETE FROM erp_headers WHERE header_name = $1 AND deleted_at IS NOT NULL",
+          [colName],
+        );
+
+        // 2. Remove the key and data completely from JSON objects in all records to free up DB space
+        await pool.query(
+          "UPDATE erp_records SET record_data = record_data - $1 WHERE record_data ? $1",
+          [colName],
+        );
+
+        res.json({
+          success: true,
+          message: "Column and its data permanently deleted.",
+        });
+      } catch (error) {
+        handleError(res, error, req.user.role, "PURGE_COLUMN");
+      }
+    },
+  );
 
   // 3. Delete Column API
   router.post("/admin/delete-column", verifyToken, async (req, res) => {
     try {
       if (req.user.role !== "Super Admin") {
-        return res.json({ success: false, message: "Super Admin Access Required." });
+        return res.json({
+          success: false,
+          message: "Super Admin Access Required.",
+        });
       }
 
       const { colName, adminPassword } = req.body;
-      if (!colName || !adminPassword) return res.json({ success: false, message: "Missing required fields." });
+      if (!colName || !adminPassword)
+        return res.json({
+          success: false,
+          message: "Missing required fields.",
+        });
 
       // Super Admin പാസ്സ്‌വേർഡ് ശരിയാണോ എന്ന് നോക്കുന്നു
-      const adminRes = await pool.query("SELECT password FROM users WHERE username = $1 AND role = 'Super Admin'", [req.user.username]);
-      if (adminRes.rows.length === 0) return res.json({ success: false, message: "Admin not found." });
+      const adminRes = await pool.query(
+        "SELECT password FROM users WHERE username = $1 AND role = 'Super Admin'",
+        [req.user.username],
+      );
+      if (adminRes.rows.length === 0)
+        return res.json({ success: false, message: "Admin not found." });
 
-      const isValid = await bcrypt.compare(adminPassword, adminRes.rows[0].password);
-      if (!isValid) return res.json({ success: false, message: "Incorrect Admin Password." });
+      const isValid = await bcrypt.compare(
+        adminPassword,
+        adminRes.rows[0].password,
+      );
+      if (!isValid)
+        return res.json({
+          success: false,
+          message: "Incorrect Admin Password.",
+        });
 
-   
       await pool.query(
         "UPDATE erp_headers SET deleted_at = CURRENT_TIMESTAMP WHERE header_name = $1",
-        [colName]
+        [colName],
       );
 
       await pool.query(
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'DELETE_COLUMN', $2)",
-        [req.user.username, JSON.stringify({ colName })]
+        [req.user.username, JSON.stringify({ colName })],
       );
 
       res.json({ success: true, message: "Column moved to Recycle Bin." });
@@ -2008,78 +2354,94 @@ router.post("/update-driver", verifyToken, async (req, res) => {
     }
   });
 
-// 🟢 NEW CODE: Quick Expiry Update from MDB Issues
-router.post("/update-expiry-dates", verifyToken, async (req, res) => {
-  try {
-    if (req.user.role === "Viewer") {
-      return res.json({ success: false, message: "Access Denied: Viewers cannot edit." });
-    }
-
-    const { dbId, updates } = req.body;
-    if (!dbId || !updates) {
-      return res.json({ success: false, message: "Invalid parameters." });
-    }
-
-    const recordRes = await pool.query(
-      "SELECT id, plate_number, record_data FROM erp_records WHERE id = $1 AND deleted_at IS NULL",
-      [dbId]
-    );
-    if (recordRes.rows.length === 0) {
-      return res.json({ success: false, message: "Record not found." });
-    }
-
-    let currentData = recordRes.rows[0].record_data || {};
-    
-    // 🟢 Plate number DB column-il illenkil JSON record_data-yil ninnu edukkunnu
-    let resolvedPlate = 
-      recordRes.rows[0].plate_number || 
-      currentData[COLUMNS.PLATE_NUMBER] || 
-      currentData["PLATE NUMBER"] || 
-      currentData["Plate Number"] || 
-      currentData["PLATE NO"] || 
-      "N/A";
-
-    let changeLogs = [];
-    let payload = {};
-
-    for (let key in updates) {
-      let targetKey = Object.keys(currentData).find(
-        (k) => k.replace(/\s+/g, "").toUpperCase() === key.replace(/\s+/g, "").toUpperCase()
-      ) || key;
-
-      let oldVal = currentData[targetKey] !== undefined && currentData[targetKey] !== null ? String(currentData[targetKey]).trim() : "";
-      let newVal = updates[key] !== undefined && updates[key] !== null ? String(updates[key]).trim() : "";
-
-      if (oldVal !== newVal) {
-        payload[targetKey] = newVal;
-        changeLogs.push({
-          plate: resolvedPlate,
-          colName: targetKey,
-          oldVal: oldVal !== "" ? oldVal : "(Blank)",
-          newVal: newVal !== "" ? newVal : "(Blank)",
+  // 🟢 NEW CODE: Quick Expiry Update from MDB Issues
+  router.post("/update-expiry-dates", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer") {
+        return res.json({
+          success: false,
+          message: "Access Denied: Viewers cannot edit.",
         });
       }
-    }
 
-    if (Object.keys(payload).length > 0) {
-      await pool.query(
-        "UPDATE erp_records SET record_data = record_data || $1::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-        [JSON.stringify(payload), dbId]
-      );
-
-      await pool.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'UPDATE_EXPIRY', $2)",
-        [req.user.username, JSON.stringify({ dbId, changes: changeLogs })]
-      );
-
-      if (changeLogs.length > 0) {
-        sendLiveTelegramAlert(req.user.username, changeLogs).catch((err) =>
-          console.error("Background Telegram Error:", err.message),
-        );
+      const { dbId, updates } = req.body;
+      if (!dbId || !updates) {
+        return res.json({ success: false, message: "Invalid parameters." });
       }
-    }
 
-    res.json({ success: true, message: "Expiry dates updated successfully." });
+      const recordRes = await pool.query(
+        "SELECT id, plate_number, record_data FROM erp_records WHERE id = $1 AND deleted_at IS NULL",
+        [dbId],
+      );
+      if (recordRes.rows.length === 0) {
+        return res.json({ success: false, message: "Record not found." });
+      }
+
+      let currentData = recordRes.rows[0].record_data || {};
+
+      // 🟢 Plate number DB column-il illenkil JSON record_data-yil ninnu edukkunnu
+      let resolvedPlate =
+        recordRes.rows[0].plate_number ||
+        currentData[COLUMNS.PLATE_NUMBER] ||
+        currentData["PLATE NUMBER"] ||
+        currentData["Plate Number"] ||
+        currentData["PLATE NO"] ||
+        "N/A";
+
+      let changeLogs = [];
+      let payload = {};
+
+      for (let key in updates) {
+        let targetKey =
+          Object.keys(currentData).find(
+            (k) =>
+              k.replace(/\s+/g, "").toUpperCase() ===
+              key.replace(/\s+/g, "").toUpperCase(),
+          ) || key;
+
+        let oldVal =
+          currentData[targetKey] !== undefined &&
+          currentData[targetKey] !== null
+            ? String(currentData[targetKey]).trim()
+            : "";
+        let newVal =
+          updates[key] !== undefined && updates[key] !== null
+            ? String(updates[key]).trim()
+            : "";
+
+        if (oldVal !== newVal) {
+          payload[targetKey] = newVal;
+          changeLogs.push({
+            plate: resolvedPlate,
+            colName: targetKey,
+            oldVal: oldVal !== "" ? oldVal : "(Blank)",
+            newVal: newVal !== "" ? newVal : "(Blank)",
+          });
+        }
+      }
+
+      if (Object.keys(payload).length > 0) {
+        await pool.query(
+          "UPDATE erp_records SET record_data = record_data || $1::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+          [JSON.stringify(payload), dbId],
+        );
+
+        await pool.query(
+          "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'UPDATE_EXPIRY', $2)",
+          [req.user.username, JSON.stringify({ dbId, changes: changeLogs })],
+        );
+
+        if (changeLogs.length > 0) {
+          sendLiveTelegramAlert(req.user.username, changeLogs).catch((err) =>
+            console.error("Background Telegram Error:", err.message),
+          );
+        }
+      }
+
+      res.json({
+        success: true,
+        message: "Expiry dates updated successfully.",
+      });
     } catch (error) {
       handleError(res, error, req.user.role, "UPDATE_EXPIRY");
     }
@@ -2099,7 +2461,8 @@ router.post("/update-expiry-dates", verifyToken, async (req, res) => {
       }
 
       const { role, site, username } = req.user;
-      let query = "SELECT id, record_data FROM erp_records WHERE deleted_at IS NULL";
+      let query =
+        "SELECT id, record_data FROM erp_records WHERE deleted_at IS NULL";
       let params = [];
 
       // Site-restricted editors only recalculate their assigned site

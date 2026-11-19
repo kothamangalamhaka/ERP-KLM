@@ -90,7 +90,7 @@ async def generate_styled_excel(data: ExportRequest):
         ws.title = data.sheet_name
         
         # 1. സ്റ്റൈലുകൾ & കളറുകൾ (Styles & Fills)
-        header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+        header_fill = PatternFill(start_color="00B0F0", end_color="00B0F0", fill_type="solid")
         header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
         data_font = Font(name="Calibri", size=11)
         
@@ -241,8 +241,9 @@ async def generate_styled_excel(data: ExportRequest):
             calculated_width = max(max_len + 3, 10)
             ws.column_dimensions[col_letter].width = min(calculated_width, 15)
             
-        # 6. ഓട്ടോ ഫിൽട്ടറും സൂം ലെവലും (80%) സെറ്റ് ചെയ്യുന്നു
+        # 6. ഓട്ടോ ഫിൽട്ടർ, ഫസ്റ്റ് റോ ഫ്രീസ്, സൂം ലെവൽ (80%) എന്നിവ സെറ്റ് ചെയ്യുന്നു
         ws.auto_filter.ref = ws.dimensions
+        ws.freeze_panes = "A2"
         ws.sheet_view.zoomScale = 80
             
         wb.save(output)

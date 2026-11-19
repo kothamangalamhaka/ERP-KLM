@@ -45,12 +45,7 @@ const EXPIRY_EXPORT_SCOPES = {
 
 const FIELD_ALIASES = {
   plate: ["PLATE NUMBER", "PLATE NO"],
-  vehicleType: [
-    "TYPE OF VEHICLE",
-    "VEHICLE TYPE",
-    "EQUIPMENT TYPE",
-    "EQ TYPE",
-  ],
+  vehicleType: ["TYPE OF VEHICLE", "VEHICLE TYPE", "EQUIPMENT TYPE", "EQ TYPE"],
   workStart: ["WORK START"],
   equipmentReached: ["EQUIPMENT REACHED AT SITE"],
   lastWorking: ["LAST WORKING DAY"],
@@ -82,7 +77,12 @@ const FIELD_ALIASES = {
     "VIN",
     "VIN NO",
   ],
-  serialNo: ["SERIAL NUMBER", "SERIAL NO", "EQ SERIAL NO", "EQUIPMENT SERIAL NO"],
+  serialNo: [
+    "SERIAL NUMBER",
+    "SERIAL NO",
+    "EQ SERIAL NO",
+    "EQUIPMENT SERIAL NO",
+  ],
   iqamaNo: ["IQAMA NUMBER", "IQAMA NO"],
   iqamaExpiry: ["IQAMA EXPIRE DATE", "IQAMA EXPIRE"],
   licenceExpiry: [
@@ -205,7 +205,8 @@ function applySilentRecordUpdate(dbId, fieldUpdates = {}, reviewUpdate = null) {
 
   if (reviewUpdate && reviewUpdate.issueKey) {
     const existingReviews =
-      updatedData[MDB_REVIEW_KEY] && typeof updatedData[MDB_REVIEW_KEY] === "object"
+      updatedData[MDB_REVIEW_KEY] &&
+      typeof updatedData[MDB_REVIEW_KEY] === "object"
         ? { ...updatedData[MDB_REVIEW_KEY] }
         : {};
     existingReviews[reviewUpdate.issueKey] = reviewUpdate.review;
@@ -213,7 +214,9 @@ function applySilentRecordUpdate(dbId, fieldUpdates = {}, reviewUpdate = null) {
   }
 
   // Open expiry sub-tables & scroll positions save cheyyunnu
-  const openExpiryIds = [...document.querySelectorAll("#expiryTables .table-card")]
+  const openExpiryIds = [
+    ...document.querySelectorAll("#expiryTables .table-card"),
+  ]
     .filter((card) => getComputedStyle(card).display !== "none")
     .map((card) => card.dataset.tableId);
 
@@ -241,7 +244,9 @@ function applySilentRecordUpdate(dbId, fieldUpdates = {}, reviewUpdate = null) {
 
   // Open expiry sub-tables restore cheyyunnu
   openExpiryIds.forEach((tableId) => {
-    const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
+    const card = document.querySelector(
+      `[data-table-id="${cssEscape(tableId)}"]`,
+    );
     if (card) card.style.display = "block";
   });
 
@@ -253,7 +258,9 @@ function applySilentRecordUpdate(dbId, fieldUpdates = {}, reviewUpdate = null) {
 
   // Scroll positions restore cheyyunnu
   scrollPositions.forEach((pos, tableId) => {
-    const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
+    const card = document.querySelector(
+      `[data-table-id="${cssEscape(tableId)}"]`,
+    );
     const scroller = card?.querySelector(".table-scroll");
     if (scroller) {
       scroller.scrollTop = pos.top;
@@ -601,7 +608,9 @@ function buildOwnerMobileConflicts(groups) {
     if (mobiles.size < 2) return;
 
     const reviewRecord = rows.find((row) => row.reviews.owner_mobile_conflict);
-    const record = reviewRecord || rows.reduce((first, row) => (row.id < first.id ? row : first));
+    const record =
+      reviewRecord ||
+      rows.reduce((first, row) => (row.id < first.id ? row : first));
     const review = reviewRecord?.reviews.owner_mobile_conflict || {};
 
     output.push({
@@ -614,9 +623,10 @@ function buildOwnerMobileConflicts(groups) {
       ),
     });
   });
-  return output.sort((a, b) =>
-    Number(a.cleared) - Number(b.cleared) ||
-    normalizeName(a.owner).localeCompare(normalizeName(b.owner)),
+  return output.sort(
+    (a, b) =>
+      Number(a.cleared) - Number(b.cleared) ||
+      normalizeName(a.owner).localeCompare(normalizeName(b.owner)),
   );
 }
 
@@ -804,7 +814,9 @@ function mergeDisplayValues(current, candidate) {
 }
 
 function isTuvExemptVehicle(vehicleType) {
-  const v = String(vehicleType || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const v = String(vehicleType || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
   return (
     v.includes("DUMP") ||
     v.includes("FLATBED") ||
@@ -824,7 +836,10 @@ function buildNoDataIssues() {
       if (!isActiveRecord(record)) return false;
       const isExempt = isTuvExemptVehicle(record.vehicleType);
       return NO_DATA_FIELD_KEYS.some((key) => {
-        if (isExempt && (key === "eqTuvExpiry" || key === "operatorTuvExpiry")) {
+        if (
+          isExempt &&
+          (key === "eqTuvExpiry" || key === "operatorTuvExpiry")
+        ) {
           return false;
         }
         return !record[key];
@@ -910,11 +925,14 @@ function renderWorkStartIssues(rows) {
       label: "Check Data Remark",
       value: (row) => {
         const pending = pendingWorkStartEdits.get(row.id);
-        return (pending !== undefined ? pending.remark : row.review.remark) || "";
+        return (
+          (pending !== undefined ? pending.remark : row.review.remark) || ""
+        );
       },
       render: (row) => {
         const pending = pendingWorkStartEdits.get(row.id);
-        const remarkVal = (pending !== undefined ? pending.remark : row.review.remark) || "";
+        const remarkVal =
+          (pending !== undefined ? pending.remark : row.review.remark) || "";
         return `<textarea class="review-remark" maxlength="2000" placeholder="Reason…" ${canEdit && isWorkStartEditing ? "" : "disabled"} oninput="onWorkStartFieldChange(${row.id}, this.closest('tr').querySelector('.review-checkbox').checked, this.value)">${escapeHtml(remarkVal)}</textarea>`;
       },
     },
@@ -958,11 +976,13 @@ function renderOwnerIssues(issues) {
       label: `Site Name ${index + 1}`,
       cellClass: () => "site-cell-gray",
       value: (row) => {
-        const sites = row.owners[index]?.sites.map((s) => s.name).filter(Boolean) || [];
+        const sites =
+          row.owners[index]?.sites.map((s) => s.name).filter(Boolean) || [];
         return sites.map((s, idx) => `${idx + 1}. ${s}`).join("\n");
       },
       render: (row) => {
-        const sites = row.owners[index]?.sites.map((s) => s.name).filter(Boolean) || [];
+        const sites =
+          row.owners[index]?.sites.map((s) => s.name).filter(Boolean) || [];
         if (sites.length === 0) return "-";
         return `<div class="site-number-list">${sites.map((s, idx) => `<div>${idx + 1}. ${escapeHtml(s)}</div>`).join("")}</div>`;
       },
@@ -996,24 +1016,29 @@ function renderOwnerIssues(issues) {
         label: "Check",
         value: (row) => {
           const pending = pendingPlateOwnerEdits.get(row.recordId);
-          const isCleared = pending !== undefined ? pending.cleared : row.cleared;
+          const isCleared =
+            pending !== undefined ? pending.cleared : row.cleared;
           return isCleared ? "Cleared" : "Open";
         },
         render: (row) => {
           const pending = pendingPlateOwnerEdits.get(row.recordId);
-          const isCleared = pending !== undefined ? pending.cleared : row.cleared;
-          return `<input class="review-checkbox" type="checkbox" ${isCleared ? "checked" : ""} ${canEdit && isPlateOwnerEditing ? "" : "disabled"} aria-label="Mark owner conflict cleared" onchange="onPlateOwnerFieldChange(${row.recordId}, this.checked, this.closest('tr').querySelector('.review-remark')?.value ?? '${escapeHtml(row.review.remark || '')}')" />`;
+          const isCleared =
+            pending !== undefined ? pending.cleared : row.cleared;
+          return `<input class="review-checkbox" type="checkbox" ${isCleared ? "checked" : ""} ${canEdit && isPlateOwnerEditing ? "" : "disabled"} aria-label="Mark owner conflict cleared" onchange="onPlateOwnerFieldChange(${row.recordId}, this.checked, this.closest('tr').querySelector('.review-remark')?.value ?? '${escapeHtml(row.review.remark || "")}')" />`;
         },
       },
       {
         label: "Owner Change Remark",
         value: (row) => {
           const pending = pendingPlateOwnerEdits.get(row.recordId);
-          return (pending !== undefined ? pending.remark : row.review.remark) || "";
+          return (
+            (pending !== undefined ? pending.remark : row.review.remark) || ""
+          );
         },
         render: (row) => {
           const pending = pendingPlateOwnerEdits.get(row.recordId);
-          const remarkVal = (pending !== undefined ? pending.remark : row.review.remark) || "";
+          const remarkVal =
+            (pending !== undefined ? pending.remark : row.review.remark) || "";
           if (!isPlateOwnerEditing) {
             return remarkVal
               ? `<span class="inline-remark-display">${escapeHtml(remarkVal)}</span>`
@@ -1049,24 +1074,29 @@ function renderOwnerIssues(issues) {
         label: "Check",
         value: (row) => {
           const pending = pendingOwnerMobileEdits.get(row.recordId);
-          const isCleared = pending !== undefined ? pending.cleared : row.cleared;
+          const isCleared =
+            pending !== undefined ? pending.cleared : row.cleared;
           return isCleared ? "Cleared" : "Open";
         },
         render: (row) => {
           const pending = pendingOwnerMobileEdits.get(row.recordId);
-          const isCleared = pending !== undefined ? pending.cleared : row.cleared;
-          return `<input class="review-checkbox" type="checkbox" ${isCleared ? "checked" : ""} ${canEdit && isOwnerMobileEditing ? "" : "disabled"} aria-label="Mark owner mobile conflict cleared" onchange="onOwnerMobileFieldChange(${row.recordId}, this.checked, this.closest('tr').querySelector('.review-remark')?.value ?? '${escapeHtml(row.review.remark || '')}')" />`;
+          const isCleared =
+            pending !== undefined ? pending.cleared : row.cleared;
+          return `<input class="review-checkbox" type="checkbox" ${isCleared ? "checked" : ""} ${canEdit && isOwnerMobileEditing ? "" : "disabled"} aria-label="Mark owner mobile conflict cleared" onchange="onOwnerMobileFieldChange(${row.recordId}, this.checked, this.closest('tr').querySelector('.review-remark')?.value ?? '${escapeHtml(row.review.remark || "")}')" />`;
         },
       },
       {
         label: "Remark",
         value: (row) => {
           const pending = pendingOwnerMobileEdits.get(row.recordId);
-          return (pending !== undefined ? pending.remark : row.review.remark) || "";
+          return (
+            (pending !== undefined ? pending.remark : row.review.remark) || ""
+          );
         },
         render: (row) => {
           const pending = pendingOwnerMobileEdits.get(row.recordId);
-          const remarkVal = (pending !== undefined ? pending.remark : row.review.remark) || "";
+          const remarkVal =
+            (pending !== undefined ? pending.remark : row.review.remark) || "";
           if (!isOwnerMobileEditing) {
             return remarkVal
               ? `<span class="inline-remark-display">${escapeHtml(remarkVal)}</span>`
@@ -1081,9 +1111,15 @@ function renderOwnerIssues(issues) {
     customActionsHtml: canEdit ? getOwnerMobileActionButtonsHtml() : "",
   });
 
-  setCount("countPlateOwner", issues.byPlate.filter((row) => !row.cleared).length);
+  setCount(
+    "countPlateOwner",
+    issues.byPlate.filter((row) => !row.cleared).length,
+  );
   setCount("countMobileOwner", issues.byMobile.length);
-  setCount("countOwnerMobile", issues.byOwner.filter((row) => !row.cleared).length);
+  setCount(
+    "countOwnerMobile",
+    issues.byOwner.filter((row) => !row.cleared).length,
+  );
 
   applyTableExcelFilters("plate-owner-issues");
   applyTableExcelFilters("mobile-owner-issues");
@@ -1245,7 +1281,8 @@ function renderNoDataIssues(rows) {
       {
         label: "Operator TUV Expiry",
         value: (row) =>
-          row.operatorTuvExpiry || (isTuvExemptVehicle(row.vehicleType) ? "-" : ""),
+          row.operatorTuvExpiry ||
+          (isTuvExemptVehicle(row.vehicleType) ? "-" : ""),
       },
       textColumn("Driver Name", "driver", ""),
       textColumn("Driver Mobile", "driverMobile", ""),
@@ -1451,7 +1488,8 @@ function renderExpiryIssues(issues) {
 function toggleExpiryTable(cardId, buttonEl) {
   const card = document.querySelector(`[data-table-id="${cssEscape(cardId)}"]`);
   if (!card) return;
-  const isHidden = card.style.display === "none" || getComputedStyle(card).display === "none";
+  const isHidden =
+    card.style.display === "none" || getComputedStyle(card).display === "none";
   card.style.display = isHidden ? "block" : "none";
   buttonEl.classList.toggle("active", isHidden);
 }
@@ -1511,31 +1549,33 @@ function tableCardMarkup({
       ? rows
           .map((row) => {
             const cells = columns
-  .map((column) => {
-    const rawValue = column.value ? column.value(row) : "";
-    const display = column.render
-      ? column.render(row)
-      : escapeHtml(rawValue);
-    const cellClass = column.cellClass ? column.cellClass(row) : "";
-    const isPlateCol = column.label === "Plate No";
-    const isCopyableDocCol = ["Iqama No", "Chassis No", "Serial No"].includes(
-      column.label,
-    );
-    let clickAttr = "";
-    if (isPlateCol) {
-      if (id === "work-start-issues") {
-        clickAttr = `data-record-id="${row.id}" oncontextmenu="openWorkStartModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Work Start & Timeline"`;
-      } else if (id === "no-owner-issues") {
-        clickAttr = `data-record-id="${row.id}" oncontextmenu="openOwnerModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Owner Info"`;
-      } else if (id.includes("expiry")) {
-        clickAttr = `data-record-id="${row.id}" oncontextmenu="openQuickExpiryModal(event, ${row.id}, '${escapeAttribute(id)}')" style="cursor:context-menu;" title="Right-click to Update Expiry"`;
-      }
-    } else if (isCopyableDocCol) {
-      clickAttr = `oncontextmenu="copyCellText(event, this, '${escapeAttribute(column.label)}')" style="cursor:copy;" title="Right-click to copy ${escapeAttribute(column.label)}"`;
-    }
-    return `<td class="${escapeAttribute(cellClass)}" data-filter-value="${escapeAttribute(rawValue)}" ${clickAttr}>${display}</td>`;
-  })
-  .join("");
+              .map((column) => {
+                const rawValue = column.value ? column.value(row) : "";
+                const display = column.render
+                  ? column.render(row)
+                  : escapeHtml(rawValue);
+                const cellClass = column.cellClass ? column.cellClass(row) : "";
+                const isPlateCol = column.label === "Plate No";
+                const isCopyableDocCol = [
+                  "Iqama No",
+                  "Chassis No",
+                  "Serial No",
+                ].includes(column.label);
+                let clickAttr = "";
+                if (isPlateCol) {
+                  if (id === "work-start-issues") {
+                    clickAttr = `data-record-id="${row.id}" oncontextmenu="openWorkStartModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Work Start & Timeline"`;
+                  } else if (id === "no-owner-issues") {
+                    clickAttr = `data-record-id="${row.id}" oncontextmenu="openOwnerModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Owner Info"`;
+                  } else if (id.includes("expiry")) {
+                    clickAttr = `data-record-id="${row.id}" oncontextmenu="openQuickExpiryModal(event, ${row.id}, '${escapeAttribute(id)}')" style="cursor:context-menu;" title="Right-click to Update Expiry"`;
+                  }
+                } else if (isCopyableDocCol) {
+                  clickAttr = `oncontextmenu="copyCellText(event, this, '${escapeAttribute(column.label)}')" style="cursor:copy;" title="Right-click to copy ${escapeAttribute(column.label)}"`;
+                }
+                return `<td class="${escapeAttribute(cellClass)}" data-filter-value="${escapeAttribute(rawValue)}" ${clickAttr}>${display}</td>`;
+              })
+              .join("");
             return `<tr class="data-row ${escapeAttribute(rowClass(row))}">${cells}</tr>`;
           })
           .join("")
@@ -2510,7 +2550,7 @@ function downloadIssueTablePdf(tableId) {
     activeIndices.map((idx) => {
       const cell = row.cells[idx];
       return {
-        text: cell ? (cell.dataset.filterValue || cell.innerText.trim()) : "",
+        text: cell ? cell.dataset.filterValue || cell.innerText.trim() : "",
         className: cell ? cell.className : "",
       };
     }),
@@ -2727,23 +2767,42 @@ function openQuickExpiryModal(event, dbId, tableId = "") {
   document.getElementById("modalExpiryDbId").value = dbId;
   document.getElementById("modalPlateBadge").innerText = record.plate || "N/A";
 
-  document.getElementById("expInputIqama").value = toIsoDate(record.iqamaExpiry);
-  document.getElementById("expInputLicence").value = toIsoDate(record.licenceExpiry);
-  document.getElementById("expInputInsurance").value = toIsoDate(record.insuranceExpiry);
+  document.getElementById("expInputIqama").value = toIsoDate(
+    record.iqamaExpiry,
+  );
+  document.getElementById("expInputLicence").value = toIsoDate(
+    record.licenceExpiry,
+  );
+  document.getElementById("expInputInsurance").value = toIsoDate(
+    record.insuranceExpiry,
+  );
   document.getElementById("expInputFahs").value = toIsoDate(record.fahsExpiry);
-  document.getElementById("expInputOpTuv").value = toIsoDate(record.operatorTuvExpiry);
-  document.getElementById("expInputEqTuv").value = toIsoDate(record.eqTuvExpiry);
+  document.getElementById("expInputOpTuv").value = toIsoDate(
+    record.operatorTuvExpiry,
+  );
+  document.getElementById("expInputEqTuv").value = toIsoDate(
+    record.eqTuvExpiry,
+  );
 
   // Parent div-kal eduthu hide/show cheyyunnu
   const wrapIqama = document.getElementById("expInputIqama").closest("div");
   const wrapLicence = document.getElementById("expInputLicence").closest("div");
-  const wrapInsurance = document.getElementById("expInputInsurance").closest("div");
+  const wrapInsurance = document
+    .getElementById("expInputInsurance")
+    .closest("div");
   const wrapFahs = document.getElementById("expInputFahs").closest("div");
   const wrapOpTuv = document.getElementById("expInputOpTuv").closest("div");
   const wrapEqTuv = document.getElementById("expInputEqTuv").closest("div");
 
   // Default aayi ellam hide cheyyunnu
-  [wrapIqama, wrapLicence, wrapInsurance, wrapFahs, wrapOpTuv, wrapEqTuv].forEach(el => {
+  [
+    wrapIqama,
+    wrapLicence,
+    wrapInsurance,
+    wrapFahs,
+    wrapOpTuv,
+    wrapEqTuv,
+  ].forEach((el) => {
     if (el) el.style.display = "none";
   });
 
@@ -2768,7 +2827,14 @@ function openQuickExpiryModal(event, dbId, tableId = "") {
     if (wrapEqTuv) wrapEqTuv.style.display = "block";
   } else {
     // Combined Expiry allengil mattulla tables: Ellam kaanikkum
-    [wrapIqama, wrapLicence, wrapInsurance, wrapFahs, wrapOpTuv, wrapEqTuv].forEach(el => {
+    [
+      wrapIqama,
+      wrapLicence,
+      wrapInsurance,
+      wrapFahs,
+      wrapOpTuv,
+      wrapEqTuv,
+    ].forEach((el) => {
       if (el) el.style.display = "block";
     });
   }
@@ -2785,7 +2851,20 @@ async function submitExpiryModal() {
   const dbId = parseInt(document.getElementById("modalExpiryDbId").value, 10);
   if (!dbId) return;
 
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const formatDdMmmYyyy = (val) => {
     if (!val) return "";
     const p = val.split("-");
@@ -2799,26 +2878,40 @@ async function submitExpiryModal() {
   const updates = {};
   const isVisible = (id) => {
     const el = document.getElementById(id);
-    return el && el.closest("div") && el.closest("div").style.display !== "none";
+    return (
+      el && el.closest("div") && el.closest("div").style.display !== "none"
+    );
   };
 
   if (isVisible("expInputIqama")) {
-    updates["IQAMA EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputIqama").value);
+    updates["IQAMA EXPIRE DATE"] = formatDdMmmYyyy(
+      document.getElementById("expInputIqama").value,
+    );
   }
   if (isVisible("expInputLicence")) {
-    updates["LICENSE EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputLicence").value);
+    updates["LICENSE EXPIRE DATE"] = formatDdMmmYyyy(
+      document.getElementById("expInputLicence").value,
+    );
   }
   if (isVisible("expInputInsurance")) {
-    updates["EQ INSURANSE EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputInsurance").value);
+    updates["EQ INSURANSE EXPIRE DATE"] = formatDdMmmYyyy(
+      document.getElementById("expInputInsurance").value,
+    );
   }
   if (isVisible("expInputFahs")) {
-    updates["FAHS MVPI EXPIRE"] = formatDdMmmYyyy(document.getElementById("expInputFahs").value);
+    updates["FAHS MVPI EXPIRE"] = formatDdMmmYyyy(
+      document.getElementById("expInputFahs").value,
+    );
   }
   if (isVisible("expInputOpTuv")) {
-    updates["OPERATOR TUV EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputOpTuv").value);
+    updates["OPERATOR TUV EXPIRE DATE"] = formatDdMmmYyyy(
+      document.getElementById("expInputOpTuv").value,
+    );
   }
   if (isVisible("expInputEqTuv")) {
-    updates["EQ TUV EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputEqTuv").value);
+    updates["EQ TUV EXPIRE DATE"] = formatDdMmmYyyy(
+      document.getElementById("expInputEqTuv").value,
+    );
   }
 
   closeExpiryModal();
@@ -2859,11 +2952,14 @@ function openWorkStartModal(event, dbId) {
   if (!record) return;
 
   document.getElementById("modalWsDbId").value = dbId;
-  document.getElementById("modalWsPlateBadge").innerText = record.plate || "N/A";
+  document.getElementById("modalWsPlateBadge").innerText =
+    record.plate || "N/A";
 
   document.getElementById("inputWsDate").value = toIsoDate(record.workStart);
-  document.getElementById("inputEqReachedDate").value = toIsoDate(record.equipmentReached);
-  
+  document.getElementById("inputEqReachedDate").value = toIsoDate(
+    record.equipmentReached,
+  );
+
   const review = record.reviews.work_start_gap || {};
   document.getElementById("inputWsRemark").value = review.remark || "";
   document.getElementById("inputWsCleared").checked = review.cleared === true;
@@ -2879,7 +2975,20 @@ async function submitWorkStartModal() {
   const dbId = parseInt(document.getElementById("modalWsDbId").value, 10);
   if (!dbId) return;
 
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const formatDdMmmYyyy = (val) => {
     if (!val) return "";
     const p = val.split("-");
@@ -2890,7 +2999,9 @@ async function submitWorkStartModal() {
   };
 
   const wsVal = formatDdMmmYyyy(document.getElementById("inputWsDate").value);
-  const eqVal = formatDdMmmYyyy(document.getElementById("inputEqReachedDate").value);
+  const eqVal = formatDdMmmYyyy(
+    document.getElementById("inputEqReachedDate").value,
+  );
   const remarkVal = document.getElementById("inputWsRemark").value.trim();
   const clearedVal = document.getElementById("inputWsCleared").checked;
 
@@ -2901,7 +3012,7 @@ async function submitWorkStartModal() {
     // 1. Update Master DB row fields (Work Start & Equipment Reached)
     const cellUpdates = {
       "WORK START": wsVal,
-      "EQUIPMENT REACHED AT SITE": eqVal
+      "EQUIPMENT REACHED AT SITE": eqVal,
     };
 
     const updateRes = await fetch("/api/update-expiry-dates", {
@@ -2959,7 +3070,8 @@ function openOwnerModal(event, dbId) {
   if (!record) return;
 
   document.getElementById("modalOwnerDbId").value = dbId;
-  document.getElementById("modalOwnerPlateBadge").innerText = record.plate || "N/A";
+  document.getElementById("modalOwnerPlateBadge").innerText =
+    record.plate || "N/A";
 
   document.getElementById("inputOwnerName").value = record.owner || "";
   document.getElementById("inputOwnerMobile").value = record.ownerMobile || "";
@@ -2985,7 +3097,7 @@ async function submitOwnerModal() {
     const updates = {
       "OWNER NAME": ownerName,
       "OWNER NUMBER": ownerMobile,
-      "OWNER MOBILE": ownerMobile
+      "OWNER MOBILE": ownerMobile,
     };
 
     const res = await fetch("/api/update-expiry-dates", {
