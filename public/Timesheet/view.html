@@ -62,18 +62,27 @@
       }
 
       .controls-wrapper {
-        background: #0f2027;
+        background: linear-gradient(135deg, #0b1329 0%, #132238 55%, #0f172a 100%);
         color: white;
-        padding: 15px 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        padding: 12px 18px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+        box-shadow: 0 8px 24px rgba(2, 6, 23, 0.35);
         z-index: 100;
         flex-shrink: 0;
-        /* Combined properties from inner */
         display: flex;
-        gap: 10px; 
+        gap: 8px;
         align-items: flex-end;
-        flex-wrap: nowrap; 
+        flex-wrap: nowrap;
         justify-content: center;
+        overflow-x: auto;
+      }
+
+      .ribbon-divider {
+        width: 1px;
+        height: 34px;
+        background: rgba(148, 163, 184, 0.25);
+        margin: 0 4px;
+        flex-shrink: 0;
       }
 
       .form-group {
@@ -83,48 +92,66 @@
       }
 
       .form-group label {
-        font-size: 11px;
-        font-weight: 600;
-        margin-bottom: 5px;
-        color: #cbd5e1;
+        font-size: 10px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: #94a3b8;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.6px;
       }
 
       input,
       select,
       textarea {
-        padding: 8px 12px;
-        border: 1px solid #334155;
-        border-radius: 4px;
+        padding: 7px 11px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 7px;
         font-family: "Inter";
-        font-size: 13px;
-        background: #1e293b;
-        color: white;
+        font-size: 12.5px;
+        background: rgba(30, 41, 59, 0.85);
+        color: #f8fafc;
         outline: none;
-        transition: border-color 0.2s;
+        transition: all 0.2s ease;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
       }
 
       input:focus,
       select:focus,
       textarea:focus {
         border-color: #38bdf8;
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
       }
 
       .btn-generate,
-      .btn-pdf {
+      .btn-pdf,
+      .btn-ribbon {
         color: white;
-        border: none;
-        padding: 9px 15px;
-        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        padding: 0 13px;
+        border-radius: 7px;
         cursor: pointer;
         font-weight: 600;
-        font-size: 14px;
+        font-size: 12.5px;
         height: 35px;
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 5px;
-        transition: opacity 0.2s;
+        justify-content: center;
+        gap: 6px;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+        transition: all 0.18s ease;
+        text-decoration: none;
+      }
+      .btn-ribbon:hover:not(:disabled),
+      .btn-generate:hover:not(:disabled),
+      .btn-pdf:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+        filter: brightness(1.08);
+      }
+      .btn-ribbon:disabled {
+        opacity: 0.65;
+        cursor: wait;
       }
 
       .btn-generate {
@@ -805,7 +832,7 @@
           ></div>
           <textarea
             id="filterBulk"
-            placeholder="Plate1, Plate2..."
+            placeholder="Plate1, Asset1, Plate2..."
             style="display: none; height: 35px; resize: none"
           ></textarea>
         </div>
@@ -842,16 +869,20 @@
           <span class="loader" id="genLoader"></span> Generate Report
         </button>
 
-        <!-- 🟢 Extra DIV removed. All buttons are in the same line now -->
-        <button class="hm" onclick="toggleDarkMode()" style="background-color: #334155; color: white; cursor:pointer; white-space: nowrap; margin-left: 15px;">🌗</button>
-        <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
-          <span class="loader" id="pdfLoader"></span> 📄 PDF
+        <div class="ribbon-divider"></div>
+
+        <button class="btn-ribbon" onclick="toggleDarkMode()" style="background: #1e293b; padding: 0 11px;" title="Toggle Theme">🌗</button>
+        <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf" title="Download All Timesheet Cards as PDF">
+          <span class="loader" id="pdfLoader"></span> 📄 Timesheet PDF
         </button>
-        <button type="button" id="btnToggleLtView" class="hm" onclick="toggleTimesheetMode()" style="background-color: #0d2d5e; cursor: pointer; white-space: nowrap; color: white; font-weight: 600;">
+        <button type="button" id="btnToggleLtView" class="btn-ribbon" onclick="toggleTimesheetMode()" style="background: #0f3d7a;">
           🔄️ LT View
         </button>
-        <button class="hm"><a href="index.html">Home</a></button>
-        <button class="tsdb"><a href="./entry.html">Data Entry</a></button>
+        <a href="index.html" class="btn-ribbon" style="background: #1d4ed8;">🏠 Home</a>
+        <a href="./entry.html" class="btn-ribbon" style="background: #3b0764;">📝 Grid Entry</a>
+        <button type="button" id="btnAllLogsheetPdf" class="btn-ribbon" onclick="downloadAllCardsLogsheetsPDF()" style="background: linear-gradient(135deg, #7c3aed, #5b21b6);" title="Download Individual Logsheet PDF for each listed card">
+          📁 Logsheet PDF
+        </button>
     </div>
 
     <div id="splitContainer">
@@ -1593,6 +1624,39 @@
           let monthEnd = new Date(y, mIdx + 1, 0);
 
           let filteredVehicles = data.vehicles;
+          if (type === "Bulk Mode" && val) {
+            const bulkOrder = val
+              .split(/[\n,]+/)
+              .map((item) => item.trim().toUpperCase())
+              .filter(Boolean);
+            const pLogsList = data.logs.plates || [];
+
+            const getBulkRank = (veh) => {
+              const vPlate = (veh.plate_no || "").trim().toUpperCase();
+              const vAsset = (veh.asset_code || "").trim().toUpperCase();
+              const relatedPlates = new Set([vPlate]);
+
+              pLogsList.forEach((pl) => {
+                const oP = (pl.old_plate_no || "").trim().toUpperCase();
+                const nP = (pl.new_plate_no || "").trim().toUpperCase();
+                if (oP === vPlate || nP === vPlate) {
+                  if (oP) relatedPlates.add(oP);
+                  if (nP) relatedPlates.add(nP);
+                }
+              });
+
+              const idx = bulkOrder.findIndex(
+                (entry) =>
+                  relatedPlates.has(entry) || (vAsset && vAsset === entry),
+              );
+              return idx === -1 ? 999999 : idx;
+            };
+
+            filteredVehicles = [...filteredVehicles].sort(
+              (a, b) => getBulkRank(a) - getBulkRank(b),
+            );
+          }
+
           if (type === "Owner Name" && selectedSecondarySites.length > 0) {
             filteredVehicles = filteredVehicles.filter((v) => {
               const sLogs = data.logs.sites.filter(
@@ -2066,6 +2130,156 @@
         } finally {
           btn.disabled = false;
           btn.innerHTML = originalBtnText; 
+        }
+      }
+
+      async function buildSingleCardLogsheetPdf(card, token) {
+        const plateNo = card.dataset.plate;
+        const month = card.dataset.month;
+        const year = card.dataset.year;
+        if (!plateNo || !month || !year) return false;
+
+        const listRes = await fetch("/timesheet/api/logsheets/list", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ month, year, plate_no: plateNo }),
+        });
+        const listData = await listRes.json();
+        if (!listData.success || !Array.isArray(listData.files)) return false;
+
+        const validFiles = listData.files
+          .filter((f) => f.size > 0)
+          .sort((a, b) =>
+            a.basename.localeCompare(b.basename, undefined, {
+              numeric: true,
+              sensitivity: "base",
+            }),
+          );
+
+        if (validFiles.length === 0) return false;
+
+        const { PDFDocument } = PDFLib;
+        const { jsPDF } = window.jspdf;
+        const mergedPdf = await PDFDocument.create();
+
+        // Parallel fetch of all logsheet files for this card
+        const fileBuffers = await Promise.all(
+          validFiles.map(async (file) => {
+            const res = await fetch(
+              `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+              { headers: { Authorization: "Bearer " + token } },
+            );
+            if (!res.ok) return null;
+            const blob = await res.blob();
+            return { file, blob };
+          }),
+        );
+
+        for (const item of fileBuffers) {
+          if (!item) continue;
+          const { file, blob } = item;
+
+          if (file.mime && file.mime.includes("pdf")) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const existingPdf = await PDFDocument.load(arrayBuffer);
+            const copiedPages = await mergedPdf.copyPages(
+              existingPdf,
+              existingPdf.getPageIndices(),
+            );
+            copiedPages.forEach((page) => mergedPdf.addPage(page));
+          } else {
+            const bitmap = await createImageBitmap(blob, {
+              imageOrientation: "from-image",
+            });
+            const canvas = document.createElement("canvas");
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            canvas.getContext("2d").drawImage(bitmap, 0, 0);
+
+            const imgData = canvas.toDataURL("image/jpeg", 0.9);
+            const wMm = bitmap.width * 0.264583;
+            const hMm = bitmap.height * 0.264583;
+            const singleImgPdf = new jsPDF({
+              orientation: bitmap.width > bitmap.height ? "l" : "p",
+              unit: "mm",
+              format: [wMm, hMm],
+            });
+            singleImgPdf.addImage(imgData, "JPEG", 0, 0, wMm, hMm, undefined, "FAST");
+
+            const tempPdf = await PDFDocument.load(
+              singleImgPdf.output("arraybuffer"),
+            );
+            const [copiedPage] = await mergedPdf.copyPages(tempPdf, [0]);
+            mergedPdf.addPage(copiedPage);
+          }
+        }
+
+        if (mergedPdf.getPageCount() === 0) return false;
+
+        const pdfBytes = await mergedPdf.save();
+        const safePlate = plateNo.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(
+          new Blob([pdfBytes], { type: "application/pdf" }),
+        );
+        link.download = `${safePlate}_${month}_${year}_Logsheet.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+        return true;
+      }
+
+      async function downloadAllCardsLogsheetsPDF() {
+        const area = document.getElementById("reportArea");
+        const cards = Array.from(area.querySelectorAll(".ts-card"));
+        if (cards.length === 0) {
+          alert("No cards generated yet.");
+          return;
+        }
+
+        const btn = document.getElementById("btnAllLogsheetPdf");
+        const originalText = btn.innerHTML;
+        const token = localStorage.getItem("timesheetToken") || "";
+        btn.disabled = true;
+
+        const BATCH_SIZE = 4; // Parallel batch processing without freezing UI
+        let downloadedCount = 0;
+
+        try {
+          for (let i = 0; i < cards.length; i += BATCH_SIZE) {
+            const batch = cards.slice(i, i + BATCH_SIZE);
+            btn.innerHTML = `<span class="loader" style="display:inline-block;"></span> Logsheets (${Math.min(i + BATCH_SIZE, cards.length)}/${cards.length})`;
+
+            // Yield to browser UI thread
+            await new Promise((r) => setTimeout(r, 40));
+
+            const results = await Promise.all(
+              batch.map((card) =>
+                buildSingleCardLogsheetPdf(card, token).catch((err) => {
+                  console.warn("Logsheet PDF error for", card.dataset.plate, err);
+                  return false;
+                }),
+              ),
+            );
+            downloadedCount += results.filter(Boolean).length;
+          }
+
+          if (downloadedCount === 0) {
+            alert("No logsheet files found for the listed cards.");
+          } else {
+            btn.innerHTML = `✅ ${downloadedCount} PDFs`;
+            await new Promise((r) => setTimeout(r, 1400));
+          }
+        } catch (err) {
+          console.error("Bulk Logsheet PDF Error:", err);
+          alert("Error downloading logsheet PDFs.");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
         }
       }
 

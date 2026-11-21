@@ -2492,13 +2492,21 @@ router.post("/api/public/view-report", async (req, res) => {
         vQuery += ` AND vsl.site_name = ANY($${paramCount})`;
         vParams.push(sites);
       } else if (filterType === "Bulk Mode") {
-        const plates = filterValue
+        const items = filterValue
           .split(/[\n,]+/)
           .map((p) => p.trim().toUpperCase())
           .filter((p) => p);
         paramCount++;
-        vQuery += ` AND UPPER(tv.plate_no) = ANY($${paramCount})`;
-        vParams.push(plates);
+        vQuery += ` AND (
+          UPPER(TRIM(tv.plate_no)) = ANY($${paramCount})
+          OR UPPER(TRIM(COALESCE(tv.asset_code, ''))) = ANY($${paramCount})
+          OR EXISTS (
+            SELECT 1 FROM vehicle_plate_log vpl
+            WHERE (UPPER(TRIM(vpl.old_plate_no)) = UPPER(TRIM(tv.plate_no)) OR UPPER(TRIM(vpl.new_plate_no)) = UPPER(TRIM(tv.plate_no)))
+              AND (UPPER(TRIM(vpl.old_plate_no)) = ANY($${paramCount}) OR UPPER(TRIM(vpl.new_plate_no)) = ANY($${paramCount}))
+          )
+        )`;
+        vParams.push(items);
       }
     }
 
