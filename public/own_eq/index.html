@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Own Equipment Tracker - Haka Rentals (P) Ltd</title>
 
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#0b1329" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <style>
       @font-face {
@@ -30,238 +30,357 @@
         src: url("/webfonts/Montserrat-Bold.woff2") format("woff2");
       }
 
-      :root {
-        --bg-primary: #0f172a;
-        --card-bg: rgba(15, 23, 42, 0.78);
-        --card-border: rgba(0, 206, 209, 0.22);
-        --card-hover: rgba(30, 41, 59, 0.92);
-        --accent-color: #00ced1;
-        --text-main: #f8fafc;
-        --text-muted: #94a3b8;
-      }
-
-      * {
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
-        font-family:
-          "Inter",
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          Roboto,
-          sans-serif;
+        margin: 0;
+        padding: 0;
       }
 
       body {
-        background-color: var(--bg-primary);
+        min-height: 100vh;
+        background-color: #0b1329 !important;
         background-image: url("../icons/bg.png");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
-        color: var(--text-main);
-        margin: 0;
-        padding: 1.5rem 2rem 3rem;
-        min-height: 100vh;
+        color: #f8fafc;
+        font-family: "Inter", sans-serif;
+        padding: 26px 24px 50px;
+        overflow-x: hidden;
       }
 
       .page-wrapper {
         width: 100%;
-        max-width: 1560px;
+        max-width: 1580px;
         margin: 0 auto;
       }
 
-      /* Top Navigation Bar */
+      /* Top Bar */
       .top-nav {
+        width: 100%;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.75rem;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 1.4rem;
       }
 
       .back-pill {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 7px 16px;
+        padding: 8px 18px;
         border-radius: 999px;
-        background: rgba(15, 23, 42, 0.75);
-        border: 1px solid rgba(148, 163, 184, 0.25);
-        color: #e2e8f0;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #f8fafc;
         text-decoration: none;
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 600;
-        backdrop-filter: blur(8px);
-        transition: all 0.2s ease;
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        transition: all 0.25s ease;
       }
 
       .back-pill:hover {
-        border-color: var(--accent-color);
-        color: var(--accent-color);
+        border-color: rgba(56, 189, 248, 0.85);
+        color: #38bdf8;
+        background: rgba(255, 255, 255, 0.14);
         transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
       }
 
-      /* Professional Enterprise Header */
+      .nav-right-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .glass-search {
+        width: 240px;
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        background: rgba(255, 255, 255, 0.09);
+        color: #ffffff;
+        font-family: "Inter", sans-serif;
+        font-size: 12.5px;
+        outline: none;
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        transition: all 0.25s ease;
+      }
+
+      .glass-search::placeholder {
+        color: rgba(226, 232, 240, 0.72);
+      }
+
+      .glass-search:focus {
+        border-color: rgba(56, 189, 248, 0.85);
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
+      }
+
+      .portal-badge {
+        padding: 7px 15px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: #e0f2fe;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+      }
+
+      /* Header */
       .pro-header {
         text-align: center;
-        padding: 10px 16px 28px;
-      }
-
-      .pro-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 4px 14px;
-        border-radius: 999px;
-        background: rgba(0, 206, 209, 0.12);
-        border: 1px solid rgba(0, 206, 209, 0.35);
-        color: #67e8f9;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 1.6px;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-      }
-
-      .pro-badge .pulse-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--accent-color);
-        box-shadow: 0 0 8px var(--accent-color);
+        padding: 6px 16px 34px;
       }
 
       .pro-header h1 {
         margin: 0;
         font-family: "Montserrat", sans-serif;
-        font-size: clamp(26px, 3.8vw, 40px);
+        font-size: clamp(24px, 3.4vw, 38px);
         font-weight: 700;
         letter-spacing: 0.5px;
-        background: linear-gradient(180deg, #ffffff 30%, #cbd5e1 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+        line-height: 1.25;
+        color: #ffffff;
+        text-shadow: 0 4px 24px rgba(0, 0, 0, 0.58);
       }
 
       .pro-subtitle {
-        margin: 6px 0 0;
-        font-size: 13.5px;
-        color: var(--text-muted);
-        letter-spacing: 0.3px;
+        margin: 9px auto 0;
+        max-width: 650px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #e2e8f0;
+        letter-spacing: 0.2px;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.58);
       }
 
       .pro-divider {
-        width: 90px;
+        width: 100px;
         height: 3px;
-        margin: 14px auto 0;
+        margin: 16px auto 0;
         border-radius: 99px;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          var(--accent-color),
-          transparent
-        );
+        background: linear-gradient(90deg, transparent, #38bdf8, transparent);
       }
 
-      main {
-        width: 100%;
-      }
-
-      /* Scalable Responsive Grid */
+      /* Dynamic 1 to 6 Columns Responsive Grid */
       .action-grid-box {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.25rem;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 18px;
         width: 100%;
       }
 
+      @media (min-width: 480px) {
+        .action-grid-box {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 768px) {
+        .action-grid-box {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .action-grid-box {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 1280px) {
+        .action-grid-box {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 1500px) {
+        .action-grid-box {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+      }
+
+      /* Pure Glassmorphism Card - Uniform Order & Alignment */
       .action-card {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 14px;
-        padding: 1.35rem 1.4rem;
+        position: relative;
         display: flex;
-        align-items: center;
-        gap: 1.1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 16px;
+        height: 172px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.14) 0%,
+          rgba(255, 255, 255, 0.05) 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-top-color: rgba(255, 255, 255, 0.44);
+        border-left-color: rgba(255, 255, 255, 0.34);
+        border-radius: 18px;
+        padding: 20px 18px;
         text-decoration: none;
         color: inherit;
-        min-height: 98px;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(22px) saturate(175%);
+        -webkit-backdrop-filter: blur(22px) saturate(175%);
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.28);
         transition:
-          transform 0.25s ease,
-          background 0.25s ease,
+          transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
           border-color 0.25s ease,
-          box-shadow 0.25s ease;
-        will-change: transform;
+          box-shadow 0.25s ease,
+          background 0.25s ease;
+        overflow: hidden;
+      }
+
+      .action-card.is-hidden {
+        display: none !important;
+      }
+
+      .action-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.18) 0%,
+          rgba(56, 189, 248, 0.12) 55%,
+          transparent 100%
+        );
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        pointer-events: none;
       }
 
       .action-card:hover {
-        transform: translateY(-4px);
-        background: var(--card-hover);
-        border-color: var(--accent-color);
+        transform: translateY(-6px);
+        border-color: rgba(56, 189, 248, 0.85);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.21) 0%,
+          rgba(255, 255, 255, 0.08) 100%
+        );
         box-shadow:
-          0 12px 26px rgba(0, 0, 0, 0.45),
-          0 0 14px rgba(0, 206, 209, 0.22);
+          0 16px 38px rgba(0, 0, 0, 0.38),
+          0 0 24px rgba(56, 189, 248, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      }
+
+      .action-card:hover::before {
+        opacity: 1;
+      }
+
+      .card-top-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
       }
 
       .card-icon {
-        font-size: 1.65rem;
-        background: linear-gradient(
-          135deg,
-          rgba(0, 206, 209, 0.25),
-          rgba(2, 132, 199, 0.18)
-        );
-        border: 1px solid rgba(0, 206, 209, 0.35);
-        width: 52px;
-        height: 52px;
+        width: 46px;
+        height: 46px;
+        font-size: 1.5rem;
+        background: rgba(255, 255, 255, 0.13);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 13px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
-        flex-shrink: 0;
-        transition: transform 0.25s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transition:
+          transform 0.25s ease,
+          background 0.25s ease,
+          border-color 0.25s ease;
       }
 
       .action-card:hover .card-icon {
-        transform: scale(1.06);
+        transform: scale(1.07);
+        background: rgba(56, 189, 248, 0.22);
+        border-color: rgba(56, 189, 248, 0.55);
+      }
+
+      .card-arrow {
+        font-size: 14px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.65);
+        transition:
+          transform 0.25s ease,
+          color 0.25s ease;
+      }
+
+      .action-card:hover .card-arrow {
+        color: #38bdf8;
+        transform: translate(2px, -2px);
       }
 
       .card-content {
+        width: 100%;
+        text-align: left;
         display: flex;
         flex-direction: column;
-        min-width: 0;
+        gap: 6px;
       }
 
       .card-content h3 {
-        margin: 0 0 0.35rem 0;
         font-family: "Montserrat", sans-serif;
-        font-size: 1.05rem;
-        color: #f1f5f9;
-        transition: color 0.2s ease;
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #ffffff;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.38);
+        transition: color 0.25s ease;
       }
 
       .action-card:hover .card-content h3 {
-        color: var(--accent-color);
+        color: #7dd3fc;
       }
 
       .card-content p {
-        margin: 0;
-        font-size: 0.82rem;
-        color: var(--text-muted);
-        line-height: 1.45;
+        font-size: 0.81rem;
+        color: #e2e8f0;
+        line-height: 1.42;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.42);
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: 479px) {
         body {
-          padding: 1rem;
+          padding: 20px 16px 36px;
         }
-        .action-grid-box {
-          grid-template-columns: 1fr;
-          gap: 1rem;
+
+        .glass-search {
+          width: 100%;
         }
+
         .action-card {
-          padding: 1.1rem;
+          height: auto;
+          padding: 16px;
         }
       }
     </style>
@@ -271,6 +390,16 @@
     <div class="page-wrapper">
       <nav class="top-nav">
         <a href="../index.html" class="back-pill">Main Portal</a>
+
+        <div class="nav-right-group">
+          <input
+            type="text"
+            class="glass-search"
+            placeholder="Quick search module..."
+            oninput="filterEquipmentCards(this.value)"
+          />
+          <div class="portal-badge">Haka Rentals ERP</div>
+        </div>
       </nav>
 
       <header class="pro-header">
@@ -282,40 +411,52 @@
       </header>
 
       <main>
-        <div class="action-grid-box">
+        <div class="action-grid-box" id="equipmentCardsGrid">
           <!-- 1. We1 Own EQ Data Base -->
           <a href="../We1-own-EQ/" class="action-card">
-            <div class="card-icon">🗄️</div>
+            <div class="card-top-row">
+              <div class="card-icon">🗄️</div>
+              <span class="card-arrow">↗</span>
+            </div>
             <div class="card-content">
               <h3>We1 Own EQ DB</h3>
-              <p>Manage &amp; track core own equipment master records.</p>
+              <p>Manage and track core own equipment master records.</p>
             </div>
           </a>
 
-          <!-- 2. Own EQ Tracker -->
-          <a href="../Own_Equipment_Tracker/index.html" class="action-card">
-            <div class="card-icon">🚛</div>
-            <div class="card-content">
-              <h3>Own EQ Tracker</h3>
-              <p>Track operational costs, expenses, and fleet revenue.</p>
-            </div>
-          </a>
-
-          <!-- 3. We1 Own EQ Assets -->
-          <a href="../Own_Equipment_Tracker/Assets.html" class="action-card">
-            <div class="card-icon">🏗️</div>
-            <div class="card-content">
-              <h3>We1 Own EQ Assets</h3>
-              <p>Track, manage, and view equipment parts and assets.</p>
-            </div>
-          </a>
-
-          <!-- 4. AKS Report -->
+          <!-- 2. AKS Report -->
           <a href="../Own_Equipment_Tracker/AKS.html" class="action-card">
-            <div class="card-icon">🚜</div>
+            <div class="card-top-row">
+              <div class="card-icon">🚜</div>
+              <span class="card-arrow">↗</span>
+            </div>
             <div class="card-content">
               <h3>AKS Report</h3>
-              <p>Equipment AKS tracking and operational analysis report.</p>
+              <p>Equipment AKS tracking and operational analysis.</p>
+            </div>
+          </a>
+
+          <!-- 3. Own EQ Tracker -->
+          <a href="../Own_Equipment_Tracker/index.html" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">🚛</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Own EQ Tracker</h3>
+              <p>Track operational costs, expenses and fleet revenue.</p>
+            </div>
+          </a>
+
+          <!-- 4. We1 Own EQ Assets -->
+          <a href="../Own_Equipment_Tracker/Assets.html" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">🏗️</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>We1 Own EQ Assets</h3>
+              <p>Manage and view equipment spare parts and assets.</p>
             </div>
           </a>
 
@@ -324,32 +465,41 @@
             href="../Own_Equipment_Tracker/AKS_Summary.html"
             class="action-card"
           >
-            <div class="card-icon">📈</div>
+            <div class="card-top-row">
+              <div class="card-icon">📈</div>
+              <span class="card-arrow">↗</span>
+            </div>
             <div class="card-content">
               <h3>AKS Cost Summary</h3>
-              <p>Consolidated summary of AKS equipment costs &amp; expenses.</p>
-            </div>
-          </a>
-
-          <!-- 6. Johns Report -->
-          <a href="../invoice_data/Johns-Report.html" class="action-card">
-            <div class="card-icon">📊</div>
-            <div class="card-content">
-              <h3>Johns Report</h3>
-              <p>Purchase &amp; Sales financial analysis report.</p>
+              <p>Consolidated summary of AKS costs and expenses.</p>
             </div>
           </a>
 
           <!-- 7. Own EQ Driver Payroll -->
           <a href="../We1-own-EQ/EQ_Driver_payroll.html" class="action-card">
-            <div class="card-icon">💵</div>
+            <div class="card-top-row">
+              <div class="card-icon">💵</div>
+              <span class="card-arrow">↗</span>
+            </div>
             <div class="card-content">
               <h3>Own Driver Payroll</h3>
-              <p>Manage &amp; track monthly own equipment operator payroll.</p>
+              <p>Manage monthly own equipment operator payroll.</p>
             </div>
           </a>
         </div>
       </main>
     </div>
+
+    <script>
+      function filterEquipmentCards(query) {
+        const q = (query || "").trim().toLowerCase();
+        document
+          .querySelectorAll("#equipmentCardsGrid .action-card")
+          .forEach((card) => {
+            const matched = card.innerText.toLowerCase().includes(q);
+            card.classList.toggle("is-hidden", !matched);
+          });
+      }
+    </script>
   </body>
 </html>

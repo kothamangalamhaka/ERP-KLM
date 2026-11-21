@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QC Entry - VAT Tracking</title>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -608,25 +609,115 @@
         color: #0f172a;
       }
 
-      /* Login Modal */
+      /* Glassmorphism Login Modal */
       .login-overlay {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(15, 32, 39, 0.95);
+        inset: 0;
+        background: radial-gradient(
+            circle at 22% 20%,
+            rgba(56, 189, 248, 0.24),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 78% 80%,
+            rgba(16, 185, 129, 0.2),
+            transparent 45%
+          ),
+          rgba(9, 17, 34, 0.78);
+        backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
         display: flex;
         justify-content: center;
         align-items: center;
+        padding: 16px;
         z-index: 10000;
       }
       .login-box {
-        background: white;
-        padding: 30px;
-        border-radius: 8px;
-        width: 300px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.14) 0%,
+          rgba(255, 255, 255, 0.05) 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-top-color: rgba(255, 255, 255, 0.45);
+        border-left-color: rgba(255, 255, 255, 0.34);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        padding: 34px 30px;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 360px;
         text-align: center;
+        color: #f8fafc;
+        box-shadow:
+          0 25px 50px -12px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      }
+      .login-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 1.3px;
+        text-transform: uppercase;
+        color: #7dd3fc;
+        background: rgba(56, 189, 248, 0.14);
+        border: 1px solid rgba(56, 189, 248, 0.32);
+        border-radius: 999px;
+        margin-bottom: 12px;
+      }
+      .login-box h2 {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.3px;
+      }
+      .login-box p {
+        margin: 0;
+        font-size: 12.5px;
+        color: #cbd5e1;
+      }
+      .login-code-input {
+        width: 100%;
+        padding: 12px 14px;
+        margin: 18px 0 14px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-align: center;
+        outline: none;
+        transition: all 0.2s ease;
+      }
+      .login-code-input::placeholder {
+        color: rgba(148, 163, 184, 0.85);
+        letter-spacing: 0.5px;
+        font-weight: 400;
+      }
+      .login-code-input:focus {
+        border-color: #38bdf8;
+        background: rgba(15, 23, 42, 0.78);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+      }
+      .login-unlock-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 11px 16px;
+        border-radius: 12px;
+        font-size: 13.5px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        background: linear-gradient(135deg, #38bdf8, #2563eb);
+        box-shadow: 0 8px 22px rgba(37, 99, 235, 0.38);
+        transition: all 0.2s ease;
+      }
+      .login-unlock-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 26px rgba(56, 189, 248, 0.45);
       }
 
       /* ================================
@@ -852,25 +943,7 @@
         color: #f1f5f9;
       }
 
-      /* Login */
-      body.dark-theme .login-box {
-        background: #111827;
-        color: #f1f5f9;
-      }
-
-      body.dark-theme .login-box p {
-        color: #94a3b8 !important;
-      }
-
-      body.dark-theme #vatAccessCode {
-        background: #1e293b;
-        color: white;
-        border-color: #475569 !important;
-      }
-
-      body.dark-theme #vatAccessCode::placeholder {
-        color: #64748b;
-      }
+      /* Login uses glassmorphism across themes */
 
       /* Scrollbars */
       body.dark-theme ::-webkit-scrollbar {
@@ -902,46 +975,31 @@
     <!-- Login Modal -->
     <div id="loginModal" class="login-overlay">
       <div class="login-box">
-        <h2 style="margin-top: 0">QC Access</h2>
-        <p style="font-size: 12px; color: #64748b">
-          Please enter the secure access code.
-        </p>
+        <div class="login-badge">VAT Purchase QC</div>
+        <h2>QC Access</h2>
+        <p>Please enter the secure access code to continue.</p>
         <input
           type="password"
           id="vatAccessCode"
-          placeholder="Access Code"
-          style="
-            width: 100%;
-            padding: 10px;
-            margin: 15px 0;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            text-align: center;
-          "
+          class="login-code-input"
+          placeholder="Enter Access Code"
+          autocomplete="off"
           onkeydown="if (event.key === 'Enter') verifyLogin();"
         />
         <div
           id="loginError"
           style="
-            color: #ef4444;
+            color: #fca5a5;
             font-size: 12px;
-            margin-bottom: 10px;
+            font-weight: 600;
+            margin-bottom: 12px;
             display: none;
           "
         >
           Invalid Access Code
         </div>
-        <button
-          onclick="verifyLogin()"
-          class="btn-action"
-          style="
-            width: 100%;
-            justify-content: center;
-            padding: 10px;
-            background: #10b981;
-          "
-        >
-          Unlock
+        <button onclick="verifyLogin()" class="btn-action login-unlock-btn">
+          Unlock Portal
         </button>
       </div>
     </div>
@@ -979,12 +1037,22 @@
     <!-- Top Ribbon -->
     <div class="navbar">
       <div class="nav-left">
-        <a
-          href="index.html"
-          style="color: white; font-size: 18px"
-          title="Back to Main List"
-          >🔙</a
+        <button
+          type="button"
+          onclick="goBackPage()"
+          style="
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+          "
+          title="Go Back"
         >
+          🔙
+        </button>
         <span style="font-size: 16px; font-weight: 600"
           >VAT Vendors Purchase List</span
         >
@@ -1071,7 +1139,7 @@
           🌙 Dark
         </button>
 
-        <a href="index.html" class="btn-action">📋 Main View</a>
+        <a href="index.html" class="btn-action">📊 Dashboard</a>
         <a
           href="QC_Bill_Pending_Dashboard.html"
           class="btn-action"
@@ -1086,6 +1154,15 @@
           title="Switch to Non-VAT Bill Tracker"
           >📦 Non VAT</a
         >
+        <button
+          type="button"
+          onclick="logoutQcPortal()"
+          class="btn-action"
+          style="background: #334155; border: 1px solid #475569"
+          title="Logout & Go to Main Portal"
+        >
+          🚪 Logout
+        </button>
       </div>
     </div>
 
@@ -1149,9 +1226,39 @@
               <div class="info-label">Active Sites</div>
               <div class="info-val" id="infoSitesCount">0</div>
             </div>
-            <!-- 🟢 Right Corner Pencil Button With Count Badge -->
-            <button
-              onclick="openVatNotesModal()"
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <!-- 📋 Copy Table as HQ Image Button -->
+              <button
+                type="button"
+                onclick="copyQcTableHQImage(this)"
+                style="
+                  background: transparent;
+                  border: none;
+                  cursor: pointer;
+                  font-size: 16px;
+                  opacity: 0.8;
+                  padding: 6px 8px;
+                  border-radius: 4px;
+                  transition:
+                    transform 0.15s ease,
+                    opacity 0.15s ease;
+                "
+                onmouseenter="
+                  this.style.opacity = '1';
+                  this.style.transform = 'scale(1.2)';
+                "
+                onmouseleave="
+                  this.style.opacity = '0.8';
+                  this.style.transform = 'scale(1)';
+                "
+                title="Copy Table as High Quality Image"
+              >
+                📋
+              </button>
+
+              <!-- 🟢 Right Corner Pencil Button With Count Badge -->
+              <button
+                onclick="openVatNotesModal()"
               style="
                 background: transparent;
                 border: none;
@@ -1195,7 +1302,8 @@
                   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
                 "
               ></span>
-            </button>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1324,6 +1432,20 @@
         vatCode = "";
         document.getElementById("loginModal").style.display = "flex";
         document.getElementById("loginError").style.display = "block";
+      }
+
+      function goBackPage() {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = "../index.html";
+        }
+      }
+
+      function logoutQcPortal() {
+        sessionStorage.removeItem("vatTrackerCode");
+        vatCode = "";
+        window.location.href = "../index.html";
       }
 
       function switchYear(step) {
@@ -2321,36 +2443,14 @@
                 ? `${tot.quick_dice_count} Billed`
                 : "";
 
-          // 🟢 Bill Amount (Amount Total) - Quick Dice Total കാൽക്കുലേഷൻ
-          const diff = Number((tot.amount - tot.quick_dice_total).toFixed(2));
-          let diffStyle = "background: #f8fafc; color: #64748b;"; // Default 0 or empty
-          let diffText = "";
-
-          if (tot.amount > 0 || tot.quick_dice_total > 0) {
-            diffText = formatCleanDecimal(diff);
-            if (diff > 0) {
-              // 🟢 Positive: Green Fill, Black Text
-              diffStyle =
-                "background: #bbf7d0 !important; color: #000000 !important; font-weight: 800;";
-            } else if (diff < 0) {
-              // 🔴 Negative: Red Fill, White Text
-              diffStyle =
-                "background: #ef4444 !important; color: #ffffff !important; font-weight: 800;";
-            } else {
-              // 0 ആണെങ്കിൽ
-              diffStyle =
-                "background: #f1f5f9; color: #10b981; font-weight: 800;";
-            }
-          }
-
           totalRowHtml += `
-    <td style="${diffStyle} font-size: 11px;" title="Bill Amount Total - Quick Dice Total">
-        <div class="cell-content">${diffText}</div>
-    </td>
-                    <td style="background: #f8fafc; color: #0f172a; font-weight: 800; font-size: 11px;">
+                    <td style="background: #f8fafc; color: #64748b; font-weight: 700; font-size: 11px;">
+                        <div class="cell-content"></div>
+                    </td>
+                    <td style="background: #f8fafc; color: #0f172a; font-weight: 800; font-size: 11px;" title="Bill Amount Total">
                         <div class="cell-content">${amtFormatted}</div>
                     </td>
-                    <td style="background: #ccfbf1; color: #0f766e; font-weight: 800; font-size: 11px;">
+                    <td style="background: #ccfbf1; color: #0f766e; font-weight: 800; font-size: 11px;" title="Vendor TS Total">
                         <div class="cell-content">${tsFormatted}</div>
                     </td>
                     <td style="background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 10.5px;" title="Quick Dice Total">
@@ -2361,6 +2461,81 @@
 
         totalRowHtml += `</tr>`;
         bodyHtml += totalRowHtml;
+
+        // 🟢 Helper for Difference Cell Styling
+        const buildDiffCell = (valA, valB, hasAnyData, labelTooltip) => {
+          if (!hasAnyData) {
+            return `<td colspan="2" style="background: #f8fafc; color: #64748b; font-size: 11px;"><div class="cell-content">-</div></td>`;
+          }
+          const diff = Number((valA - valB).toFixed(2));
+          const diffText = formatCleanDecimal(diff);
+          let style = "background: #f1f5f9; color: #059669; font-weight: 800;";
+          if (diff > 0) {
+            style = "background: #bbf7d0 !important; color: #000000 !important; font-weight: 800;";
+          } else if (diff < 0) {
+            style = "background: #ef4444 !important; color: #ffffff !important; font-weight: 800;";
+          }
+          return `<td colspan="2" style="${style} font-size: 11.5px;" title="${labelTooltip}"><div class="cell-content">${diffText}</div></td>`;
+        };
+
+        // 🟢 1. Vendor - Quick Dice Row
+        let rowVendorMinusQd = `
+          <tr style="background: #f8fafc; font-weight: 700;">
+            <td class="month-col" style="background: #e2e8f0; font-size: 10.5px; font-weight: 800;">
+              <div class="cell-content">Calcul. Figure</div>
+            </td>
+        `;
+        supData.sites.forEach((site, sIdx) => {
+          const tot = siteTotals[sIdx];
+          const hasData = tot.vendor_ts > 0 || tot.quick_dice_total > 0;
+          rowVendorMinusQd += `
+            <td colspan="2" style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 700;">
+              <div class="cell-content">Vendor - Quick Dice</div>
+            </td>
+            ${buildDiffCell(tot.vendor_ts, tot.quick_dice_total, hasData, "Vendor TS Total - Quick Dice Total")}
+          `;
+        });
+        rowVendorMinusQd += `</tr>`;
+
+        // 🟢 2. Vendor - Bill (Amount) Row
+        let rowVendorMinusBill = `
+          <tr style="background: #f8fafc; font-weight: 700;">
+            <td class="month-col" style="background: #e2e8f0; font-size: 10.5px; font-weight: 800;">
+              <div class="cell-content">Calcul. Figure</div>
+            </td>
+        `;
+        supData.sites.forEach((site, sIdx) => {
+          const tot = siteTotals[sIdx];
+          const hasData = tot.vendor_ts > 0 || tot.amount > 0;
+          rowVendorMinusBill += `
+            <td colspan="2" style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 700;">
+              <div class="cell-content">Vendor - Bill</div>
+            </td>
+            ${buildDiffCell(tot.vendor_ts, tot.amount, hasData, "Vendor TS Total - Bill Amount Total")}
+          `;
+        });
+        rowVendorMinusBill += `</tr>`;
+
+        // 🟢 3. Bill - Quick Dice Row
+        let rowBillMinusQd = `
+          <tr style="background: #f8fafc; font-weight: 700;">
+            <td class="month-col" style="background: #e2e8f0; font-size: 10.5px; font-weight: 800;">
+              <div class="cell-content">Calcul. Figure</div>
+            </td>
+        `;
+        supData.sites.forEach((site, sIdx) => {
+          const tot = siteTotals[sIdx];
+          const hasData = tot.amount > 0 || tot.quick_dice_total > 0;
+          rowBillMinusQd += `
+            <td colspan="2" style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 700;">
+              <div class="cell-content">Bill - Quick Dice</div>
+            </td>
+            ${buildDiffCell(tot.amount, tot.quick_dice_total, hasData, "Bill Amount Total - Quick Dice Total")}
+          `;
+        });
+        rowBillMinusQd += `</tr>`;
+
+        bodyHtml += rowVendorMinusQd + rowVendorMinusBill + rowBillMinusQd;
 
         document.getElementById("qcBody").innerHTML = bodyHtml;
         if (isEditMode) {
@@ -2382,6 +2557,119 @@
         navigator.clipboard.writeText(vat).then(() => {
           showStatus("VAT Copied!", "saved");
         });
+      }
+
+      async function copyQcTableHQImage(btnEl) {
+        if (!selectedSupplierKey) {
+          showStatus("No supplier selected", "error");
+          return;
+        }
+        const table = document.getElementById("qcTable");
+        if (!table || table.style.display === "none") return;
+
+        if (typeof html2canvas === "undefined") {
+          showStatus("Image library not loaded", "error");
+          return;
+        }
+
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        showStatus("Capturing HQ Image...", "saving");
+        if (btnEl) btnEl.disabled = true;
+
+        // Off-screen full-width wrapper so wide multi-site tables don't get clipped
+        const wrapper = document.createElement("div");
+        const isDark = document.body.classList.contains("dark-theme");
+        wrapper.style.cssText = `
+          position: fixed;
+          left: -99999px;
+          top: 0;
+          background: ${isDark ? "#0f172a" : "#ffffff"};
+          padding: 16px;
+          width: max-content;
+          font-family: 'Inter', sans-serif;
+          z-index: -1;
+        `;
+
+        const vatText =
+          (supData.vat_no_list && supData.vat_no_list.length
+            ? supData.vat_no_list[supData.vat_no_list.length - 1]
+            : supData.vat_no) || "-";
+        const dispText =
+          (supData.display_name_list && supData.display_name_list.length
+            ? supData.display_name_list[supData.display_name_list.length - 1]
+            : supData.display_name) || "-";
+
+        const headerBanner = document.createElement("div");
+        headerBanner.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 24px;
+          padding: 10px 14px;
+          margin-bottom: 10px;
+          border-radius: 6px;
+          background: ${isDark ? "#1e293b" : "#f1f5f9"};
+          border: 1px solid ${isDark ? "#475569" : "#cbd5e1"};
+          color: ${isDark ? "#f8fafc" : "#0f172a"};
+          font-size: 12.5px;
+          font-weight: 700;
+        `;
+        headerBanner.innerHTML = `
+          <span>Supplier: ${escapeHTML(supData.supplier)} (${currentYear})</span>
+          <span>VAT: ${escapeHTML(vatText)}</span>
+          <span>Display: ${escapeHTML(dispText)}</span>
+        `;
+
+        const clonedTable = table.cloneNode(true);
+        // Replace any input/textarea with static text for clean rendering
+        clonedTable.querySelectorAll("input, textarea").forEach((inp) => {
+          const span = document.createElement("div");
+          span.className = "cell-content";
+          span.style.fontSize = "11px";
+          span.style.fontWeight = "600";
+          span.innerText = inp.value || "";
+          inp.replaceWith(span);
+        });
+        clonedTable
+          .querySelectorAll("th, .month-col")
+          .forEach((el) => (el.style.position = "static"));
+
+        wrapper.appendChild(headerBanner);
+        wrapper.appendChild(clonedTable);
+        document.body.appendChild(wrapper);
+
+        try {
+          const canvas = await html2canvas(wrapper, {
+            scale: 3,
+            useCORS: true,
+            logging: false,
+            backgroundColor: isDark ? "#0f172a" : "#ffffff",
+          });
+
+          canvas.toBlob(async (blob) => {
+            try {
+              if (
+                !blob ||
+                !navigator.clipboard ||
+                typeof ClipboardItem === "undefined"
+              ) {
+                showStatus("Clipboard not supported", "error");
+                return;
+              }
+              await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+              ]);
+              showStatus("✓ HQ Table Image Copied!", "saved");
+            } catch (err) {
+              showStatus("Clipboard copy failed", "error");
+            }
+          }, "image/png");
+        } catch (err) {
+          showStatus("Error creating image", "error");
+        } finally {
+          wrapper.remove();
+          if (btnEl) btnEl.disabled = false;
+        }
       }
 
       function showStatus(msg, type) {

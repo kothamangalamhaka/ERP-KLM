@@ -364,6 +364,114 @@
     .filter-close-btn:hover {
       color: var(--text);
     }
+
+    /* Classic Modern Common Docs Strip */
+    .common-docs-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.03), rgba(37, 99, 235, 0.04));
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    [data-theme="dark"] .common-docs-bar {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(59, 130, 246, 0.07));
+    }
+    .common-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .common-chip:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+    .common-chip .status-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      letter-spacing: 0.2px;
+    }
+    .common-chip.is-uploaded {
+      border-color: rgba(22, 163, 74, 0.4);
+      background: rgba(22, 163, 74, 0.06);
+    }
+    .common-chip.is-uploaded .status-tag {
+      background: var(--badge-uploaded-bg);
+      color: var(--badge-uploaded-text);
+    }
+    .common-chip.is-pending {
+      border-color: rgba(220, 38, 38, 0.35);
+      background: rgba(220, 38, 38, 0.05);
+    }
+    .common-chip.is-pending .status-tag {
+      background: rgba(220, 38, 38, 0.12);
+      color: #dc2626;
+    }
+    [data-theme="dark"] .common-chip.is-pending .status-tag {
+      color: #fca5a5;
+    }
+    .common-multi-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid rgba(37, 99, 235, 0.35);
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--primary);
+      transition: all 0.18s ease;
+    }
+    .common-multi-btn:hover {
+      background: var(--primary);
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    .common-multi-btn .count-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.15);
+    }
+    .common-multi-btn:hover .count-pill {
+      background: rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+    }
+    .doc-name-display {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--primary);
+      padding: 4px 6px;
+      border-radius: 5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+    .doc-name-display:hover {
+      background: rgba(37, 99, 235, 0.09);
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -371,6 +479,9 @@
   <div class="header-bar">
     <h5 class="m-0"><i class="fa-solid fa-folder-open me-2 text-primary"></i>VAT Customers Documents & Bills</h5>
     <div class="d-flex align-items-center gap-2">
+      <select id="companyFilterSelect" class="form-select form-select-sm" style="width: 155px; height: 32px; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--text); border-color: var(--border);" onchange="handleCompanyFilter(this.value)">
+        <option value="ALL">All Companies</option>
+      </select>
       <div class="position-relative">
         <input type="text" id="ribbonSearch" class="form-control form-control-sm" placeholder="Search customer, VAT, site, project..." style="width: 250px; height: 32px; font-size: 12px; padding-left: 28px; background: var(--surface); color: var(--text); border-color: var(--border);" oninput="handleSearch(this.value)">
         <i class="fa-solid fa-magnifying-glass position-absolute" style="left: 9px; top: 9px; font-size: 12px; color: var(--text-muted);"></i>
@@ -421,10 +532,11 @@
             <div class="small text-muted" id="detailCustomerMeta">VAT: - | CR: -</div>
           </div>
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <div class="d-flex align-items-center gap-1 p-1 rounded border" style="background: var(--bg); border-color: var(--border)!important;">
-              <span class="small fw-bold text-muted px-1" style="font-size: 10px;">COMMON:</span>
+            <div class="common-docs-bar">
               <div id="modalVatDocSlot"></div>
               <div id="modalCrnDocSlot"></div>
+              <div id="modalIshtimaraSlot"></div>
+              <div id="modalOtherDocSlot"></div>
             </div>
             <button class="btn btn-sm btn-primary py-1 px-3" onclick="openAddSiteForCurrentCustomer()"><i class="fa-solid fa-plus me-1"></i> Add Site / Project</button>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -443,11 +555,12 @@
                   <th>Status</th>
                   <th>Release Date</th>
                   <th>Remark</th>
-                  <th>Agreement</th>
-                  <th>PO</th>
-                  <th>Conf Letter</th>
-                  <th>Bills</th>
-                  <th>Last Doc</th>
+                  <th title="Agreement">Agath</th>
+                  <th title="Request For Quotation">RFQ</th>
+                  <th title="Purchase Order">PO</th>
+                  <th title="VAT Confirmation Letter">VAT Conf</th>
+                  <th title="Bills">Fatoora</th>
+                  <th title="Final confirmation">Final Conf</th>
                   <th>Project Name</th>
                   <th style="width: 50px; text-align: center;">Action</th>
                 </tr>
@@ -604,20 +717,24 @@
             <hr class="my-4" style="border-color: var(--border);">
 
             <div class="row g-3">
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">Agreement Doc</label>
+              <div class="col-12 col-sm-6 col-md-4 col-lg">
+                <label class="form-label small fw-semibold" title="Agreement">Agath Doc</label>
                 <input type="file" class="form-control" id="engagement_file_agreement" accept=".png,.jpg,.jpeg,.pdf">
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-4 col-lg">
+                <label class="form-label small fw-semibold" title="Request For Quotation">RFQ Doc</label>
+                <input type="file" class="form-control" id="engagement_file_rfq" accept=".png,.jpg,.jpeg,.pdf">
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-lg">
                 <label class="form-label small fw-semibold">PO Doc</label>
                 <input type="file" class="form-control" id="engagement_file_po" accept=".png,.jpg,.jpeg,.pdf">
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">Conf Letter Doc</label>
+              <div class="col-12 col-sm-6 col-md-4 col-lg">
+                <label class="form-label small fw-semibold" title="VAT Confirmation Letter">VAT Conf Doc</label>
                 <input type="file" class="form-control" id="engagement_file_conf" accept=".png,.jpg,.jpeg,.pdf">
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">Last Doc</label>
+              <div class="col-12 col-sm-6 col-md-4 col-lg">
+                <label class="form-label small fw-semibold" title="Final confirmation">Final Conf Doc</label>
                 <input type="file" class="form-control" id="engagement_file_last" accept=".png,.jpg,.jpeg,.pdf">
               </div>
             </div>
@@ -651,6 +768,52 @@
     </div>
   </div>
 
+  <!-- Modal: Multi-Document Popup (Ishtimara & Other Doc) -->
+  <div class="modal fade" id="commonMultiDocModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content shadow-lg" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px;">
+        <div class="modal-header border-bottom py-2 px-3">
+          <h6 class="modal-title fw-bold m-0" id="commonMultiDocTitle"><i class="fa-solid fa-folder-open text-primary me-2"></i>Documents</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3">
+          <!-- Add New File Row -->
+          <div class="p-3 mb-3 rounded border" style="background: var(--bg); border-color: var(--border)!important;">
+            <div class="row g-2 align-items-end">
+              <div class="col-12 col-sm-5">
+                <label class="form-label small fw-semibold mb-1" id="multiDocTitleLabel">File Name</label>
+                <input type="text" id="multiDocNewTitle" class="form-control form-control-sm" placeholder="Enter document name..." style="background: var(--surface); color: var(--text); border-color: var(--border);">
+              </div>
+              <div class="col-12 col-sm-5">
+                <label class="form-label small fw-semibold mb-1">Select File (PDF / Image)</label>
+                <input type="file" id="multiDocNewFile" class="form-control form-control-sm" accept=".png,.jpg,.jpeg,.pdf" style="background: var(--surface); color: var(--text); border-color: var(--border);">
+              </div>
+              <div class="col-12 col-sm-2">
+                <button type="button" class="btn btn-sm btn-primary w-100 fw-semibold" onclick="uploadNewCommonMultiDoc()">⬆️ Upload</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Uploaded Files Table -->
+          <div class="table-responsive border rounded" style="border-color: var(--border)!important;">
+            <table class="table table-hover align-middle m-0" style="color: var(--text); border-color: var(--border); font-size: 13px;">
+              <thead>
+                <tr style="background: var(--table-header-bg); color: var(--table-header-color); font-size: 11px; text-transform: uppercase;">
+                  <th style="width: 45px; text-align: center;">#</th>
+                  <th id="multiDocTableColHeader">File Name <span class="text-muted fw-normal" style="font-size: 10px;">(Tap to Open • Double-Tap to Edit)</span></th>
+                  <th style="width: 150px;">Uploaded</th>
+                  <th style="width: 110px; text-align: center;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="commonMultiDocTbody"></tbody>
+            </table>
+          </div>
+          <input type="file" id="multiDocReplaceInput" style="display:none;" accept=".png,.jpg,.jpeg,.pdf">
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Document & Bill Preview Modal -->
   <div class="modal fade" id="filePreviewModal" tabindex="-1" style="z-index: 1065;">
     <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 720px;">
@@ -675,12 +838,15 @@
     let rawRecords = [];
     let groupedCustomers = {};
     let currentSearchTerm = '';
+    let currentCompanyFilter = 'ALL';
     let currentContextTarget = null;
     let selectedActiveCustomerKey = null;
     let currentBillRecord = null;
 
     let innerActiveFilters = {};
     let currentFilterKey = null;
+    let activeMultiDocCategory = null;
+    let replaceTargetDocId = null;
 
     const innerColumnKeyMap = {
       1: 'joining_date',
@@ -689,7 +855,7 @@
       4: 'status',
       5: 'release_date',
       6: 'remark',
-      12: 'project_name'
+      13: 'project_name'
     };
 
     function toggleTheme() {
@@ -725,16 +891,19 @@
     }
 
     async function loadCompanies() {
-      const res = await fetch('/py/vat-customers/companies');
-      const json = await res.json();
-      if (json.success) {
-        const select = document.getElementById('cust_company');
-        select.innerHTML = '';
-        json.data.forEach(c => {
-          select.innerHTML += `<option value="${c}">${c}</option>`;
-        });
-        select.innerHTML += `<option value="__NEW__">+ Add New</option>`;
-      }
+      try {
+        const res = await fetch('/py/vat-customers/companies');
+        const json = await res.json();
+        if (json.success) {
+          const select = document.getElementById('engagement_company');
+          if (!select) return;
+          select.innerHTML = '';
+          json.data.forEach(c => {
+            select.innerHTML += `<option value="${c}">${c}</option>`;
+          });
+          select.innerHTML += `<option value="__NEW__">+ Add New</option>`;
+        }
+      } catch (e) {}
     }
 
     async function checkNewCompany(val) {
@@ -754,10 +923,10 @@
           const json = await res.json();
           if (json.success) {
             await loadCompanies();
-            document.getElementById('cust_company').value = json.name;
+            document.getElementById('engagement_company').value = json.name;
           }
         } else {
-          document.getElementById('cust_company').selectedIndex = 0;
+          document.getElementById('engagement_company').selectedIndex = 0;
         }
       }
     }
@@ -769,6 +938,7 @@
         if (json.success) {
           rawRecords = json.data || [];
           groupCustomers();
+          populateCompanyFilterDropdown();
           renderGrid();
           if (selectedActiveCustomerKey && groupedCustomers[selectedActiveCustomerKey]) {
             renderDetailModal(selectedActiveCustomerKey);
@@ -802,20 +972,71 @@
             cr_no: r.cr_no || '',
             vat_doc: r.vat_doc || null,
             crn_doc: r.crn_doc || null,
+            ishtimara_docs: Array.isArray(r.ishtimara_docs) ? r.ishtimara_docs : [],
+            other_docs: Array.isArray(r.other_docs) ? r.other_docs : [],
             sites: []
           };
         }
         if (r.vat_doc && !groupedCustomers[key].vat_doc) groupedCustomers[key].vat_doc = r.vat_doc;
         if (r.crn_doc && !groupedCustomers[key].crn_doc) groupedCustomers[key].crn_doc = r.crn_doc;
+        if (Array.isArray(r.ishtimara_docs) && r.ishtimara_docs.length > groupedCustomers[key].ishtimara_docs.length) {
+          groupedCustomers[key].ishtimara_docs = r.ishtimara_docs;
+        }
+        if (Array.isArray(r.other_docs) && r.other_docs.length > groupedCustomers[key].other_docs.length) {
+          groupedCustomers[key].other_docs = r.other_docs;
+        }
         if (r.vat_no && !groupedCustomers[key].vat_no) groupedCustomers[key].vat_no = r.vat_no;
         if (r.cr_no && !groupedCustomers[key].cr_no) groupedCustomers[key].cr_no = r.cr_no;
 
         // Add to sites only if an actual site or project is assigned
-        const hasSiteData = (r.site && r.site.trim()) || (r.project_name && r.project_name.trim()) || r.agreement_doc || r.po_doc || r.conf_letter_doc;
+        const hasSiteData = (r.site && r.site.trim()) || (r.project_name && r.project_name.trim()) || r.agreement_doc || r.rfq_doc || r.po_doc || r.conf_letter_doc;
         if (hasSiteData) {
           groupedCustomers[key].sites.push(r);
         }
       });
+    }
+
+    function populateCompanyFilterDropdown() {
+      const select = document.getElementById('companyFilterSelect');
+      if (!select) return;
+
+      const companyMap = new Map();
+      Object.values(groupedCustomers).forEach(cust => {
+        (cust.sites || []).forEach(s => {
+          const rawComp = (s.company || '').trim();
+          if (rawComp) {
+            const normKey = rawComp.toLowerCase();
+            if (!companyMap.has(normKey)) {
+              companyMap.set(normKey, rawComp);
+            }
+          }
+        });
+      });
+
+      const sortedCompanies = Array.from(companyMap.entries()).sort((a, b) => {
+        const rankA = getCompanyOrderRank(a[1]);
+        const rankB = getCompanyOrderRank(b[1]);
+        if (rankA !== rankB) return rankA - rankB;
+        return a[1].localeCompare(b[1]);
+      });
+
+      const prevSelected = currentCompanyFilter;
+      select.innerHTML = `<option value="ALL">All Companies</option>`;
+      sortedCompanies.forEach(([normKey, displayName]) => {
+        select.innerHTML += `<option value="${normKey}">${displayName}</option>`;
+      });
+
+      if (prevSelected !== 'ALL' && companyMap.has(prevSelected)) {
+        select.value = prevSelected;
+      } else {
+        currentCompanyFilter = 'ALL';
+        select.value = 'ALL';
+      }
+    }
+
+    function handleCompanyFilter(val) {
+      currentCompanyFilter = val || 'ALL';
+      renderGrid();
     }
 
     function handleSearch(term) {
@@ -833,6 +1054,14 @@
 
       keys.forEach(k => {
         const cust = groupedCustomers[k];
+
+        if (currentCompanyFilter !== 'ALL') {
+          const hasMatchingCompany = (cust.sites || []).some(
+            s => (s.company || '').trim().toLowerCase() === currentCompanyFilter
+          );
+          if (!hasMatchingCompany) return;
+        }
+
         const searchBlob = [
           cust.customer_name,
           cust.vat_no,
@@ -920,11 +1149,256 @@
       attachDocEvents();
     }
 
-    function renderDocPill(recordId, docType, url, label) {
+    function renderDocPill(recordId, docType, url, label, tooltip = '', showStatusText = false) {
+      const titleAttr = tooltip ? ` title="${tooltip}"` : '';
       if (url) {
-        return `<span class="doc-pill uploaded doc-trigger" data-id="${recordId}" data-type="${docType}" data-url="${url}"><i class="fa-solid fa-file-check"></i> ${label}</span>`;
+        const text = showStatusText ? 'Uploaded' : label;
+        return `<span class="doc-pill uploaded doc-trigger"${titleAttr} data-id="${recordId}" data-type="${docType}" data-url="${url}"><i class="fa-solid fa-circle-check"></i> ${text}</span>`;
       }
-      return `<span class="doc-pill empty doc-trigger" data-id="${recordId}" data-type="${docType}"><i class="fa-solid fa-cloud-arrow-up"></i> ${label}</span>`;
+      const text = showStatusText ? 'Pending' : label;
+      return `<span class="doc-pill empty doc-trigger"${titleAttr} data-id="${recordId}" data-type="${docType}"><i class="fa-solid fa-clock"></i> ${text}</span>`;
+    }
+
+    function renderCommonSingleChip(recordId, docType, url, label) {
+      if (url) {
+        return `<span class="common-chip is-uploaded doc-trigger" title="Click to view • Right-click to replace" data-id="${recordId}" data-type="${docType}" data-url="${url}"><i class="fa-solid fa-file-shield text-success"></i> <span>${label}</span> <span class="status-tag">Uploaded</span></span>`;
+      }
+      return `<span class="common-chip is-pending doc-trigger" title="Click to upload ${label}" data-id="${recordId}" data-type="${docType}"><i class="fa-solid fa-file-circle-exclamation text-danger"></i> <span>${label}</span> <span class="status-tag">Pending</span></span>`;
+    }
+
+    function openCommonMultiDocModal(category) {
+      if (!selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
+      activeMultiDocCategory = category;
+      const cust = groupedCustomers[selectedActiveCustomerKey];
+      const isIshtimara = category === 'ishtimara';
+      const titleText = isIshtimara ? 'Ishtimara Documents' : 'Other Documents';
+      const fieldLabel = isIshtimara ? 'Plate No' : 'File Name';
+      const fieldPlaceholder = isIshtimara ? 'Enter vehicle plate no...' : 'Enter document name...';
+
+      document.getElementById('commonMultiDocTitle').innerHTML = `<i class="fa-solid fa-folder-open text-primary me-2"></i>${titleText} — ${cust.customer_name}`;
+      document.getElementById('multiDocTitleLabel').innerText = fieldLabel;
+      document.getElementById('multiDocNewTitle').placeholder = fieldPlaceholder;
+      document.getElementById('multiDocNewTitle').style.textTransform = isIshtimara ? 'uppercase' : 'none';
+      document.getElementById('multiDocTableColHeader').innerHTML = `${fieldLabel} <span class="text-muted fw-normal" style="font-size: 10px;">(Tap to Open • Double-Tap to Edit)</span>`;
+      document.getElementById('multiDocNewTitle').value = '';
+      document.getElementById('multiDocNewFile').value = '';
+
+      renderCommonMultiDocRows();
+      const modalEl = document.getElementById('commonMultiDocModal');
+      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+    }
+
+    function renderCommonMultiDocRows() {
+      const tbody = document.getElementById('commonMultiDocTbody');
+      if (!tbody || !selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
+      const cust = groupedCustomers[selectedActiveCustomerKey];
+      const docs = activeMultiDocCategory === 'ishtimara' ? (cust.ishtimara_docs || []) : (cust.other_docs || []);
+
+      if (docs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No documents uploaded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = docs.map((d, idx) => {
+        const safeTitle = String(d.title || 'Document').replace(/"/g, '&quot;');
+        const safeUrl = String(d.file_url || '').replace(/'/g, "\\'");
+        return `
+          <tr>
+            <td style="text-align:center; font-weight:700;">${idx + 1}</td>
+            <td>
+              <span class="doc-name-display"
+                    title="Single click to open • Double click to edit name"
+                    onclick="handleMultiDocNameClick(event, '${safeUrl}', '${safeTitle.replace(/'/g, "\\'")}')"
+                    ondblclick="enableMultiDocNameEdit(event, '${d.id}', '${safeTitle.replace(/'/g, "\\'")}')">
+                <i class="fa-solid fa-file-lines"></i> ${safeTitle}
+              </span>
+            </td>
+            <td class="small text-muted">${d.uploaded_at || '-'}</td>
+            <td style="text-align:center; white-space:nowrap;">
+              <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Replace File" onclick="triggerReplaceCommonMultiDoc('${d.id}')">🔄</button>
+              <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete File" onclick="confirmDeleteCommonMultiDoc('${d.id}', '${safeTitle.replace(/'/g, "\\'")}')">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    let singleClickTimer = null;
+    function handleMultiDocNameClick(e, url, title) {
+      e.stopPropagation();
+      if (singleClickTimer) clearTimeout(singleClickTimer);
+      singleClickTimer = setTimeout(() => {
+        previewDocPopup(url, title);
+      }, 230);
+    }
+
+    function enableMultiDocNameEdit(e, docId, currentTitle) {
+      e.stopPropagation();
+      if (singleClickTimer) clearTimeout(singleClickTimer);
+      const cell = e.currentTarget.parentElement;
+      cell.innerHTML = `
+        <input type="text" class="form-control form-control-sm" value="${currentTitle.replace(/"/g, '&quot;')}"
+               style="font-size: 12px; background: var(--bg); color: var(--text); border-color: var(--primary);"
+               onblur="saveEditedMultiDocName('${docId}', this.value)"
+               onkeydown="if(event.key==='Enter'){ event.preventDefault(); this.blur(); } else if(event.key==='Escape'){ renderCommonMultiDocRows(); }">
+      `;
+      const inp = cell.querySelector('input');
+      if (inp) {
+        inp.focus();
+        inp.select();
+      }
+    }
+
+    async function saveEditedMultiDocName(docId, newTitle) {
+      const trimmed = (newTitle || '').trim();
+      if (!trimmed || !selectedActiveCustomerKey) {
+        renderCommonMultiDocRows();
+        return;
+      }
+      const cust = groupedCustomers[selectedActiveCustomerKey];
+      try {
+        const res = await fetch('/py/vat-customers/rename-common-multi-doc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_name: cust.customer_name,
+            category: activeMultiDocCategory,
+            doc_id: String(docId),
+            new_title: trimmed
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          if (activeMultiDocCategory === 'ishtimara') cust.ishtimara_docs = json.docs;
+          else cust.other_docs = json.docs;
+          renderCommonMultiDocRows();
+          fetchTableData();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Rename Failed', text: json.error || 'Error' });
+          renderCommonMultiDocRows();
+        }
+      } catch (err) {
+        renderCommonMultiDocRows();
+      }
+    }
+
+    async function uploadNewCommonMultiDoc() {
+      if (!selectedActiveCustomerKey) return;
+      const cust = groupedCustomers[selectedActiveCustomerKey];
+      const fileInput = document.getElementById('multiDocNewFile');
+      const titleInput = document.getElementById('multiDocNewTitle');
+      if (!fileInput.files.length) {
+        Swal.fire({ icon: 'warning', title: 'Select File', text: 'Please select a PDF or Image file to upload.' });
+        return;
+      }
+      const file = fileInput.files[0];
+      const docTitle = titleInput.value.trim() || file.name.replace(/\.[^/.]+$/, '');
+
+      try {
+        const b64 = await readFileAsBase64(file);
+        const res = await fetch('/py/vat-customers/upload-common-multi-doc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_name: cust.customer_name,
+            category: activeMultiDocCategory,
+            doc_title: docTitle,
+            file_name: file.name,
+            file_base64: b64
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          titleInput.value = '';
+          fileInput.value = '';
+          Swal.fire({ icon: 'success', title: 'Uploaded', timer: 1100, showConfirmButton: false });
+          await fetchTableData();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Upload Failed', text: json.error || 'Server error' });
+        }
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Upload Error', text: err.message });
+      }
+    }
+
+    function triggerReplaceCommonMultiDoc(docId) {
+      replaceTargetDocId = docId;
+      const inp = document.getElementById('multiDocReplaceInput');
+      inp.value = '';
+      inp.click();
+    }
+
+    document.getElementById('multiDocReplaceInput').onchange = async function() {
+      if (!this.files.length || !replaceTargetDocId || !selectedActiveCustomerKey) return;
+      const file = this.files[0];
+      const cust = groupedCustomers[selectedActiveCustomerKey];
+      const docs = activeMultiDocCategory === 'ishtimara' ? (cust.ishtimara_docs || []) : (cust.other_docs || []);
+      const existing = docs.find(d => String(d.id) === String(replaceTargetDocId));
+      const keepTitle = existing?.title || file.name.replace(/\.[^/.]+$/, '');
+
+      try {
+        const b64 = await readFileAsBase64(file);
+        const res = await fetch('/py/vat-customers/upload-common-multi-doc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_name: cust.customer_name,
+            category: activeMultiDocCategory,
+            doc_id: String(replaceTargetDocId),
+            doc_title: keepTitle,
+            file_name: file.name,
+            file_base64: b64
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          Swal.fire({ icon: 'success', title: 'File Replaced', timer: 1100, showConfirmButton: false });
+          await fetchTableData();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Replace Failed', text: json.error || 'Error' });
+        }
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Replace Error', text: err.message });
+      } finally {
+        replaceTargetDocId = null;
+        this.value = '';
+      }
+    };
+
+    async function confirmDeleteCommonMultiDoc(docId, docTitle) {
+      if (!selectedActiveCustomerKey) return;
+      const cust = groupedCustomers[selectedActiveCustomerKey];
+      const result = await Swal.fire({
+        title: 'Delete Document?',
+        text: `Are you sure you want to permanently delete "${docTitle}"? The file will also be removed from the server!`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, Delete Permanently'
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        const res = await fetch('/py/vat-customers/delete-common-multi-doc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_name: cust.customer_name,
+            category: activeMultiDocCategory,
+            doc_id: String(docId)
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          Swal.fire({ icon: 'success', title: 'Deleted', timer: 1100, showConfirmButton: false });
+          await fetchTableData();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Delete Failed', text: json.error || 'Error' });
+        }
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Delete Error', text: err.message });
+      }
     }
 
     function openCustomerDetailModal(custKey) {
@@ -944,14 +1418,30 @@
       document.getElementById('detailCustomerMeta').innerText = `VAT: ${cust.vat_no || 'N/A'} | CR: ${cust.cr_no || 'N/A'}`;
 
       const firstRowId = cust.sites[0]?.id || rawRecords.find(r => (r.customer_name || '').trim().toLowerCase() === custKey)?.id;
-      document.getElementById('modalVatDocSlot').innerHTML = renderDocPill(firstRowId, 'vat', cust.vat_doc, 'VAT Doc');
-      document.getElementById('modalCrnDocSlot').innerHTML = renderDocPill(firstRowId, 'crn', cust.crn_doc, 'CRN Doc');
+      document.getElementById('modalVatDocSlot').innerHTML = renderCommonSingleChip(firstRowId, 'vat', cust.vat_doc, 'VAT Doc');
+      document.getElementById('modalCrnDocSlot').innerHTML = renderCommonSingleChip(firstRowId, 'crn', cust.crn_doc, 'CRN');
+      document.getElementById('modalIshtimaraSlot').innerHTML = `
+        <button type="button" class="common-multi-btn" onclick="openCommonMultiDocModal('ishtimara')">
+          <i class="fa-solid fa-id-card"></i> Ishtimara
+          <span class="count-pill">${(cust.ishtimara_docs || []).length}</span>
+        </button>
+      `;
+      document.getElementById('modalOtherDocSlot').innerHTML = `
+        <button type="button" class="common-multi-btn" onclick="openCommonMultiDocModal('other')">
+          <i class="fa-solid fa-folder-plus"></i> Other Doc
+          <span class="count-pill">${(cust.other_docs || []).length}</span>
+        </button>
+      `;
+
+      if (activeMultiDocCategory) {
+        renderCommonMultiDocRows();
+      }
 
       const tbody = document.getElementById('detailSitesTbody');
       tbody.innerHTML = '';
 
       if (cust.sites.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="15" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
         attachDocEvents();
         attachInnerHeaderRightClick();
         return;
@@ -990,6 +1480,14 @@
       let counter = 1;
 
       const appendSiteRow = (siteRec) => {
+        const endDateForRange =
+          (siteRec.status || '').toLowerCase() === 'released' && siteRec.release_date
+            ? siteRec.release_date
+            : null;
+        const expectedMonths = generateMonthsRange(siteRec.joining_date, endDateForRange);
+        const uploadedBillsCount = (siteRec.bills_data || []).filter(b => b.file_url).length;
+        const totalBillsCount = Math.max(expectedMonths.length, uploadedBillsCount);
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="text-align: center; font-weight: bold;">${counter++}</td>
@@ -999,11 +1497,12 @@
           <td><span class="badge ${siteRec.status === 'Active' ? 'bg-success' : 'bg-danger'}">${siteRec.status || 'Active'}</span></td>
           <td>${formatDateDDMMMYY(siteRec.release_date)}</td>
           <td>${siteRec.remark || ''}</td>
-          <td>${renderDocPill(siteRec.id, 'agreement', siteRec.agreement_doc, 'Agreement')}</td>
-          <td>${renderDocPill(siteRec.id, 'po', siteRec.po_doc, 'PO')}</td>
-          <td>${renderDocPill(siteRec.id, 'conf_letter', siteRec.conf_letter_doc, 'Conf Letter')}</td>
-          <td><button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openBillPopup(${siteRec.id})"><i class="fa-solid fa-receipt me-1"></i>Bills (${(siteRec.bills_data || []).length})</button></td>
-          <td>${renderDocPill(siteRec.id, 'last', siteRec.last_doc, 'Last Doc')}</td>
+          <td>${renderDocPill(siteRec.id, 'agreement', siteRec.agreement_doc, 'Agath', 'Agreement (Agath)', true)}</td>
+          <td>${renderDocPill(siteRec.id, 'rfq', siteRec.rfq_doc, 'RFQ', 'Request For Quotation (RFQ)', true)}</td>
+          <td>${renderDocPill(siteRec.id, 'po', siteRec.po_doc, 'PO', 'Purchase Order (PO)', true)}</td>
+          <td>${renderDocPill(siteRec.id, 'conf_letter', siteRec.conf_letter_doc, 'VAT Conf', 'VAT Confirmation Letter', true)}</td>
+          <td><button class="btn btn-sm btn-outline-primary py-0 px-2" title="Bills" onclick="openBillPopup(${siteRec.id})"><i class="fa-solid fa-receipt me-1"></i>Fatoora (${uploadedBillsCount}/${totalBillsCount})</button></td>
+          <td>${renderDocPill(siteRec.id, 'last', siteRec.last_doc, 'Final Conf', 'Final confirmation', true)}</td>
           <td>${siteRec.project_name || ''}</td>
           <td style="text-align: center;">
             <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="openEditSiteModal(${siteRec.id})" title="Edit Site"><i class="fa-solid fa-pen"></i></button>
@@ -1017,7 +1516,7 @@
         const activeHeaderTr = document.createElement('tr');
         activeHeaderTr.style.background = 'rgba(21, 128, 61, 0.08)';
         activeHeaderTr.innerHTML = `
-          <td colspan="14" class="py-1 px-3 fw-bold small text-success" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+          <td colspan="15" class="py-1 px-3 fw-bold small text-success" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
             <i class="fa-solid fa-circle-check me-1"></i> ACTIVE SITES (${activeSites.length})
           </td>
         `;
@@ -1030,7 +1529,7 @@
         const releasedHeaderTr = document.createElement('tr');
         releasedHeaderTr.style.background = 'rgba(239, 68, 68, 0.08)';
         releasedHeaderTr.innerHTML = `
-          <td colspan="14" class="py-1 px-3 fw-bold small text-danger" style="border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);">
+          <td colspan="15" class="py-1 px-3 fw-bold small text-danger" style="border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);">
             <i class="fa-solid fa-clock-rotate-left me-1"></i> RELEASED SITES (${releasedSites.length})
           </td>
         `;
@@ -1039,7 +1538,7 @@
       }
 
       if (filteredSites.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="15" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
       }
 
       attachDocEvents();
@@ -1421,6 +1920,7 @@
         const savedId = json.id;
         const filesMap = {
           'agreement': document.getElementById('engagement_file_agreement').files[0],
+          'rfq': document.getElementById('engagement_file_rfq').files[0],
           'po': document.getElementById('engagement_file_po').files[0],
           'conf_letter': document.getElementById('engagement_file_conf').files[0],
           'last': document.getElementById('engagement_file_last').files[0]
@@ -1466,14 +1966,15 @@
       new bootstrap.Modal(document.getElementById('billModal')).show();
     }
 
-    function generateMonthsRange(startDateStr) {
+    function generateMonthsRange(startDateStr, endDateStr = null) {
       const months = [];
       const start = startDateStr ? new Date(startDateStr) : new Date();
-      const end = new Date();
+      const end = endDateStr ? new Date(endDateStr) : new Date();
       let cur = new Date(start.getFullYear(), start.getMonth(), 1);
+      const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
       const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-      while (cur <= end) {
+      while (cur <= endMonth) {
         months.push(`${mNames[cur.getMonth()]} ${String(cur.getFullYear()).slice(-2)}`);
         cur.setMonth(cur.getMonth() + 1);
       }
@@ -1503,7 +2004,11 @@
 
       const container = document.getElementById('billTabContent');
       const bills = currentBillRecord.bills_data || [];
-      const months = generateMonthsRange(currentBillRecord.joining_date);
+      const endDateForRange =
+        (currentBillRecord.status || '').toLowerCase() === 'released' && currentBillRecord.release_date
+          ? currentBillRecord.release_date
+          : null;
+      const months = generateMonthsRange(currentBillRecord.joining_date, endDateForRange);
 
       if (tab === 'view') {
         let html = '<div class="list-group">';

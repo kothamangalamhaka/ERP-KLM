@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Office Operations - Haka Rentals (P) Ltd</title>
 
-    <meta name="theme-color" content="#1e293b" />
+    <meta name="theme-color" content="#0b1329" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="../style/main.css" />
+
     <style>
       @font-face {
         font-family: "Inter";
@@ -29,111 +31,551 @@
         font-display: swap;
         src: url("/webfonts/Montserrat-Bold.woff2") format("woff2");
       }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        background-color: #0b1329 !important;
+        background-image: url("../icons/bg.png");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        color: #f8fafc;
+        font-family: "Inter", sans-serif;
+        padding: 26px 24px 50px;
+        overflow-x: hidden;
+      }
+
+      .office-shell {
+        max-width: 1580px;
+        margin: 0 auto;
+      }
+
+      /* Top Bar */
+      .top-nav {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 1.4rem;
+      }
+
+      .back-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 18px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #f8fafc;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        transition: all 0.25s ease;
+      }
+
+      .back-pill:hover {
+        border-color: rgba(56, 189, 248, 0.85);
+        color: #38bdf8;
+        background: rgba(255, 255, 255, 0.14);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
+      }
+
+      .nav-right-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .glass-search {
+        width: 240px;
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        background: rgba(255, 255, 255, 0.09);
+        color: #ffffff;
+        font-family: "Inter", sans-serif;
+        font-size: 12.5px;
+        outline: none;
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        transition: all 0.25s ease;
+      }
+
+      .glass-search::placeholder {
+        color: rgba(226, 232, 240, 0.72);
+      }
+
+      .glass-search:focus {
+        border-color: rgba(56, 189, 248, 0.85);
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
+      }
+
+      .portal-badge {
+        padding: 7px 15px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: #e0f2fe;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+      }
+
+      /* Header */
+      .pro-header {
+        text-align: center;
+        padding: 6px 16px 34px;
+      }
+
+      .pro-header h1 {
+        margin: 0;
+        font-family: "Montserrat", sans-serif;
+        font-size: clamp(24px, 3.4vw, 38px);
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        line-height: 1.25;
+        color: #ffffff;
+        text-shadow: 0 4px 24px rgba(0, 0, 0, 0.58);
+      }
+
+      .pro-subtitle {
+        margin: 9px auto 0;
+        max-width: 650px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #e2e8f0;
+        letter-spacing: 0.2px;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.58);
+      }
+
+      .pro-divider {
+        width: 100px;
+        height: 3px;
+        margin: 16px auto 0;
+        border-radius: 99px;
+        background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      }
+
+      /* Dynamic 1 to 6 Columns Responsive Grid */
+      .action-grid-box {
+        display: grid !important;
+        grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+        gap: 18px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      @media (min-width: 480px) {
+        .action-grid-box {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+      }
+
+      @media (min-width: 768px) {
+        .action-grid-box {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .action-grid-box {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
+      }
+
+      @media (min-width: 1280px) {
+        .action-grid-box {
+          grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        }
+      }
+
+      @media (min-width: 1500px) {
+        .action-grid-box {
+          grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        }
+      }
+
+      /* Pure Glassmorphism Card - Uniform Order & Alignment */
+      .action-card {
+        position: relative;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        gap: 16px !important;
+        height: 172px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.14) 0%,
+          rgba(255, 255, 255, 0.05) 100%
+        ) !important;
+        border: 1px solid rgba(255, 255, 255, 0.24) !important;
+        border-top-color: rgba(255, 255, 255, 0.44) !important;
+        border-left-color: rgba(255, 255, 255, 0.34) !important;
+        border-radius: 18px !important;
+        padding: 20px 18px !important;
+        text-decoration: none !important;
+        color: inherit !important;
+        backdrop-filter: blur(22px) saturate(175%) !important;
+        -webkit-backdrop-filter: blur(22px) saturate(175%) !important;
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+        transition:
+          transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+          border-color 0.25s ease,
+          box-shadow 0.25s ease,
+          background 0.25s ease !important;
+        overflow: hidden;
+      }
+
+      .action-card.is-hidden {
+        display: none !important;
+      }
+
+      .action-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.18) 0%,
+          rgba(56, 189, 248, 0.12) 55%,
+          transparent 100%
+        );
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        pointer-events: none;
+      }
+
+      .action-card:hover {
+        transform: translateY(-6px) !important;
+        border-color: rgba(56, 189, 248, 0.85) !important;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.21) 0%,
+          rgba(255, 255, 255, 0.08) 100%
+        ) !important;
+        box-shadow:
+          0 16px 38px rgba(0, 0, 0, 0.38),
+          0 0 24px rgba(56, 189, 248, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+      }
+
+      .action-card:hover::before {
+        opacity: 1;
+      }
+
+      .card-top-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+
+      .card-icon {
+        width: 46px;
+        height: 46px;
+        font-size: 1.5rem;
+        background: rgba(255, 255, 255, 0.13) !important;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transition:
+          transform 0.25s ease,
+          background 0.25s ease,
+          border-color 0.25s ease;
+      }
+
+      .action-card:hover .card-icon {
+        transform: scale(1.07);
+        background: rgba(56, 189, 248, 0.22) !important;
+        border-color: rgba(56, 189, 248, 0.55);
+      }
+
+      .card-arrow {
+        font-size: 14px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.65);
+        transition:
+          transform 0.25s ease,
+          color 0.25s ease;
+      }
+
+      .action-card:hover .card-arrow {
+        color: #38bdf8;
+        transform: translate(2px, -2px);
+      }
+
+      .card-content {
+        width: 100%;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .card-content h3 {
+        font-family: "Montserrat", sans-serif;
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #ffffff !important;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.38);
+        transition: color 0.25s ease;
+      }
+
+      .action-card:hover .card-content h3 {
+        color: #7dd3fc !important;
+      }
+
+      .card-content p {
+        font-size: 0.81rem;
+        color: #e2e8f0 !important;
+        line-height: 1.42;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.42);
+      }
+
+      @media (max-width: 479px) {
+        body {
+          padding: 20px 16px 36px;
+        }
+
+        .glass-search {
+          width: 100%;
+        }
+
+        .action-card {
+          height: auto;
+          padding: 16px !important;
+        }
+      }
     </style>
-    <link rel="stylesheet" href="../style/main.css" />
   </head>
 
   <body>
-    <h1 class="animate animate-title">Office Operations</h1>
+    <div class="office-shell">
+      <nav class="top-nav">
+        <a href="../index.html" class="back-pill">Main Portal</a>
 
-    <main>
-      <div class="action-grid-box animate animate-actions">
-        <!-- 1. Quotation Card -->
-        <a href="./quotation/index.html" class="action-card">
-          <div class="card-icon">📋</div>
-          <div class="card-content">
-            <h3>Quotation</h3>
-            <p>Generate, issue and track customer quotations.</p>
-          </div>
-        </a>
+        <div class="nav-right-group">
+          <input
+            type="text"
+            class="glass-search"
+            placeholder="Quick search module..."
+            oninput="filterOfficeCards(this.value)"
+          />
+          <div class="portal-badge">Haka Rentals ERP</div>
+        </div>
+      </nav>
 
-        <!-- 2. Purchase Order Card -->
-        <a href="./purchase-order/index.html" class="action-card">
-          <div class="card-icon">🛒</div>
-          <div class="card-content">
-            <h3>Purchase Order</h3>
-            <p>Generate, issue and track vendor purchase orders.</p>
-          </div>
-        </a>
+      <header class="pro-header">
+        <h1>Office Operations</h1>
+        <p class="pro-subtitle">
+          Quotations, Purchase Orders, Invoicing, Financial Reports &amp;
+          Customer Documentation
+        </p>
+        <div class="pro-divider"></div>
+      </header>
 
-        <!-- 3. Bill Summary Card -->
-        <a href="./e-invoice/index.html" class="action-card">
-          <div class="card-icon">🧾</div>
-          <div class="card-content">
-            <h3>Bill Summary</h3>
-            <p>View, manage and process consolidated bill summaries.</p>
-          </div>
-        </a>
+      <main>
+        <div class="action-grid-box" id="officeCardsGrid">
+          <!-- 1. Quotation Card -->
+          <a href="./quotation/index.html" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">📋</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Quotation</h3>
+              <p>Create, customize and track client quotations.</p>
+            </div>
+          </a>
 
-        <!-- 4. Download Invoices Card -->
-        <a
-          href="../invoice_data/Download_zoho_invoices.html"
-          class="action-card"
-        >
-          <div class="card-icon">📥</div>
-          <div class="card-content">
-            <h3>Download Invoices</h3>
-            <p>Download and manage Zoho invoice documents.</p>
-          </div>
-        </a>
+          <!-- 2. Purchase Order Card -->
+          <a href="./purchase-order/index.html" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">🛒</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Purchase Order</h3>
+              <p>Prepare, approve and track supplier orders.</p>
+            </div>
+          </a>
 
-        <!-- 5. Johns Report Card -->
-        <a href="../invoice_data/Johns-Report.html" class="action-card">
-          <div class="card-icon">📈</div>
-          <div class="card-content">
-            <h3>Johns Report</h3>
-            <p>Purchase &amp; Sales financial analysis report.</p>
-          </div>
-        </a>
+          <!-- 3. Bill Summary Card -->
+          <a href="./e-invoice/index.html" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">🧾</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Bill Summary</h3>
+              <p>Generate ZATCA e-invoices and bill summaries.</p>
+            </div>
+          </a>
 
-        <!-- 6. Spare Parts Report Card -->
-        <a href="../Office/Spare_parts_sale/index.html" class="action-card">
-          <div class="card-icon">⚙️</div>
-          <div class="card-content">
-            <h3>Spare Parts Sales Report</h3>
-            <p>Spare parts purchase &amp; sales analysis report.</p>
-          </div>
-        </a>
+          <!-- 4. Download Invoices Card -->
+          <a
+            href="../invoice_data/Download_zoho_invoices.html"
+            class="action-card"
+          >
+            <div class="card-top-row">
+              <div class="card-icon">📥</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Download Invoices</h3>
+              <p>Fetch, organize and archive Zoho invoice PDFs.</p>
+            </div>
+          </a>
 
-        <!-- 7. Non VAT Payment Clearance Card -->
-        <a href="./Non_vat_Payment_Clearence/" class="action-card">
-          <div class="card-icon">✅</div>
-          <div class="card-content">
-            <h3>Non VAT Payment Clearance</h3>
-            <p>Manage and issue Balance Clearance Certificates.</p>
-          </div>
-        </a>
+          <!-- 5. Johns Report Card -->
+          <a href="../invoice_data/Johns-Report.html" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">📈</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>John's Analysis Report</h3>
+              <p>Purchase, sales and profit financial analysis.</p>
+            </div>
+          </a>
 
-        <!-- 8. Staff Payroll Card -->
-        <a
-          href="../Employee_Tracker/staff_salary/index.html"
-          class="action-card"
-        >
-          <div class="card-icon">💵</div>
-          <div class="card-content">
-            <h3>Own Staff Payroll</h3>
-            <p>Manage and track monthly staff payroll &amp; salaries.</p>
-          </div>
-        </a>
+          <!-- 6. Spare Parts Sales Card -->
+          <a href="../Office/Spare_parts_sale/index.html" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">⚙️</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Spare Parts Sales</h3>
+              <p>Track spare parts stock, purchases and sales.</p>
+            </div>
+          </a>
 
-        <!-- 9. Vendor Docs Card -->
-        <a href="./Vat_customers_docs/index.html" class="action-card">
-          <div class="card-icon">🗂️</div>
-          <div class="card-content">
-            <h3>Vendor Docs</h3>
-            <p>Agreements, CRN, VAT docs and monthly bills.</p>
-          </div>
-        </a>
+          <!-- 7. Non-VAT Clearance Card -->
+          <a href="./Non_vat_Payment_Clearence/" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">✅</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Payment Clearance</h3>
+              <p>Verify ledgers and issue clearance certificates.</p>
+            </div>
+          </a>
 
-        <!-- 10. Office Utility Tools Card -->
-        <a href="../Tools/" class="action-card">
-          <div class="card-icon">🛠️</div>
-          <div class="card-content">
-            <h3>Office Utility Tools</h3>
-            <p>Utility tools for daily office operations and documents.</p>
-          </div>
-        </a>
-      </div>
-    </main>
+          <!-- 8. Own Staff Payroll Card -->
+          <a
+            href="../Employee_Tracker/staff_salary/index.html"
+            class="action-card"
+          >
+            <div class="card-top-row">
+              <div class="card-icon">💵</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Own Staff Payroll</h3>
+              <p>Manage monthly salaries, OT and payroll sheets.</p>
+            </div>
+          </a>
+
+          <!-- 9. VAT Customer Docs Card -->
+          <a
+            href="./Customers_Docs/VAT_Customers_Docs/index.html"
+            class="action-card"
+          >
+            <div class="card-top-row">
+              <div class="card-icon">🗂️</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>VAT Customer Docs</h3>
+              <p>Manage CRN, VAT certs, Agath, PO and Fatoora.</p>
+            </div>
+          </a>
+
+          <!-- 10. Non-VAT Customer Docs Card -->
+          <a
+            href="./Customers_Docs/non_VAT_Customers_Docs/index.html"
+            class="action-card"
+          >
+            <div class="card-top-row">
+              <div class="card-icon">📂</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Non-VAT Docs</h3>
+              <p>Manage Non-VAT agreements, Ishtimara and bills.</p>
+            </div>
+          </a>
+
+          <!-- 11. Office Utility Tools Card -->
+          <a href="../Tools/" class="action-card">
+            <div class="card-top-row">
+              <div class="card-icon">🛠️</div>
+              <span class="card-arrow">↗</span>
+            </div>
+            <div class="card-content">
+              <h3>Office Utility Tools</h3>
+              <p>PDF merger, image converters and daily tools.</p>
+            </div>
+          </a>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      function filterOfficeCards(query) {
+        const q = (query || "").trim().toLowerCase();
+        document
+          .querySelectorAll("#officeCardsGrid .action-card")
+          .forEach((card) => {
+            const matched = card.innerText.toLowerCase().includes(q);
+            card.classList.toggle("is-hidden", !matched);
+          });
+      }
+    </script>
   </body>
 </html>
