@@ -2131,9 +2131,12 @@
 
         const groups = {};
         valid.forEach((r) => {
-          const comp = getCompanyFromSite(r.site);
           const owner = (r.owner || "COMPANY VEHICLE").trim().toUpperCase();
-          const key = `${owner}|||${comp}`;
+          const isVatRow =
+            parseFloat(r.vat_percent || 0) > 0 ||
+            parseFloat(r.vat_amount || 0) > 0;
+          const comp = isVatRow ? getCompanyFromSite(r.site) : "";
+          const key = isVatRow ? `${owner}|||${comp}` : `${owner}|||NO_VAT`;
           if (!groups[key]) groups[key] = { company: comp, items: [] };
           groups[key].items.push(r);
         });
@@ -2419,6 +2422,9 @@
                 <td class="extra-comparison-col" style="background:#f0fdf4;">${repMatch.ts_ot || 0}</td>
                 <td class="extra-comparison-col" style="background:#eff6ff;">${repMatch.inv_nr || 0}</td>
                 <td class="extra-comparison-col" style="background:#eff6ff;">${repMatch.inv_ot || 0}</td>
+                <td class="action-column-cell no-print" style="text-align:center;">
+                  <button type="button" title="Remove row from card" onclick="removeRowFromCard(this)" style="background:none; border:none; cursor:pointer; font-size:13px; padding:2px 6px; line-height:1;">❌</button>
+                </td>
               </tr>
             `;
         });
@@ -2587,7 +2593,7 @@
                   <th style="width:5%;" class="extra-comparison-col th-ts">Log. OT</th>
                   <th style="width:5%;" class="extra-comparison-col th-summary">Bill NR</th>
                   <th style="width:5%;" class="extra-comparison-col th-summary">Bill OT</th>
-                </tr>
+                  <th style="width:4%;" class="action-column-cell no-print">Action</th>
                 </tr>
               </thead>
 
@@ -2613,6 +2619,7 @@
                   <td class="extra-comparison-col" style="background:#f0fdf4;">${sumTsOt}</td>
                   <td class="extra-comparison-col" style="background:#eff6ff;">${sumInvNr}</td>
                   <td class="extra-comparison-col" style="background:#eff6ff;">${sumInvOt}</td>
+                  <td class="action-column-cell no-print"></td>
                 </tr>
               </tfoot>
             </table>
@@ -3563,6 +3570,9 @@
           <td class="extra-comparison-col" style="background:#f0fdf4;">0</td>
           <td class="extra-comparison-col" style="background:#eff6ff;">0</td>
           <td class="extra-comparison-col" style="background:#eff6ff;">0</td>
+          <td class="action-column-cell no-print" style="text-align:center;">
+            <button type="button" title="Remove row from card" onclick="removeRowFromCard(this)" style="background:none; border:none; cursor:pointer; font-size:13px; padding:2px 6px; line-height:1;">❌</button>
+          </td>
         `;
 
         tbody.appendChild(tr);
@@ -3570,155 +3580,45 @@
         recalculateCardGrandTotals(card);
       }
 
-      /*
-       * ============================================================
-       * DOWNLOAD PNG & COPY HQ IMAGE (GUARANTEED REMARK HIDE)
-       * ============================================================
-       */
-
-      async function downloadCardPNG(btn) {
+      function removeRowFromCard(btn) {
+        const row = btn.closest("tr");
         const card = btn.closest(".bill-card");
-        if (!card) return;
-        if (card.classList.contains("edit-mode"))
-          return showToast("Exit edit mode first.");
+        if (!row || !card) return;
 
-        await syncActiveCardDataBeforeAction(card);
-
-        const hiddenBlankRows = [];
-        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          const plateVal =
-            r.getAttribute("data-plate") ||
-            r.querySelector(".manual-plate-input")?.value?.trim() ||
-            "";
-          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
-          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
-          if (!plateVal && nhr === 0 && othr === 0) {
-            r.style.setProperty("display", "none", "important");
-            hiddenBlankRows.push(r);
-          }
-        });
-
-        // 🟢 Forcefully Hide Remark Column & Others
-        card
-          .querySelectorAll(
-            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
-          )
-          .forEach((el) => {
-            el.style.setProperty("display", "none", "important");
-          });
-        card.querySelectorAll(".site-column-cell").forEach((el) => {
-          el.style.setProperty("display", "none", "important");
-        });
-
-        const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
-        if (grandTotalCell) grandTotalCell.setAttribute("colspan", "5");
-
-        const printArea = card.querySelector(".print-area");
-
-        try {
-          const canvas = await html2canvas(printArea, {
-            scale: 3,
-            useCORS: true,
-            logging: false,
-          });
-          const link = document.createElement("a");
-          link.download = `Bill_Report.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-        } catch (e) {
-          showToast("Unable to create PNG.");
-        } finally {
-          hiddenBlankRows.forEach((r) => (r.style.display = ""));
-          card
-            .querySelectorAll(
-              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
-            )
-            .forEach((el) => (el.style.display = ""));
-          card
-            .querySelectorAll(".site-column-cell")
-            .forEach((el) => (el.style.display = ""));
-          if (grandTotalCell) grandTotalCell.setAttribute("colspan", "6");
+        const removedPlate = row.getAttribute("data-plate") || row.getAttribute("data-master-plate");
+        const removedSite = row.getAttribute("data-site");
+        if (Array.isArray(card._originalRows) && removedPlate) {
+          card._originalRows = card._originalRows.filter(
+            (r) =>
+              !(
+                plateRecordsMatch(r, removedPlate) &&
+                String(r.site || "").trim() === String(removedSite || "").trim()
+              ),
+          );
         }
+
+        const tbody = card.querySelector(".supplier-bill-table tbody");
+        row.remove();
+
+        const remainingRows = tbody.querySelectorAll("tr");
+        if (remainingRows.length === 0) {
+          card.remove();
+          showToast("Row & empty card removed");
+          return;
+        }
+
+        remainingRows.forEach((tr, idx) => {
+          if (tr.children[0]) tr.children[0].innerText = idx + 1;
+        });
+
+        recalculateCardGrandTotals(card);
+        updateManualComparisonTotals(card);
+        if (card.id && card.id.startsWith("manualBillCard_")) {
+          updateCardHeaderTitle(card);
+        }
+        showToast("Row removed from card");
       }
 
-      async function copyCardHQ(btn) {
-        const card = btn.closest(".bill-card");
-        if (!card) return;
-        if (card.classList.contains("edit-mode"))
-          return showToast("Exit edit mode first.");
-
-        await syncActiveCardDataBeforeAction(card);
-
-        const hiddenBlankRows = [];
-        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          const plateVal =
-            r.getAttribute("data-plate") ||
-            r.querySelector(".manual-plate-input")?.value?.trim() ||
-            "";
-          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
-          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
-          if (!plateVal && nhr === 0 && othr === 0) {
-            r.style.setProperty("display", "none", "important");
-            hiddenBlankRows.push(r);
-          }
-        });
-
-        // 🟢 Forcefully Hide Remark Column & Others
-        card
-          .querySelectorAll(
-            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
-          )
-          .forEach((el) => {
-            el.style.setProperty("display", "none", "important");
-          });
-        card.querySelectorAll(".site-column-cell").forEach((el) => {
-          el.style.setProperty("display", "none", "important");
-        });
-
-        const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
-        if (grandTotalCell) grandTotalCell.setAttribute("colspan", "5");
-
-        const printArea = card.querySelector(".print-area");
-
-        try {
-          const canvas = await html2canvas(printArea, {
-            scale: 3,
-            useCORS: true,
-            logging: false,
-          });
-          canvas.toBlob(async (blob) => {
-            try {
-              if (
-                !blob ||
-                !navigator.clipboard ||
-                typeof ClipboardItem === "undefined"
-              ) {
-                showToast("Clipboard image is not supported in this browser.");
-                return;
-              }
-              await navigator.clipboard.write([
-                new ClipboardItem({ "image/png": blob }),
-              ]);
-              showToast("Copied to Clipboard!");
-            } catch (e) {
-              showToast("Unable to copy image.");
-            }
-          }, "image/png");
-        } catch (e) {
-          showToast("Unable to create image.");
-        } finally {
-          hiddenBlankRows.forEach((r) => (r.style.display = ""));
-          card
-            .querySelectorAll(
-              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
-            )
-            .forEach((el) => (el.style.display = ""));
-          card
-            .querySelectorAll(".site-column-cell")
-            .forEach((el) => (el.style.display = ""));
-          if (grandTotalCell) grandTotalCell.setAttribute("colspan", "6");
-        }
-      }
 
       /*
        * ============================================================
@@ -4377,24 +4277,40 @@
         // 🟢 ഡൗൺലോഡിന് മുൻപ് ആക്ടീവ് കാർഡിലെ ഡാറ്റ ബാക്ക് എൻഡിൽ സേവ് ചെയ്യുന്നു
         await syncActiveCardDataBeforeAction(card);
 
+        const hiddenBlankRows = [];
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plateVal =
+            r.getAttribute("data-plate") ||
+            r.querySelector(".manual-plate-input")?.value?.trim() ||
+            "";
+          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
+          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
+          if (!plateVal && nhr === 0 && othr === 0) {
+            r.style.setProperty("display", "none", "important");
+            hiddenBlankRows.push(r);
+          }
+        });
+
         card
           .querySelectorAll(
-            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, .action-column-cell, tfoot td:nth-last-child(-n+5)",
           )
-          .forEach((el) => (el.style.display = "none"));
+          .forEach((el) => el.style.setProperty("display", "none", "important"));
 
         const vatColumnsHidden = hideZeroVatColumnsForExport(card);
 
         // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
         card
           .querySelectorAll(".site-column-cell")
-          .forEach((el) => (el.style.display = "none"));
+          .forEach((el) => el.style.setProperty("display", "none", "important"));
 
         // ഡൗൺലോഡ് സമയത്ത് colspan 6 എന്നത് 5 ആക്കി മാറ്റാൻ
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
         if (grandTotalCell) {
           grandTotalCell.setAttribute("colspan", "5");
         }
+
+        setExportTableFontSize(card, true);
 
         const printArea = card.querySelector(".print-area");
 
@@ -4416,9 +4332,13 @@
         } catch (e) {
           showToast("Unable to create PNG.");
         } finally {
+          setExportTableFontSize(card, false);
+
+          hiddenBlankRows.forEach((r) => (r.style.display = ""));
+
           card
             .querySelectorAll(
-              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, .action-column-cell, tfoot td:nth-last-child(-n+5)",
             )
             .forEach((el) => (el.style.display = ""));
 
@@ -4435,9 +4355,9 @@
       }
 
       /*
-       * ============================================================
-       * COPY HQ IMAGE
-       * ============================================================
+- ============================================================
+- COPY HQ IMAGE
+- ============================================================
        */
 
       async function copyCardHQ(btn) {
@@ -4454,16 +4374,30 @@
         // 🟢 കോപ്പിക്ക് മുൻപ് ആക്ടീവ് കാർഡിലെ ഡാറ്റ ബാക്ക് എൻഡിൽ സേവ് ചെയ്യുന്നു
         await syncActiveCardDataBeforeAction(card);
 
+        const hiddenBlankRows = [];
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plateVal =
+            r.getAttribute("data-plate") ||
+            r.querySelector(".manual-plate-input")?.value?.trim() ||
+            "";
+          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
+          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
+          if (!plateVal && nhr === 0 && othr === 0) {
+            r.style.setProperty("display", "none", "important");
+            hiddenBlankRows.push(r);
+          }
+        });
+
         card
           .querySelectorAll(
-            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, .action-column-cell, tfoot td:nth-last-child(-n+5)",
           )
-          .forEach((el) => (el.style.display = "none"));
+          .forEach((el) => el.style.setProperty("display", "none", "important"));
 
         // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
         card
           .querySelectorAll(".site-column-cell")
-          .forEach((el) => (el.style.display = "none"));
+          .forEach((el) => el.style.setProperty("display", "none", "important"));
 
         const vatColumnsHidden = hideZeroVatColumnsForExport(card);
 
@@ -4472,6 +4406,8 @@
         if (grandTotalCell) {
           grandTotalCell.setAttribute("colspan", "5");
         }
+
+        setExportTableFontSize(card, true);
 
         const printArea = card.querySelector(".print-area");
 
@@ -4509,9 +4445,13 @@
         } catch (e) {
           showToast("Unable to create image.");
         } finally {
+          setExportTableFontSize(card, false);
+
+          hiddenBlankRows.forEach((r) => (r.style.display = ""));
+
           card
             .querySelectorAll(
-              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, .action-column-cell, tfoot td:nth-last-child(-n+5)",
             )
             .forEach((el) => (el.style.display = ""));
 
@@ -4557,6 +4497,24 @@
         card
           .querySelectorAll(".vat-percent-column, .vat-amount-column")
           .forEach((column) => (column.style.display = ""));
+      }
+
+      function setExportTableFontSize(card, enlarge) {
+        const table = card.querySelector(".supplier-bill-table");
+        if (!table) return;
+
+        table.querySelectorAll("th").forEach((el) => {
+          el.style.fontSize = enlarge ? "14px" : "";
+          el.style.padding = enlarge ? "8px 10px" : "";
+        });
+        table.querySelectorAll("tbody td").forEach((el) => {
+          el.style.fontSize = enlarge ? "14px" : "";
+          el.style.padding = enlarge ? "7px 10px" : "";
+        });
+        table.querySelectorAll("tfoot td").forEach((el) => {
+          el.style.fontSize = enlarge ? "16px" : "";
+          el.style.padding = enlarge ? "8px 10px" : "";
+        });
       }
 
       /*
@@ -5294,7 +5252,7 @@
           const printArea = card.querySelector(".print-area") || card;
           card
             .querySelectorAll(
-              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, .action-column-cell, tfoot td:nth-last-child(-n+5)",
             )
             .forEach((el) =>
               el.style.setProperty("display", "none", "important"),
@@ -5316,7 +5274,7 @@
 
           card
             .querySelectorAll(
-              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, .action-column-cell, tfoot td:nth-last-child(-n+5)",
             )
             .forEach((el) => (el.style.display = ""));
           card
