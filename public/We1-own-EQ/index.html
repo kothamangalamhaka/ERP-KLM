@@ -596,40 +596,124 @@
     </div>
 
     <div class="ribbon">
-        <div class="ribbon-title">We1 Own EQ Data</div>
+      <div class="ribbon-title">We1 Own EQ Data</div>
 
-        <!-- 🟢 Global Search Container -->
-        <div style="display: flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid var(--border); padding: 2px 6px; border-radius: 6px;">
-            <select id="globalSearchType" onchange="onGlobalSearchInput()" style="border: none; background: transparent; font-size: 12px; font-weight: 600; color: #57606a; outline: none; cursor: pointer; padding: 4px;">
-                <option value="general">🌐 General</option>
-                <option value="plate_no">🔢 Plate No</option>
-                <option value="driver_name">👤 Driver</option>
-            </select>
-            <input type="text" id="globalSearchInput" placeholder="Search..." oninput="onGlobalSearchInput()" style="border: none; border-left: 1px solid var(--border); padding: 5px 8px; font-size: 12px; outline: none; width: 170px;">
-        </div>
+      <!-- 🟢 Global Search Container -->
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #ffffff;
+          border: 1px solid var(--border);
+          padding: 2px 6px;
+          border-radius: 6px;
+        "
+      >
+        <select
+          id="globalSearchType"
+          onchange="onGlobalSearchInput()"
+          style="
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            color: #57606a;
+            outline: none;
+            cursor: pointer;
+            padding: 4px;
+          "
+        >
+          <option value="general">🌐 General</option>
+          <option value="plate_no">🔢 Plate No</option>
+          <option value="driver_name">👤 Driver</option>
+        </select>
+        <input
+          type="text"
+          id="globalSearchInput"
+          placeholder="Search..."
+          oninput="onGlobalSearchInput()"
+          style="
+            border: none;
+            border-left: 1px solid var(--border);
+            padding: 5px 8px;
+            font-size: 12px;
+            outline: none;
+            width: 170px;
+          "
+        />
+      </div>
 
-        <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px">
         <div id="we1ActionMenu" class="action-controls">
-          <button style="background: #1a7f37; color: white; border: none;" onclick="openAddModal()">➕ Add New</button>
+          <button
+            style="background: #1a7f37; color: white; border: none"
+            onclick="openAddModal()"
+          >
+            ➕ Add New
+          </button>
           <button onclick="openLog('SiteLog')">🏢 Site Log</button>
           <button onclick="openLog('DriverLog')">👤 Driver Log</button>
-          <button onclick="openLog('VehicleTypeLog')">🚜 Vehicle Type & Santhook</button>
+          <button onclick="openLog('VehicleTypeLog')">
+            🚜 Vehicle Type & Santhook
+          </button>
           <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
           <button onclick="openLog('Equipment')">🚜 Equipment</button>
-          <button onclick="window.location.href='OWN_EXP.html'" style="background: #cf222e; color: #ffffff; border: none; margin-left: 10px;">
+          <button
+            onclick="window.location.href = 'OWN_EXP.html'"
+            style="
+              background: #cf222e;
+              color: #ffffff;
+              border: none;
+              margin-left: 10px;
+            "
+          >
             ⏰ Expiry Tracker
           </button>
-          <button class="salary" style="background: #f7c111; color: white; border: none; margin-left: 10px;">
-            <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5)">Driver Salary</a>
+          <button
+            class="salary"
+            style="
+              background: #f7c111;
+              color: white;
+              border: none;
+              margin-left: 10px;
+            "
+          >
+            <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5)"
+              >Driver Salary</a
+            >
           </button>
-          <button id="exportBtn" style="background: #0969da; color: white; border: none; margin-left: 10px;" onclick="exportToExcel()">
+          <button
+            id="exportBtn"
+            style="
+              background: #0969da;
+              color: white;
+              border: none;
+              margin-left: 10px;
+            "
+            onclick="exportToExcel()"
+          >
             📊 Export Excel
           </button>
-          <button style="background: #cf222e; color: white; border: none; margin-left: 10px;" onclick="logout()">
+          <button
+            style="
+              background: #cf222e;
+              color: white;
+              border: none;
+              margin-left: 10px;
+            "
+            onclick="logout()"
+          >
             🚪 Logout
           </button>
         </div>
-        <button type="button" class="menu-btn" onclick="toggleResponsiveMenu(event)">☰</button>
+        <button
+          type="button"
+          class="menu-btn"
+          onclick="toggleResponsiveMenu(event)"
+        >
+          ☰
+        </button>
       </div>
     </div>
 
@@ -652,7 +736,11 @@
         <button onclick="sortGrid('asc')">🔼 Sort A-Z</button>
         <button onclick="sortGrid('desc')">🔽 Sort Z-A</button>
       </div>
-      <div id="colorFilterSection" class="color-filter-box" style="display: none;"></div>
+      <div
+        id="colorFilterSection"
+        class="color-filter-box"
+        style="display: none"
+      ></div>
       <input
         type="text"
         id="filterSearchInput"
@@ -935,8 +1023,19 @@
       <table id="eqTable">
         <thead>
           <tr>
-            <th class="sticky-sn" oncontextmenu="copyColumnToClipboard(event, 'sn', 'SN')" title="Right click to copy column">SN</th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'mob_date_ui', 'Mobilisation Date')" title="Right click to copy column">
+            <th
+              class="sticky-sn"
+              oncontextmenu="copyColumnToClipboard(event, 'sn', 'SN')"
+              title="Right click to copy column"
+            >
+              SN
+            </th>
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'mob_date_ui', 'Mobilisation Date')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Mobilisation Date</span>
                 <button
@@ -947,7 +1046,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'vehicle_type', 'Vehicle Type')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'vehicle_type', 'Vehicle Type')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Vehicle Type</span>
                 <button
@@ -958,7 +1062,13 @@
                 </button>
               </div>
             </th>
-            <th class="sticky-plate" oncontextmenu="copyColumnToClipboard(event, 'plate_no', 'Plate No')" title="Right click to copy column">
+            <th
+              class="sticky-plate"
+              oncontextmenu="
+                copyColumnToClipboard(event, 'plate_no', 'Plate No')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Plate No</span>
                 <button
@@ -969,7 +1079,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'driver_name', 'Driver Name')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'driver_name', 'Driver Name')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Driver Name</span>
                 <button
@@ -980,7 +1095,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'driver_mobile', 'Mobile')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'driver_mobile', 'Mobile')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Mobile</span>
                 <button
@@ -991,7 +1111,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'joining_date_ui', 'Joining Date')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'joining_date_ui', 'Joining Date')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Joining Date</span>
                 <button
@@ -1002,7 +1127,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'site_name', 'Site Name')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'site_name', 'Site Name')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Site Name</span>
                 <button
@@ -1013,7 +1143,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'vehicle_owner', 'Vehicle Owner')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'vehicle_owner', 'Vehicle Owner')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Vehicle Owner</span>
                 <button
@@ -1024,7 +1159,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'santhook', 'Santhook')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'santhook', 'Santhook')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Santhook</span>
                 <button
@@ -1035,7 +1175,10 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'salary', 'Salary')" title="Right click to copy column">
+            <th
+              oncontextmenu="copyColumnToClipboard(event, 'salary', 'Salary')"
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Salary</span>
                 <button
@@ -1046,7 +1189,10 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'status', 'Status')" title="Right click to copy column">
+            <th
+              oncontextmenu="copyColumnToClipboard(event, 'status', 'Status')"
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Status</span>
                 <button
@@ -1057,7 +1203,11 @@
                 </button>
               </div>
             </th>
-            <th style="min-width: 150px" oncontextmenu="copyColumnToClipboard(event, 'note', 'Note')" title="Right click to copy column">
+            <th
+              style="min-width: 150px"
+              oncontextmenu="copyColumnToClipboard(event, 'note', 'Note')"
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Note ✏️</span>
                 <button
@@ -1068,7 +1218,10 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'old_eq', 'Old EQ')" title="Right click to copy column">
+            <th
+              oncontextmenu="copyColumnToClipboard(event, 'old_eq', 'Old EQ')"
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Old EQ</span>
                 <button
@@ -1079,7 +1232,10 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'new_eq', 'New EQ')" title="Right click to copy column">
+            <th
+              oncontextmenu="copyColumnToClipboard(event, 'new_eq', 'New EQ')"
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>New EQ</span>
                 <button
@@ -1090,7 +1246,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'iqama_no', 'IQAMA No.')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'iqama_no', 'IQAMA No.')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>IQAMA No.</span>
                 <button
@@ -1101,7 +1262,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'iqama_expiry_ui', 'IQAMA Exp')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'iqama_expiry_ui', 'IQAMA Exp')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>IQAMA Exp</span>
                 <button
@@ -1112,25 +1278,64 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'licence_expiry_ui', 'Licence Exp')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'licence_expiry_ui', 'Licence Exp')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Licence Exp</span>
-                <button class="filter-btn" onclick="openExcelFilter(event, 'licence_expiry_ui')">▼</button>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'licence_expiry_ui')"
+                >
+                  ▼
+                </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'passport_no', 'Passport No')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'passport_no', 'Passport No')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Passport No.</span>
-                <button class="filter-btn" onclick="openExcelFilter(event, 'passport_no')">▼</button>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'passport_no')"
+                >
+                  ▼
+                </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'passport_expiry_ui', 'Passport Exp')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(
+                  event,
+                  'passport_expiry_ui',
+                  'Passport Exp',
+                )
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Passport Exp</span>
-                <button class="filter-btn" onclick="openExcelFilter(event, 'passport_expiry_ui')">▼</button>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'passport_expiry_ui')"
+                >
+                  ▼
+                </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'chassis_no', 'Chassis No')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'chassis_no', 'Chassis No')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Chassis No</span>
                 <button
@@ -1141,7 +1346,12 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'serial_no', 'Serial No')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(event, 'serial_no', 'Serial No')
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Serial No</span>
                 <button
@@ -1152,7 +1362,16 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'eq_insurance_exp_ui', 'EQ Insurance Exp')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(
+                  event,
+                  'eq_insurance_exp_ui',
+                  'EQ Insurance Exp',
+                )
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>EQ Insurance Exp</span>
                 <button
@@ -1163,7 +1382,16 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'fahs_mvpi_exp_ui', 'FAHS/MVPI Exp')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(
+                  event,
+                  'fahs_mvpi_exp_ui',
+                  'FAHS/MVPI Exp',
+                )
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>FAHS/MVPI Exp</span>
                 <button
@@ -1174,7 +1402,16 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'op_card_exp_ui', 'Operation Card Exp')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(
+                  event,
+                  'op_card_exp_ui',
+                  'Operation Card Exp',
+                )
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Operation Card Exp</span>
                 <button
@@ -1185,7 +1422,16 @@
                 </button>
               </div>
             </th>
-            <th oncontextmenu="copyColumnToClipboard(event, 'isthimaara_exp_ui', 'Isthimaara Exp')" title="Right click to copy column">
+            <th
+              oncontextmenu="
+                copyColumnToClipboard(
+                  event,
+                  'isthimaara_exp_ui',
+                  'Isthimaara Exp',
+                )
+              "
+              title="Right click to copy column"
+            >
               <div class="th-content">
                 <span>Isthimaara Exp</span>
                 <button
@@ -1238,7 +1484,12 @@
       let tempColorSelection = new Set();
 
       function getExpiryColorCategory(rawDateStr) {
-        if (!rawDateStr || rawDateStr === "null" || rawDateStr === "undefined" || String(rawDateStr).trim() === "") {
+        if (
+          !rawDateStr ||
+          rawDateStr === "null" ||
+          rawDateStr === "undefined" ||
+          String(rawDateStr).trim() === ""
+        ) {
           return "none";
         }
         const target = new Date(rawDateStr);
@@ -1257,9 +1508,13 @@
       function matchesGlobalSearch(row) {
         if (globalSearchQuery === "") return true;
         if (globalSearchType === "plate_no") {
-          return String(row.plate_no || "").toLowerCase().includes(globalSearchQuery);
+          return String(row.plate_no || "")
+            .toLowerCase()
+            .includes(globalSearchQuery);
         } else if (globalSearchType === "driver_name") {
-          return String(row.driver_name || "").toLowerCase().includes(globalSearchQuery);
+          return String(row.driver_name || "")
+            .toLowerCase()
+            .includes(globalSearchQuery);
         } else {
           const allRowValues = Object.values(row)
             .map((v) => String(v ?? "").toLowerCase())
@@ -1291,7 +1546,8 @@
 
       function getCascadingRowsForColumn(columnKey) {
         return masterTableData.filter(
-          (row) => matchesActiveRowFilters(row, columnKey) && matchesGlobalSearch(row)
+          (row) =>
+            matchesActiveRowFilters(row, columnKey) && matchesGlobalSearch(row),
         );
       }
 
@@ -1332,7 +1588,13 @@
             return String(index + 1);
           }
           let val = row[columnKey];
-          if (val === null || val === undefined || val === "-" || val === "null" || val === "undefined") {
+          if (
+            val === null ||
+            val === undefined ||
+            val === "-" ||
+            val === "null" ||
+            val === "undefined"
+          ) {
             return ""; // Blank string creates empty cell in Excel
           }
           return String(val).trim();
@@ -1341,18 +1603,25 @@
         // 3. Join with newlines (\r\n) for clean vertical paste in Excel
         const textToCopy = columnValues.join("\r\n");
 
-        navigator.clipboard.writeText(textToCopy).then(() => {
-          showCopyToast(`📋 Copied ${columnValues.length} rows of "${headerLabel}" to clipboard!`);
-        }).catch((err) => {
-          // Fallback for older browsers
-          const textarea = document.createElement("textarea");
-          textarea.value = textToCopy;
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand("copy");
-          document.body.removeChild(textarea);
-          showCopyToast(`📋 Copied ${columnValues.length} rows of "${headerLabel}" to clipboard!`);
-        });
+        navigator.clipboard
+          .writeText(textToCopy)
+          .then(() => {
+            showCopyToast(
+              `📋 Copied ${columnValues.length} rows of "${headerLabel}" to clipboard!`,
+            );
+          })
+          .catch((err) => {
+            // Fallback for older browsers
+            const textarea = document.createElement("textarea");
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            showCopyToast(
+              `📋 Copied ${columnValues.length} rows of "${headerLabel}" to clipboard!`,
+            );
+          });
       }
 
       function showCopyToast(msg) {
@@ -1379,23 +1648,44 @@
         toast.style.display = "block";
         setTimeout(() => {
           toast.style.opacity = "0";
-          setTimeout(() => { toast.style.display = "none"; }, 300);
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 300);
         }, 2200);
       }
 
       function formatUIDate(dateStr) {
-        if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return "";
-        
+        if (
+          !dateStr ||
+          dateStr === "null" ||
+          dateStr === "undefined" ||
+          String(dateStr).trim() === ""
+        )
+          return "";
+
         // തീയതിയിലെ ടൈംസോൺ പ്രശ്നം ഒഴിവാക്കാൻ YYYY-MM-DD നേരിട്ട് പാർസ് ചെയ്യുന്നു
         const cleanStr = String(dateStr).split("T")[0].trim();
         const parts = cleanStr.split(/[-/]/);
-        
+
         if (parts.length === 3 && parts[0].length === 4) {
           const year = parts[0].slice(-2);
           const monthNum = parseInt(parts[1], 10) - 1;
           const day = String(parts[2]).padStart(2, "0");
-          
-          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+          const monthNames = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
           const month = monthNames[monthNum] || parts[1];
           return `${day}-${month}-${year}`;
         }
@@ -1411,7 +1701,13 @@
       }
 
       function cleanVal(val) {
-        if (val === null || val === undefined || val === "null" || val === "undefined") return "";
+        if (
+          val === null ||
+          val === undefined ||
+          val === "null" ||
+          val === "undefined"
+        )
+          return "";
         return String(val).trim();
       }
 
@@ -1479,7 +1775,11 @@
         }
 
         const actionMenu = document.getElementById("we1ActionMenu");
-        if (actionMenu && !e.target.closest(".menu-btn") && !e.target.closest(".action-controls")) {
+        if (
+          actionMenu &&
+          !e.target.closest(".menu-btn") &&
+          !e.target.closest(".action-controls")
+        ) {
           actionMenu.classList.remove("show");
         }
       });
@@ -1583,7 +1883,11 @@
               fahs_mvpi_exp_ui,
               op_card_exp_ui,
               isthimaara_exp_ui,
-              status: (!mob_date_ui && (!cleanVal(row.status) || cleanVal(row.status) === "Running")) ? "Ideal" : cleanVal(row.status),
+              status:
+                !mob_date_ui &&
+                (!cleanVal(row.status) || cleanVal(row.status) === "Running")
+                  ? "Ideal"
+                  : cleanVal(row.status),
               note: cleanVal(row.note),
               driver_mobile: cleanVal(row.driver_mobile),
               vehicle_type: cleanVal(row.vehicle_type),
@@ -1599,7 +1903,7 @@
               serial_no: cleanVal(row.serial_no),
               iqama_no: cleanVal(row.iqama_no),
               passport_no: cleanVal(row.passport_no),
-              passport_expiry_ui
+              passport_expiry_ui,
             };
           });
 
@@ -1629,54 +1933,65 @@
         }
       }
 
-      let globalSearchQuery = '';
-        let globalSearchType = 'general';
+      let globalSearchQuery = "";
+      let globalSearchType = "general";
 
-        function onGlobalSearchInput() {
-            const inputElem = document.getElementById('globalSearchInput');
-            const typeElem = document.getElementById('globalSearchType');
-            
-            globalSearchQuery = (inputElem ? inputElem.value : '').trim().toLowerCase();
-            globalSearchType = typeElem ? typeElem.value : 'general';
-            
-            renderFilteredTable();
-        }
+      function onGlobalSearchInput() {
+        const inputElem = document.getElementById("globalSearchInput");
+        const typeElem = document.getElementById("globalSearchType");
 
-        function renderFilteredTable() {
-            const tbody = document.getElementById('eqTableBody');
-            tbody.innerHTML = '';
+        globalSearchQuery = (inputElem ? inputElem.value : "")
+          .trim()
+          .toLowerCase();
+        globalSearchType = typeElem ? typeElem.value : "general";
 
-            let filteredRows = masterTableData.filter(row => {
-                // 1. Column-wise Header Filters & Color Filters
-                if (!matchesActiveRowFilters(row)) return false;
+        renderFilteredTable();
+      }
 
-                // 2. 🟢 Ribbon Global Search Filter
-                if (globalSearchQuery !== '') {
-                    if (globalSearchType === 'plate_no') {
-                        const plate = String(row.plate_no || '').toLowerCase();
-                        if (!plate.includes(globalSearchQuery)) return false;
-                    } else if (globalSearchType === 'driver_name') {
-                        const driver = String(row.driver_name || '').toLowerCase();
-                        if (!driver.includes(globalSearchQuery)) return false;
-                    } else {
-                        // General: എല്ലാ കോളങ്ങളിലെയും വാല്യൂകളിൽ തിരയുന്നു
-                        const allRowValues = Object.values(row).map(v => String(v ?? '').toLowerCase()).join(' ');
-                        if (!allRowValues.includes(globalSearchQuery)) return false;
-                    }
-                }
+      function renderFilteredTable() {
+        const tbody = document.getElementById("eqTableBody");
+        tbody.innerHTML = "";
 
-                return true;
-            });
+        let filteredRows = masterTableData.filter((row) => {
+          // 1. Column-wise Header Filters & Color Filters
+          if (!matchesActiveRowFilters(row)) return false;
 
-            if (filteredRows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="19" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
-                return;
+          // 2. 🟢 Ribbon Global Search Filter
+          if (globalSearchQuery !== "") {
+            if (globalSearchType === "plate_no") {
+              const plate = String(row.plate_no || "").toLowerCase();
+              if (!plate.includes(globalSearchQuery)) return false;
+            } else if (globalSearchType === "driver_name") {
+              const driver = String(row.driver_name || "").toLowerCase();
+              if (!driver.includes(globalSearchQuery)) return false;
+            } else {
+              // General: എല്ലാ കോളങ്ങളിലെയും വാല്യൂകളിൽ തിരയുന്നു
+              const allRowValues = Object.values(row)
+                .map((v) => String(v ?? "").toLowerCase())
+                .join(" ");
+              if (!allRowValues.includes(globalSearchQuery)) return false;
             }
+          }
+
+          return true;
+        });
+
+        if (filteredRows.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="19" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
+          return;
+        }
 
         const fragment = document.createDocumentFragment();
 
         function getCellExpiryStyle(dateStr) {
-          if (!dateStr || dateStr === "null" || dateStr === "undefined" || dateStr.trim() === "") return "";
+          if (
+            !dateStr ||
+            dateStr === "null" ||
+            dateStr === "undefined" ||
+            dateStr.trim() === ""
+          )
+            return "";
           const target = new Date(dateStr);
           if (isNaN(target.getTime())) return "";
 
@@ -1723,13 +2038,13 @@
                     <td ondblclick="enableNoteEdit(this)" onblur="saveNoteDirect(this, '${row.plate_no}')" data-old="${row.note}" style="white-space: pre-wrap; cursor: pointer; outline: none; min-width: 150px; transition: background 0.3s;" title="Double click to edit">${row.note}</td>
                     <td>${row.old_eq}</td>
                     <td>${row.new_eq}</td>
-                    <td>${row.iqama_no || ''}</td>
+                    <td>${row.iqama_no || ""}</td>
                     <td style="${getCellExpiryStyle(row.iqama_expiry)}">${row.iqama_expiry_ui || formatUIDate(row.iqama_expiry)}</td>
                     <td style="${getCellExpiryStyle(row.licence_expiry)}">${row.licence_expiry_ui || formatUIDate(row.licence_expiry)}</td>
-                    <td>${row.passport_no || ''}</td>
+                    <td>${row.passport_no || ""}</td>
                     <td style="${getCellExpiryStyle(row.passport_expiry)}">${row.passport_expiry_ui || formatUIDate(row.passport_expiry)}</td>
-                    <td>${row.chassis_no || ''}</td>
-                    <td>${row.serial_no || ''}</td>
+                    <td>${row.chassis_no || ""}</td>
+                    <td>${row.serial_no || ""}</td>
                     <td style="${getCellExpiryStyle(row.eq_insurance_exp)}">${row.eq_insurance_exp_ui || formatUIDate(row.eq_insurance_exp)}</td>
                     <td style="${getCellExpiryStyle(row.fahs_mvpi_exp)}">${row.fahs_mvpi_exp_ui || formatUIDate(row.fahs_mvpi_exp)}</td>
                     <td style="${getCellExpiryStyle(row.op_card_exp)}">${row.op_card_exp_ui || formatUIDate(row.op_card_exp)}</td>
@@ -1741,18 +2056,19 @@
         tbody.appendChild(fragment);
       }
 
-
       // 🟢 നിലവിൽ UI ഗ്രിഡിൽ കാണുന്ന (Filtered & Sorted) പ്ലേറ്റുകളുടെ ലിസ്റ്റ് കൃത്യമായ ഓർഡറിൽ എടുക്കുന്നു
-function getCurrentGridPlates() {
-    let filteredRows = masterTableData.filter(row => matchesActiveRowFilters(row));
+      function getCurrentGridPlates() {
+        let filteredRows = masterTableData.filter((row) =>
+          matchesActiveRowFilters(row),
+        );
 
-    // നിലവിലെ ഓർഡർ അതേപടി നിലനിർത്തി പ്ലേറ്റുകൾ മാത്രമെടുക്കുന്നു
-    const visiblePlates = filteredRows
-        .map(r => (r.plate_no || '').trim())
-        .filter(p => p !== '' && p !== '-');
+        // നിലവിലെ ഓർഡർ അതേപടി നിലനിർത്തി പ്ലേറ്റുകൾ മാത്രമെടുക്കുന്നു
+        const visiblePlates = filteredRows
+          .map((r) => (r.plate_no || "").trim())
+          .filter((p) => p !== "" && p !== "-");
 
-    return [...new Set(visiblePlates)];
-}
+        return [...new Set(visiblePlates)];
+      }
 
       function handlePlateContextMenu(e, plateNo) {
         e.preventDefault();
@@ -2080,11 +2396,25 @@ function getCurrentGridPlates() {
       }
 
       let tempFilterSelection = new Set();
-      const MONTH_ORDER = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const MONTH_ORDER = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
 
       function parseUIDateParts(uiDateStr) {
         // Expected format: DD-MMM-YY (e.g., 15-Jul-28)
-        if (!uiDateStr || uiDateStr === "-" || uiDateStr.trim() === "") return null;
+        if (!uiDateStr || uiDateStr === "-" || uiDateStr.trim() === "")
+          return null;
         const parts = uiDateStr.trim().split("-");
         if (parts.length !== 3) return null;
         const day = parts[0];
@@ -2106,9 +2436,13 @@ function getCurrentGridPlates() {
         menu.style.display = "flex";
 
         const scopedRows = getCascadingRowsForColumn(columnKey);
-        const allUnique = [...new Set(scopedRows.map((r) => cleanVal(r[columnKey])))];
+        const allUnique = [
+          ...new Set(scopedRows.map((r) => cleanVal(r[columnKey]))),
+        ];
         if (activeFilters[columnKey]) {
-          tempFilterSelection = new Set(allUnique.filter((val) => activeFilters[columnKey].has(val)));
+          tempFilterSelection = new Set(
+            allUnique.filter((val) => activeFilters[columnKey].has(val)),
+          );
         } else {
           tempFilterSelection = new Set(allUnique);
         }
@@ -2168,8 +2502,14 @@ function getCurrentGridPlates() {
         container.innerHTML = "";
 
         const scopedRows = getCascadingRowsForColumn(columnKey);
-        const uniqueValues = [...new Set(scopedRows.map((r) => cleanVal(r[columnKey])))];
-        const searchTerms = searchTerm.trim().toLowerCase().split(/[\s,]+/).filter((t) => t.length > 0);
+        const uniqueValues = [
+          ...new Set(scopedRows.map((r) => cleanVal(r[columnKey]))),
+        ];
+        const searchTerms = searchTerm
+          .trim()
+          .toLowerCase()
+          .split(/[\s,]+/)
+          .filter((t) => t.length > 0);
 
         const filteredValues = uniqueValues.filter((val) => {
           if (searchTerms.length === 0) return true;
@@ -2190,17 +2530,20 @@ function getCurrentGridPlates() {
             const parsed = parseUIDateParts(val);
             if (!parsed) return;
             if (!tree[parsed.year]) tree[parsed.year] = {};
-            if (!tree[parsed.year][parsed.month]) tree[parsed.year][parsed.month] = [];
+            if (!tree[parsed.year][parsed.month])
+              tree[parsed.year][parsed.month] = [];
             tree[parsed.year][parsed.month].push(parsed.full);
           });
 
-          const sortedYears = Object.keys(tree).sort((a, b) => Number(a) - Number(b));
+          const sortedYears = Object.keys(tree).sort(
+            (a, b) => Number(a) - Number(b),
+          );
           const autoExpand = searchTerms.length > 0;
 
           sortedYears.forEach((yr) => {
             const monthsObj = tree[yr];
             const sortedMonths = Object.keys(monthsObj).sort(
-              (a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)
+              (a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b),
             );
 
             const yearNode = document.createElement("div");
@@ -2218,7 +2561,9 @@ function getCurrentGridPlates() {
             monthsContainer.className = `tree-children ${autoExpand ? "open" : ""}`;
 
             sortedMonths.forEach((mo) => {
-              const daysList = monthsObj[mo].sort((a, b) => Number(a.split("-")[0]) - Number(b.split("-")[0]));
+              const daysList = monthsObj[mo].sort(
+                (a, b) => Number(a.split("-")[0]) - Number(b.split("-")[0]),
+              );
               const monthNode = document.createElement("div");
               monthNode.className = "tree-node";
 
@@ -2272,7 +2617,9 @@ function getCurrentGridPlates() {
         }
 
         // Standard Flat List for Non-Date Columns
-        filteredValues.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        filteredValues.sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true }),
+        );
         filteredValues.forEach((val) => {
           const isChecked = tempFilterSelection.has(val);
           const label = document.createElement("label");
@@ -2289,7 +2636,9 @@ function getCurrentGridPlates() {
 
       function toggleTreeBranch(e, toggleEl) {
         e.stopPropagation();
-        const children = toggleEl.closest(".tree-node").querySelector(".tree-children");
+        const children = toggleEl
+          .closest(".tree-node")
+          .querySelector(".tree-children");
         if (!children) return;
         const isOpen = children.classList.toggle("open");
         toggleEl.textContent = isOpen ? "▼" : "▶";
@@ -2297,7 +2646,9 @@ function getCurrentGridPlates() {
 
       function onTreeYearChange(yearCb) {
         const yr = yearCb.getAttribute("data-year");
-        const dayCbs = document.querySelectorAll(`.col-filter-check[data-year="${yr}"]`);
+        const dayCbs = document.querySelectorAll(
+          `.col-filter-check[data-year="${yr}"]`,
+        );
         dayCbs.forEach((cb) => {
           cb.checked = yearCb.checked;
           if (yearCb.checked) tempFilterSelection.add(cb.value);
@@ -2310,7 +2661,9 @@ function getCurrentGridPlates() {
       function onTreeMonthChange(monthCb) {
         const yr = monthCb.getAttribute("data-year");
         const mo = monthCb.getAttribute("data-month");
-        const dayCbs = document.querySelectorAll(`.col-filter-check[data-year="${yr}"][data-month="${mo}"]`);
+        const dayCbs = document.querySelectorAll(
+          `.col-filter-check[data-year="${yr}"][data-month="${mo}"]`,
+        );
         dayCbs.forEach((cb) => {
           cb.checked = monthCb.checked;
           if (monthCb.checked) tempFilterSelection.add(cb.value);
@@ -2324,16 +2677,24 @@ function getCurrentGridPlates() {
         document.querySelectorAll(".tree-month-cb").forEach((mCb) => {
           const yr = mCb.getAttribute("data-year");
           const mo = mCb.getAttribute("data-month");
-          const all = document.querySelectorAll(`.col-filter-check[data-year="${yr}"][data-month="${mo}"]`);
-          const checked = document.querySelectorAll(`.col-filter-check[data-year="${yr}"][data-month="${mo}"]:checked`);
+          const all = document.querySelectorAll(
+            `.col-filter-check[data-year="${yr}"][data-month="${mo}"]`,
+          );
+          const checked = document.querySelectorAll(
+            `.col-filter-check[data-year="${yr}"][data-month="${mo}"]:checked`,
+          );
           mCb.checked = all.length > 0 && all.length === checked.length;
           mCb.indeterminate = checked.length > 0 && checked.length < all.length;
         });
 
         document.querySelectorAll(".tree-year-cb").forEach((yCb) => {
           const yr = yCb.getAttribute("data-year");
-          const all = document.querySelectorAll(`.col-filter-check[data-year="${yr}"]`);
-          const checked = document.querySelectorAll(`.col-filter-check[data-year="${yr}"]:checked`);
+          const all = document.querySelectorAll(
+            `.col-filter-check[data-year="${yr}"]`,
+          );
+          const checked = document.querySelectorAll(
+            `.col-filter-check[data-year="${yr}"]:checked`,
+          );
           yCb.checked = all.length > 0 && all.length === checked.length;
           yCb.indeterminate = checked.length > 0 && checked.length < all.length;
         });
@@ -2371,7 +2732,9 @@ function getCurrentGridPlates() {
 
       function syncSelectAllCheckbox() {
         const allCbs = document.querySelectorAll(".col-filter-check");
-        const checkedCbs = document.querySelectorAll(".col-filter-check:checked");
+        const checkedCbs = document.querySelectorAll(
+          ".col-filter-check:checked",
+        );
         const selectAll = document.getElementById("selectAllCheckbox");
         if (allCbs.length === 0) {
           selectAll.checked = false;
@@ -2392,7 +2755,9 @@ function getCurrentGridPlates() {
         if (!currentFilterKey) return;
 
         const scopedRows = getCascadingRowsForColumn(currentFilterKey);
-        const allUnique = [...new Set(scopedRows.map((r) => cleanVal(r[currentFilterKey])))];
+        const allUnique = [
+          ...new Set(scopedRows.map((r) => cleanVal(r[currentFilterKey]))),
+        ];
 
         if (tempFilterSelection.size === allUnique.length) {
           delete activeFilters[currentFilterKey];
@@ -2412,7 +2777,10 @@ function getCurrentGridPlates() {
         thButtons.forEach((btn) => {
           const fnStr = btn.getAttribute("onclick") || "";
           if (fnStr.includes(`'${currentFilterKey}'`)) {
-            if (activeFilters[currentFilterKey] || activeColorFilters[currentFilterKey]) {
+            if (
+              activeFilters[currentFilterKey] ||
+              activeColorFilters[currentFilterKey]
+            ) {
               btn.classList.add("active");
             } else {
               btn.classList.remove("active");
@@ -2466,17 +2834,20 @@ function getCurrentGridPlates() {
       }
 
       function openLog(logName) {
-    document.getElementById('quickLogSidebar').style.display = 'none';
-    document.getElementById('tempLogType').value = logName;
-    const drop = document.getElementById('logPlateDropdown');
-    
-    // 🟢 UI-ൽ കാണുന്ന ഫിൽട്ടർ/സോർട്ട് ഓർഡറിലുള്ള പ്ലേറ്റുകൾ ഡ്രോപ്പ്ഡൗണിൽ നൽകുന്നു
-    const currentList = getCurrentGridPlates();
-    const platesToUse = currentList.length > 0 ? currentList : [...new Set(globalPlates)];
+        document.getElementById("quickLogSidebar").style.display = "none";
+        document.getElementById("tempLogType").value = logName;
+        const drop = document.getElementById("logPlateDropdown");
 
-    drop.innerHTML = '<option value="">Select Plate No...</option>' + platesToUse.map(p => `<option value="${p}">${p}</option>`).join('');
-    document.getElementById('plateSelectModal').style.display = 'flex';
-}
+        // 🟢 UI-ൽ കാണുന്ന ഫിൽട്ടർ/സോർട്ട് ഓർഡറിലുള്ള പ്ലേറ്റുകൾ ഡ്രോപ്പ്ഡൗണിൽ നൽകുന്നു
+        const currentList = getCurrentGridPlates();
+        const platesToUse =
+          currentList.length > 0 ? currentList : [...new Set(globalPlates)];
+
+        drop.innerHTML =
+          '<option value="">Select Plate No...</option>' +
+          platesToUse.map((p) => `<option value="${p}">${p}</option>`).join("");
+        document.getElementById("plateSelectModal").style.display = "flex";
+      }
 
       function fetchLogData() {
         const plate = document.getElementById("logPlateDropdown").value;
@@ -2587,8 +2958,17 @@ function getCurrentGridPlates() {
           {
             type: "row",
             fields: [
-              { id: "f_passport_no", label: "Passport No.", type: "text", placeholder: "Enter Passport No" },
-              { id: "f_passport_expiry", label: "Passport Expiry", type: "date" },
+              {
+                id: "f_passport_no",
+                label: "Passport No.",
+                type: "text",
+                placeholder: "Enter Passport No",
+              },
+              {
+                id: "f_passport_expiry",
+                label: "Passport Expiry",
+                type: "date",
+              },
             ],
           },
         ],
@@ -2708,18 +3088,27 @@ function getCurrentGridPlates() {
 
         if (type === "Equipment") {
           thead.innerHTML = `<tr><th>Chassis No</th><th>Serial No</th><th>Insurance Exp</th><th>MVPI Exp</th><th>Op Card Exp</th><th>Isthimaara Exp</th></tr>`;
-          
+
           const currentEq = masterTableData.find(
-            (m) => String(m.plate_no || "").toUpperCase().trim() === String(plate || "").toUpperCase().trim()
+            (m) =>
+              String(m.plate_no || "")
+                .toUpperCase()
+                .trim() ===
+              String(plate || "")
+                .toUpperCase()
+                .trim(),
           );
 
           const setVal = (id, val, isDate = false) => {
             const el = document.getElementById(id);
             if (el) {
               if (isDate) {
-                el.value = (val && val !== "-" && val !== "null") ? String(val).split("T")[0] : "";
+                el.value =
+                  val && val !== "-" && val !== "null"
+                    ? String(val).split("T")[0]
+                    : "";
               } else {
-                el.value = (val && val !== "-" && val !== "null") ? val : "";
+                el.value = val && val !== "-" && val !== "null" ? val : "";
               }
             }
           };
@@ -2945,37 +3334,46 @@ function getCurrentGridPlates() {
       }
 
       async function changePlate() {
-    const currentType = document.getElementById('activeLogType').value;
-    const currentPlate = document.getElementById('activeLogPlate').value;
-    
-    if (logHasUnsavedData(currentType)) {
-        const isSaved = await saveLogEntry(true);
-        if (!isSaved) return;
-    }
+        const currentType = document.getElementById("activeLogType").value;
+        const currentPlate = document.getElementById("activeLogPlate").value;
 
-    // 🟢 നിലവിൽ ടേബിളിൽ ഉള്ള ഓർഡറിലെ അടുത്ത പ്ലേറ്റ് എടുക്കുന്നു
-    const currentGridPlates = getCurrentGridPlates();
-    const uniquePlatesList = currentGridPlates.length > 0 ? currentGridPlates : [...new Set(globalPlates)];
-    
-    const currentIndex = uniquePlatesList.indexOf(currentPlate);
-    let nextIndex = currentIndex + 1;
-    
-    if (nextIndex >= uniquePlatesList.length) {
-        nextIndex = 0; // അവസാനത്തെ പ്ലേറ്റ് കഴിഞ്ഞാൽ വീണ്ടും ആദ്യത്തേതിലേക്ക്
-    }
+        if (logHasUnsavedData(currentType)) {
+          const isSaved = await saveLogEntry(true);
+          if (!isSaved) return;
+        }
 
-    const nextPlate = uniquePlatesList[nextIndex];
-    if (!nextPlate) return;
-    
-    document.getElementById('activeLogPlate').value = nextPlate;
-    const titleLabel = currentType === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : currentType === 'Equipment' ? '🚜 Equipment' : `📂 ${currentType}`;
-    document.getElementById('splitLogTitle').innerText = `${titleLabel} - ${nextPlate}`;
-    document.getElementById('editLogId').value = '';
-    document.getElementById('editSanthookLogId').value = '';
-    
-    renderLogForm(currentType); 
-    loadLogHistory(currentType, nextPlate); 
-}
+        // 🟢 നിലവിൽ ടേബിളിൽ ഉള്ള ഓർഡറിലെ അടുത്ത പ്ലേറ്റ് എടുക്കുന്നു
+        const currentGridPlates = getCurrentGridPlates();
+        const uniquePlatesList =
+          currentGridPlates.length > 0
+            ? currentGridPlates
+            : [...new Set(globalPlates)];
+
+        const currentIndex = uniquePlatesList.indexOf(currentPlate);
+        let nextIndex = currentIndex + 1;
+
+        if (nextIndex >= uniquePlatesList.length) {
+          nextIndex = 0; // അവസാനത്തെ പ്ലേറ്റ് കഴിഞ്ഞാൽ വീണ്ടും ആദ്യത്തേതിലേക്ക്
+        }
+
+        const nextPlate = uniquePlatesList[nextIndex];
+        if (!nextPlate) return;
+
+        document.getElementById("activeLogPlate").value = nextPlate;
+        const titleLabel =
+          currentType === "VehicleTypeLog"
+            ? "🚜 Vehicle Type & Santhook"
+            : currentType === "Equipment"
+              ? "🚜 Equipment"
+              : `📂 ${currentType}`;
+        document.getElementById("splitLogTitle").innerText =
+          `${titleLabel} - ${nextPlate}`;
+        document.getElementById("editLogId").value = "";
+        document.getElementById("editSanthookLogId").value = "";
+
+        renderLogForm(currentType);
+        loadLogHistory(currentType, nextPlate);
+      }
 
       async function saveLogEntry(isAutoSave = false) {
         const type = document.getElementById("activeLogType").value;
@@ -2986,12 +3384,20 @@ function getCurrentGridPlates() {
         if (type === "Equipment") {
           const payload = {
             plate_no: plate,
-            chassis_no: (document.getElementById("f_chassis_no")?.value || "").trim(),
-            serial_no: (document.getElementById("f_serial_no")?.value || "").trim(),
-            eq_insurance_exp: document.getElementById("f_eq_insurance_exp")?.value || null,
-            fahs_mvpi_exp: document.getElementById("f_fahs_mvpi_exp")?.value || null,
-            op_card_exp: document.getElementById("f_op_card_exp")?.value || null,
-            isthimaara_exp: document.getElementById("f_isthimaara_exp")?.value || null,
+            chassis_no: (
+              document.getElementById("f_chassis_no")?.value || ""
+            ).trim(),
+            serial_no: (
+              document.getElementById("f_serial_no")?.value || ""
+            ).trim(),
+            eq_insurance_exp:
+              document.getElementById("f_eq_insurance_exp")?.value || null,
+            fahs_mvpi_exp:
+              document.getElementById("f_fahs_mvpi_exp")?.value || null,
+            op_card_exp:
+              document.getElementById("f_op_card_exp")?.value || null,
+            isthimaara_exp:
+              document.getElementById("f_isthimaara_exp")?.value || null,
           };
 
           try {
@@ -3265,9 +3671,11 @@ function getCurrentGridPlates() {
                 </div>
             </div>
         `;
-        
+
         // 🟢 Screen size അനുസരിച്ച് Responsive Width നൽകുന്നു
-        const modalContent = document.querySelector("#commonModal .modal-content");
+        const modalContent = document.querySelector(
+          "#commonModal .modal-content",
+        );
         if (modalContent) {
           modalContent.style.width = "1180px";
           modalContent.style.maxWidth = "94vw";
@@ -3278,7 +3686,9 @@ function getCurrentGridPlates() {
       }
 
       function closeModal() {
-        const modalContent = document.querySelector("#commonModal .modal-content");
+        const modalContent = document.querySelector(
+          "#commonModal .modal-content",
+        );
         if (modalContent) {
           modalContent.style.width = "400px";
           modalContent.style.maxWidth = "90%";
@@ -3307,21 +3717,25 @@ function getCurrentGridPlates() {
           salary: document.getElementById("newSalary").value || null,
           status: !document.getElementById("newMobDate").value
             ? "Ideal"
-            : (document.getElementById("newStatus").value || "Running"),
+            : document.getElementById("newStatus").value || "Running",
           note: document.getElementById("newNote").value.trim(),
           old_eq: document.getElementById("newOldEq").value.trim(),
           new_eq: document.getElementById("newNewEq").value.trim(),
           iqama_no: document.getElementById("newIqamaNo").value.trim(),
           iqama_expiry: document.getElementById("newIqamaExp").value || null,
-          licence_expiry: document.getElementById("newLicenceExp").value || null,
+          licence_expiry:
+            document.getElementById("newLicenceExp").value || null,
           passport_no: document.getElementById("newPassportNo").value.trim(),
-          passport_expiry: document.getElementById("newPassportExp").value || null,
+          passport_expiry:
+            document.getElementById("newPassportExp").value || null,
           chassis_no: document.getElementById("newChassisNo").value.trim(),
           serial_no: document.getElementById("newSerialNo").value.trim(),
-          eq_insurance_exp: document.getElementById("newEqInsuranceExp").value || null,
+          eq_insurance_exp:
+            document.getElementById("newEqInsuranceExp").value || null,
           fahs_mvpi_exp: document.getElementById("newFahsExp").value || null,
           op_card_exp: document.getElementById("newOpCardExp").value || null,
-          isthimaara_exp: document.getElementById("newIsthimaaraExp").value || null
+          isthimaara_exp:
+            document.getElementById("newIsthimaaraExp").value || null,
         };
 
         try {
@@ -3469,7 +3883,9 @@ function getCurrentGridPlates() {
       }
 
       async function runExcelExport(mode) {
-        const filteredOnly = Boolean(document.getElementById("exportFilteredOnlyCb")?.checked);
+        const filteredOnly = Boolean(
+          document.getElementById("exportFilteredOnlyCb")?.checked,
+        );
         const plateNos = filteredOnly ? getVisibleFilteredPlates() : [];
 
         if (filteredOnly && plateNos.length === 0) {
