@@ -904,8 +904,130 @@
         overflow-y: auto;
       }
       .edit-bill-modal {
-        width: 650px;
-        max-width: 95vw;
+        width: 940px;
+        max-width: 96vw;
+      }
+
+      /* Light / Dark theme for popups */
+      :root {
+        --pop-bg: #ffffff;
+        --pop-text: #0f172a;
+        --pop-muted: #475569;
+        --pop-border: #cbd5e1;
+        --pop-input-bg: #ffffff;
+        --pop-head-bg: #f1f5f9;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --pop-bg: #1e293b;
+          --pop-text: #f1f5f9;
+          --pop-muted: #94a3b8;
+          --pop-border: #475569;
+          --pop-input-bg: #0f172a;
+          --pop-head-bg: #334155;
+        }
+      }
+      .modal-card {
+        background: var(--pop-bg);
+        color: var(--pop-text);
+      }
+      .modal-card .modal-header h2 {
+        color: var(--pop-text);
+      }
+      .modal-card .modal-header,
+      .modal-card .modal-footer {
+        border-color: var(--pop-border);
+      }
+      .modal-card .form-group label {
+        color: var(--pop-muted);
+      }
+      .modal-card .form-input {
+        background: var(--pop-input-bg);
+        color: var(--pop-text);
+        border-color: var(--pop-border);
+      }
+      .modal-card .readonly-input {
+        background: var(--pop-head-bg);
+      }
+      .edit-items-wrap {
+        max-height: 280px;
+        overflow: auto;
+        margin-top: 8px;
+        border: 1px solid var(--pop-border);
+        border-radius: 6px;
+      }
+      .edit-items-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .edit-items-table th,
+      .edit-items-table td {
+        border: 1px solid var(--pop-border);
+        padding: 4px;
+        text-align: center;
+        color: var(--pop-text);
+      }
+      .edit-items-table th {
+        background: var(--pop-head-bg);
+        position: sticky;
+        top: 0;
+      }
+      .edit-items-table input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 5px;
+        border: 1px solid var(--pop-border);
+        border-radius: 4px;
+        background: var(--pop-input-bg);
+        color: var(--pop-text);
+        font-size: 12px;
+        text-align: center;
+      }
+      .edit-items-table input.desc {
+        text-align: left;
+      }
+      .sync-report {
+        max-height: 240px;
+        overflow-y: auto;
+        margin: 10px 0;
+        border: 1px solid var(--pop-border);
+        border-radius: 6px;
+      }
+      .sync-item {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--pop-border);
+        font-size: 12px;
+        color: var(--pop-text);
+      }
+      .sync-item:last-child {
+        border-bottom: none;
+      }
+      .sync-item-head {
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .sync-item-sub {
+        color: var(--pop-muted);
+        font-size: 11px;
+        font-family: monospace;
+      }
+      .sync-field {
+        display: flex;
+        justify-content: space-between;
+        font-family: monospace;
+        padding: 1px 0;
+      }
+      .sync-old {
+        color: #ef4444;
+        text-decoration: line-through;
+      }
+      .sync-new {
+        color: #10b981;
+        font-weight: 700;
+      }
+      .edit-items-table input[readonly] {
+        opacity: 0.6;
       }
       .cust-modal {
         width: 680px;
@@ -1435,6 +1557,19 @@
             </div>
             <div id="remarksDisplayText"></div>
           </div>
+          <div
+            id="exactRateNote"
+            style="
+              display: none;
+              width: 100%;
+              margin-top: 8px;
+              font-size: 10.5px;
+              line-height: 1.4;
+              color: #334155;
+              text-align: left;
+              direction: ltr;
+            "
+          ></div>
         </div>
       </div>
 
@@ -1520,12 +1655,55 @@
           ></textarea>
         </div>
 
+        <div class="form-group" style="margin-top: 5px">
+          <label>Bill Items (edit qty / rate / VAT):</label>
+          <div class="edit-items-wrap">
+            <table class="edit-items-table">
+              <thead>
+                <tr>
+                  <th style="width: 30px">#</th>
+                  <th>Description</th>
+                  <th>Arabic</th>
+                  <th style="width: 80px">Qty</th>
+                  <th style="width: 90px">Rate</th>
+                  <th style="width: 60px">VAT %</th>
+                  <th style="width: 90px">Sub</th>
+                  <th style="width: 90px">Total</th>
+                </tr>
+              </thead>
+              <tbody id="editItemsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="modal-footer">
           <button class="btn-ribbon btn-dash" onclick="closeEditBillModal()">
             Cancel
           </button>
           <button class="btn-ribbon btn-pdf" onclick="applyBillModalChanges()">
             Apply Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sync to Billing Confirmation -->
+    <div class="modal-backdrop" id="syncConfirmModal">
+      <div class="modal-card small-modal" style="width: 560px">
+        <div class="modal-header">
+          <h2 style="font-size: 16px">🔄 Update Billing Screen?</h2>
+        </div>
+        <p
+          id="syncConfirmMsg"
+          style="font-size: 13px; line-height: 1.5; color: var(--pop-muted)"
+        ></p>
+        <div class="sync-report" id="syncChangeList"></div>
+        <div class="modal-footer">
+          <button class="btn-ribbon btn-dash" onclick="answerSyncPopup(false)">
+            No, only here
+          </button>
+          <button class="btn-ribbon btn-pdf" onclick="answerSyncPopup(true)">
+            Yes, update Billing
           </button>
         </div>
       </div>
@@ -2154,7 +2332,36 @@
         let seqCount = 0;
         const incomingRows = incoming.rows || incoming.manual_items || [];
 
+        let _tagFrom = 0,
+          _tagRow = null;
+        const _tagPrev = () => {
+          if (_tagRow) {
+            const r = _tagRow;
+            for (let k = _tagFrom; k < activeBillItems.length; k++) {
+              const it = activeBillItems[k];
+              let p = (r.plate || r.plate_no || "").trim();
+              if (!p) {
+                const m = (it.vtype || "").match(/\(([^)]+)\)/);
+                if (m) p = m[1].trim();
+              }
+              it.plate = p;
+              it.site_name = r.site_name || r.site || "";
+              it.kind = /^Over Time/i.test(it.vtype || "") ? "OT" : "N";
+              it.flat =
+                r.flat !== undefined
+                  ? !!r.flat
+                  : r.qty === undefined &&
+                    !(parseFloat(r.nhr) > 0) &&
+                    !(parseFloat(r.othr) > 0);
+            }
+          }
+          _tagFrom = activeBillItems.length;
+          _tagRow = null;
+        };
+
         for (let row of incomingRows) {
+          _tagPrev();
+          _tagRow = row;
           // If already fully formatted manual item from saved payload with subTotal & qty
           if (
             row.subTotal !== undefined &&
@@ -2202,9 +2409,9 @@
           if (othr > 0 && nhr > 0) {
             // Normal Hour portion
             seqCount++;
-            const nSub = Number((nhr * nrate).toFixed(2));
-            const nVat = Number((nSub * (vatPct / 100)).toFixed(2));
-            const nTot = Number((nSub + nVat).toFixed(2));
+            const nSub = nhr * nrate;
+            const nVat = nSub * (vatPct / 100);
+            const nTot = nSub + nVat;
 
             activeBillItems.push({
               seq: String(seqCount),
@@ -2302,6 +2509,7 @@
           }
         }
 
+        _tagPrev();
         renderInvoiceViewTable();
 
         // 🟢 Check if more than 1 unique plate exists to show Split Button
@@ -2780,14 +2988,14 @@
           aljodaContainer.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; margin-bottom:8px;">
               <div class="hide-on-page-2" style="display:flex; flex-direction:column; align-items:flex-start; text-align:left; max-width:48%;">
-                <span id="aljodaBuyerNameVal" style="font-family:'Tajawal',sans-serif; font-weight:800; font-size:16px; color:#0f172a; line-height:1.3; padding-top: 20px;">${currentBuyer}</span>
-                <span id="aljodaBuyerVatVal" style="font-family:monospace; font-weight:700; font-size:13px; color:var(--primary-dark); margin-top:4px;">${currentVat}</span>
-                <div style="height:28px; width:100%;"></div>
-                <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start;">
+                <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start; padding-top: 20px;">
                   <span id="aljodaInvNoVal" class="aljoda-pill">${currentInv}</span>
                   <span id="aljodaDateVal" class="aljoda-pill">${currentDate}</span>
                   <span id="aljodaSupplyVal" class="aljoda-pill">${currentSupply}</span>
                 </div>
+                <div style="height:14px; width:100%;"></div>
+                <span id="aljodaBuyerNameVal" style="font-family:'Tajawal',sans-serif; font-weight:800; font-size:16px; color:#0f172a; line-height:1.3;">${currentBuyer}</span>
+                <span id="aljodaBuyerVatVal" style="font-family:monospace; font-weight:700; font-size:13px; color:var(--primary-dark); margin-top:4px;">${currentVat}</span>
               </div>
               <div style="display:flex; flex-direction:column; align-items:flex-end; text-align:right; max-width:50%;">
                 ${compData.logo_url ? `<img src="${compData.logo_url}" style="max-height:85px; max-width:200px; object-fit:contain; margin-bottom:6px;" alt="Logo" />` : ""}
@@ -2887,7 +3095,7 @@
             <tr>
               <td>${idx + 1}</td>
               <td style="${alignStyle} font-weight:600; line-height:1.3;">${vehicleCellContent}</td>
-              <td>${qty}</td>
+              <td>${fmtNum(qty)}</td>
               <td>${rate.toFixed(2)}</td>
               <td>${rowSub.toFixed(2)}</td>
               <td>${rowVat.toFixed(2)}</td>
@@ -2924,7 +3132,41 @@
             ? incomingGrand
             : grandTotal
         ).toFixed(2);
+        updateExactRateNote();
         updateZatcaQrCode();
+      }
+
+      function updateExactRateNote() {
+        const box = document.getElementById("exactRateNote");
+        if (!box) return;
+
+        const seen = new Set();
+        const parts = [];
+        activeBillItems.forEach((it) => {
+          const isOT =
+            it.kind === "OT" || /^Over Time/i.test(it.vtype || "");
+          if (isOT || it.flat) return;
+          const rate = parseFloat(it.rate) || 0;
+          if (!rate) return;
+
+          const label = (it.vtype || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+          const rateStr = String(+rate.toFixed(6));
+          const key = `${label}|${rateStr}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          parts.push(`${escAttr(label)}: <b>${rateStr}</b>`);
+        });
+
+        if (parts.length === 0) {
+          box.style.display = "none";
+          box.innerHTML = "";
+          return;
+        }
+
+        box.innerHTML = `
+          <div><b>Exact hourly rate:</b> ${parts.join(" &nbsp;|&nbsp; ")}</div>
+          <div>Note: This is a computer-generated bill. Calculations use exact rates, so figures shown to 2 decimals may differ slightly.</div>`;
+        box.style.display = "block";
       }
 
       function openEditBillModal() {
@@ -2937,6 +3179,7 @@
           fixedSupplyMonth;
         document.getElementById("modalBuyerName").value = getActiveVendorName();
         document.getElementById("modalBuyerVat").value = getActiveVendorVat();
+        renderEditItemsTable();
         document.getElementById("editBillModal").style.display = "flex";
       }
 
@@ -2958,9 +3201,309 @@
         }
 
         setVendorDetails(vName, vVat);
+
+        // ---- Items edit apply ----
+        const edits = readEditRows();
+        const changedKeys = new Set();
+        const changeReport = [];
+        let anyItemChange = false;
+        edits.forEach((e, i) => {
+          const it = allCombinedItemsBackup[i];
+          if (!it || !e.dirty) return;
+          anyItemChange = true;
+          if (e.vtype) {
+            it.vtype = e.sfx && it.plate ? `${e.vtype} (${it.plate})` : e.vtype;
+          }
+          it.vtype_ar = e.vtype_ar;
+          if (e.numChanged) {
+            const oldTot = parseFloat(it.total) || 0;
+            const c = calcEditedItem(it, e);
+            const fields = [];
+            if (e.qChanged)
+              fields.push({ label: "Qty", from: fmt4(it.qty), to: fmt4(e.qty) });
+            if (e.rChanged)
+              fields.push({ label: "Rate", from: fmt4(it.rate), to: fmt4(e.rate) });
+            if (e.vChanged)
+              fields.push({
+                label: "VAT %",
+                from: fmt4(it.vatPercent),
+                to: fmt4(e.vat),
+              });
+            changeReport.push({
+              seq: i + 1,
+              desc: it.vtype,
+              plate: it.plate || "",
+              site: it.site_name || "",
+              fields,
+              oldTot,
+              newTot: c.tot,
+            });
+            it.qty = e.qty;
+            if (e.rate !== null) it.rate = e.rate;
+            it.vatPercent = e.vat;
+            it.subTotal = c.sub;
+            it.vatAmount = c.vatAmt;
+            it.total = c.tot;
+            changedKeys.add(`${it.plate || ""}|${it.site_name || ""}`);
+          }
+        });
+
+        if (anyItemChange) {
+          if (originalIncomingPayload) {
+            originalIncomingPayload.rows = null;
+            originalIncomingPayload.manual_items = allCombinedItemsBackup;
+            originalIncomingPayload.grandTotal = null;
+            originalIncomingPayload.grandVat = null;
+            originalIncomingPayload.grandRent = null;
+          }
+          activeBillItems =
+            currentSelectedPlate === "ALL"
+              ? JSON.parse(JSON.stringify(allCombinedItemsBackup))
+              : allCombinedItemsBackup.filter((it) =>
+                  (it.vtype || "").includes(`(${currentSelectedPlate})`),
+                );
+          renderInvoiceViewTable();
+        }
+
         updateRemarksDisplay();
         updateZatcaQrCode();
         closeEditBillModal();
+
+        if (
+          changedKeys.size > 0 &&
+          originalIncomingPayload &&
+          originalIncomingPayload.billingMonth
+        ) {
+          const ok = await askSyncToBilling(changeReport);
+          if (ok) await syncChangesToBilling(changedKeys);
+        }
+      }
+
+      function escAttr(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;");
+      }
+
+      function fmtNum(n) {
+        return String(+(parseFloat(n) || 0).toFixed(2));
+      }
+
+      function fmt4(n) {
+        return String(+(parseFloat(n) || 0).toFixed(4));
+      }
+
+      function renderEditItemsTable() {
+        const tb = document.getElementById("editItemsBody");
+        if (!tb) return;
+        tb.innerHTML = "";
+        allCombinedItemsBackup.forEach((it, i) => {
+          const full = it.vtype || "";
+          const sfx = !!(it.plate && full.endsWith(`(${it.plate})`));
+          const base = sfx ? full.slice(0, full.lastIndexOf("(")).trim() : full;
+          const isOT = it.kind === "OT";
+          const q = fmt4(it.qty);
+          const r = fmt4(it.rate);
+          const v = fmt4(it.vatPercent !== undefined ? it.vatPercent : 15);
+          const inp = (f, val, extra = "", type = "text") =>
+            `<input type="text" ${type === "number" ? 'inputmode="decimal" autocomplete="off" data-num="1"' : ""} data-f="${f}" value="${escAttr(val)}" data-orig="${escAttr(val)}" ${extra}>`;
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${inp("vtype", base, `class="desc" data-sfx="${sfx ? 1 : ""}" ${isOT ? "readonly" : ""}`)}</td>
+            <td>${inp("vtype_ar", it.vtype_ar || "", 'dir="rtl"')}</td>
+            <td>${inp("qty", q, "", "number")}</td>
+            <td>${inp("rate", r, "", "number")}</td>
+            <td>${inp("vat", v, "", "number")}</td>
+            <td class="e-sub"></td>
+            <td class="e-tot"></td>`;
+          tb.appendChild(tr);
+        });
+        tb.querySelectorAll("input").forEach((inp) =>
+          inp.addEventListener("input", () => {
+            if (inp.dataset.num) {
+              inp.value = inp.value
+                .replace(/[^0-9.]/g, "")
+                .replace(/^(\d*\.\d*).*$/, "$1");
+            }
+            recalcEditPreview();
+          }),
+        );
+        recalcEditPreview();
+      }
+
+      function readEditRows() {
+        return [...document.querySelectorAll("#editItemsBody tr")].map((tr) => {
+          const g = (f) => tr.querySelector(`[data-f="${f}"]`);
+          const qI = g("qty"),
+            rI = g("rate"),
+            vI = g("vat"),
+            dI = g("vtype"),
+            aI = g("vtype_ar");
+          const numChanged =
+            qI.value !== qI.dataset.orig ||
+            rI.value !== rI.dataset.orig ||
+            vI.value !== vI.dataset.orig;
+          return {
+            vtype: dI.value.trim(),
+            sfx: !!dI.dataset.sfx,
+            vtype_ar: aI.value.trim(),
+            qty: parseFloat(qI.value) || 0,
+            rate: rI.value === rI.dataset.orig ? null : parseFloat(rI.value) || 0,
+            vat: parseFloat(vI.value) || 0,
+            numChanged,
+            qChanged: qI.value !== qI.dataset.orig,
+            rChanged: rI.value !== rI.dataset.orig,
+            vChanged: vI.value !== vI.dataset.orig,
+            dirty:
+              numChanged ||
+              dI.value !== dI.dataset.orig ||
+              aI.value !== aI.dataset.orig,
+          };
+        });
+      }
+
+      // numbers മാറ്റിയാൽ മാത്രം recalc (raw precision), അല്ലെങ്കിൽ പഴയ value
+      function calcEditedItem(it, e) {
+        if (!e.numChanged) {
+          return {
+            sub: parseFloat(it.subTotal) || 0,
+            vatAmt: parseFloat(it.vatAmount) || 0,
+            tot: parseFloat(it.total) || 0,
+          };
+        }
+        const rate = e.rate === null ? parseFloat(it.rate) || 0 : e.rate;
+        const sub = e.qty * rate;
+        const vatAmt = sub * (e.vat / 100);
+        return { sub, vatAmt, tot: sub + vatAmt };
+      }
+
+      function recalcEditPreview() {
+        const edits = readEditRows();
+        const rows = document.querySelectorAll("#editItemsBody tr");
+        edits.forEach((e, i) => {
+          const it = allCombinedItemsBackup[i];
+          if (!it || !rows[i]) return;
+          const c = calcEditedItem(it, e);
+          rows[i].querySelector(".e-sub").innerText = c.sub.toFixed(2);
+          rows[i].querySelector(".e-tot").innerText = c.tot.toFixed(2);
+        });
+      }
+
+      let _syncResolve = null;
+      function askSyncToBilling(report = []) {
+        return new Promise((res) => {
+          _syncResolve = res;
+
+          const changedLabels = [];
+          report.forEach((r) =>
+            r.fields.forEach((f) => {
+              if (!changedLabels.includes(f.label)) changedLabels.push(f.label);
+            }),
+          );
+          let labelText = changedLabels.join(", ");
+          if (changedLabels.length > 1) {
+            labelText =
+              changedLabels.slice(0, -1).join(", ") +
+              " and " +
+              changedLabels[changedLabels.length - 1];
+          }
+          const n = report.length;
+          document.getElementById("syncConfirmMsg").innerText =
+            `${labelText} changed in ${n} item${n > 1 ? "s" : ""} of this Vendor Bill. Do you want to apply these changes to the Billing records as well?`;
+
+          const box = document.getElementById("syncChangeList");
+          box.innerHTML = report
+            .map(
+              (r) => `
+            <div class="sync-item">
+              <div class="sync-item-head">#${r.seq} ${escAttr(r.desc)}</div>
+              <div class="sync-item-sub">${escAttr(r.plate)}${r.site ? " | " + escAttr(r.site) : ""}</div>
+              ${r.fields
+                .map(
+                  (f) => `
+                <div class="sync-field">
+                  <span>${f.label}</span>
+                  <span><span class="sync-old">${f.from}</span> ➔ <span class="sync-new">${f.to}</span></span>
+                </div>`,
+                )
+                .join("")}
+              <div class="sync-field" style="border-top:1px dashed var(--pop-border); margin-top:3px; padding-top:3px;">
+                <span>Total</span>
+                <span><span class="sync-old">${r.oldTot.toFixed(2)}</span> ➔ <span class="sync-new">${r.newTot.toFixed(2)}</span></span>
+              </div>
+            </div>`,
+            )
+            .join("");
+          document.getElementById("syncConfirmModal").style.display = "flex";
+        });
+      }
+      function answerSyncPopup(val) {
+        document.getElementById("syncConfirmModal").style.display = "none";
+        if (_syncResolve) {
+          _syncResolve(val);
+          _syncResolve = null;
+        }
+      }
+
+      async function syncChangesToBilling(keys) {
+        const groups = [];
+        keys.forEach((key) => {
+          const items = allCombinedItemsBackup.filter(
+            (it) => `${it.plate || ""}|${it.site_name || ""}` === key,
+          );
+          if (!items.length || !items[0].plate) return;
+          let nhr = 0,
+            othr = 0,
+            rent = 0,
+            nrate = null,
+            otrate = null;
+          items.forEach((it) => {
+            rent += parseFloat(it.subTotal) || 0;
+            if (it.flat) return;
+            const q = parseFloat(it.qty) || 0;
+            if (it.kind === "OT") {
+              othr += q;
+              otrate = parseFloat(it.rate) || 0;
+            } else {
+              nhr += q;
+              nrate = parseFloat(it.rate) || 0;
+            }
+          });
+          groups.push({
+            plate: items[0].plate,
+            site_name: items[0].site_name || "",
+            nhr,
+            othr,
+            nrate,
+            otrate,
+            rent,
+            vat_percent: parseFloat(items[0].vatPercent) || 0,
+          });
+        });
+        if (!groups.length) return;
+
+        try {
+          showPdfToast("Updating Billing records...", true);
+          const res = await fetch("/vendor-bill/api/sync-to-billing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              billing_month: originalIncomingPayload.billingMonth,
+              groups,
+            }),
+          });
+          const data = await res.json();
+          showPdfToast(
+            data.success
+              ? `✅ Billing updated (${data.updated} record)`
+              : "❌ " + (data.message || "Billing update failed"),
+            false,
+          );
+        } catch (e) {
+          showPdfToast("❌ Connection error while updating Billing.", false);
+        }
       }
 
       function updateRemarksDisplay() {

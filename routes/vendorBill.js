@@ -445,4 +445,63 @@ router.post("/api/delete-invoice", async (req, res) => {
   }
 });
 
+// 🟢 Vendor Bill-ൽ വരുത്തിയ qty/rate/VAT മാറ്റങ്ങൾ billing_records-ലേക്ക് sync ചെയ്യുന്നു
+router.post("/api/sync-to-billing", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { billing_month, groups } = req.body;
+    if (!billing_month || !Array.isArray(groups) || groups.length === 0) {
+      return res.status(400).json({ success: false, message: "billing_month and groups are required." });
+    }
+
+    await client.query("BEGIN");
+    let updated = 0;
+
+    for (const g of groups) {
+      const rawPlate = String(g.plate || "").trim().toUpperCase();
+      if (!rawPlate) continue;
+
+      const plates = [...new Set([
+        rawPlate,
+        ...rawPlate.split(/➔|→|->/).map(p => p.trim()).filter(Boolean),
+      ])];
+
+      const nhr = parseFloat(g.nhr) || 0;
+      const othr = parseFloat(g.othr) || 0;
+      const nrate = g.nrate === null || g.nrate === undefined ? null : parseFloat(g.nrate);
+      const otrate = g.otrate === null || g.otrate === undefined ? null : parseFloat(g.otrate);
+      const rent = Number((parseFloat(g.rent) || 0).toFixed(2));
+      const vatPct = parseFloat(g.vat_percent) || 0;
+      const vatAmt = Number((rent * (vatPct / 100)).toFixed(2));
+      const total = Number((rent + vatAmt).toFixed(2));
+
+      const r = await client.query(
+        `UPDATE billing_records
+            SET nhr = $1,
+                othr = $2,
+                nrate = COALESCE($3::numeric, nrate),
+                otrate = COALESCE($4::numeric, otrate),
+                rent = $5,
+                vat_percent = $6,
+                vat_amount = $7,
+                total = $8::numeric,
+                after_adjustment = $8::numeric + COALESCE(adjusted_amount, 0)
+          WHERE billing_month = $9
+            AND UPPER(TRIM(plate_no)) = ANY($10::text[])
+            AND ($11::text = '' OR LOWER(TRIM(site_name)) = LOWER(TRIM($11::text)))`,
+        [nhr, othr, nrate, otrate, rent, vatPct, vatAmt, total, billing_month, plates, String(g.site_name || "").trim()]
+      );
+      updated += r.rowCount;
+    }
+
+    await client.query("COMMIT");
+    res.json({ success: true, updated });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
