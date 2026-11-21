@@ -2271,6 +2271,7 @@
         const siteTotals = supData.sites.map(() => ({
           amount: 0,
           vendor_ts: 0,
+          unbilled_ts: 0,
           quick_dice_total: 0,
           quick_dice_count: 0,
         }));
@@ -2305,10 +2306,20 @@
               );
               if (!isNaN(parsedAmt)) siteTotals[sIdx].amount += parsedAmt;
 
+              const hasBillNo = String(bill.bill_no || "").trim() !== "";
+              const hasAmt = String(bill.amount || "").trim() !== "";
+              const hasOtherEntry = hasBillNo || hasAmt || hasValue;
+
               const parsedErp = parseFloat(
                 String(bill.erp_total || "").replace(/,/g, ""),
               );
-              if (!isNaN(parsedErp)) siteTotals[sIdx].vendor_ts += parsedErp;
+              if (!isNaN(parsedErp) && parsedErp > 0) {
+                if (hasOtherEntry) {
+                  siteTotals[sIdx].vendor_ts += parsedErp;
+                } else {
+                  siteTotals[sIdx].unbilled_ts += parsedErp;
+                }
+              }
 
               if (hasValue) {
                 siteTotals[sIdx].quick_dice_count += 1;
@@ -2432,10 +2443,15 @@
 
         supData.sites.forEach((site, sIdx) => {
           const tot = siteTotals[sIdx];
+          const unbilledTsFormatted =
+            tot.unbilled_ts > 0 ? formatCleanDecimal(tot.unbilled_ts) : "";
+          const fullVendorTs = Number(
+            (tot.vendor_ts + tot.unbilled_ts).toFixed(2),
+          );
           const amtFormatted =
             tot.amount > 0 ? formatCleanDecimal(tot.amount) : "";
           const tsFormatted =
-            tot.vendor_ts > 0 ? formatCleanDecimal(tot.vendor_ts) : "";
+            fullVendorTs > 0 ? formatCleanDecimal(fullVendorTs) : "";
           const qdFormatted =
             tot.quick_dice_total > 0
               ? formatCleanDecimal(tot.quick_dice_total)
@@ -2444,8 +2460,8 @@
                 : "";
 
           totalRowHtml += `
-                    <td style="background: #f8fafc; color: #64748b; font-weight: 700; font-size: 11px;">
-                        <div class="cell-content"></div>
+                    <td style="background: #fef3c7; color: #b45309; font-weight: 800; font-size: 11px;" title="Unbilled Vendor TS (Rows with Vendor TS only)">
+                        <div class="cell-content">${unbilledTsFormatted}</div>
                     </td>
                     <td style="background: #f8fafc; color: #0f172a; font-weight: 800; font-size: 11px;" title="Bill Amount Total">
                         <div class="cell-content">${amtFormatted}</div>
@@ -2478,7 +2494,7 @@
           return `<td colspan="2" style="${style} font-size: 11.5px;" title="${labelTooltip}"><div class="cell-content">${diffText}</div></td>`;
         };
 
-        // 🟢 1. Vendor - Quick Dice Row
+        // 🟢 1. Vendor - Quick Dice Row (Excludes unbilled Vendor TS-only rows)
         let rowVendorMinusQd = `
           <tr style="background: #f8fafc; font-weight: 700;">
             <td class="month-col" style="background: #e2e8f0; font-size: 10.5px; font-weight: 800;">
@@ -2492,12 +2508,12 @@
             <td colspan="2" style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 700;">
               <div class="cell-content">Vendor - Quick Dice</div>
             </td>
-            ${buildDiffCell(tot.vendor_ts, tot.quick_dice_total, hasData, "Vendor TS Total - Quick Dice Total")}
+            ${buildDiffCell(tot.vendor_ts, tot.quick_dice_total, hasData, "Billed Vendor TS - Quick Dice Total")}
           `;
         });
         rowVendorMinusQd += `</tr>`;
 
-        // 🟢 2. Vendor - Bill (Amount) Row
+        // 🟢 2. Vendor - Bill (Amount) Row (Excludes unbilled Vendor TS-only rows)
         let rowVendorMinusBill = `
           <tr style="background: #f8fafc; font-weight: 700;">
             <td class="month-col" style="background: #e2e8f0; font-size: 10.5px; font-weight: 800;">
@@ -2511,7 +2527,7 @@
             <td colspan="2" style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 700;">
               <div class="cell-content">Vendor - Bill</div>
             </td>
-            ${buildDiffCell(tot.vendor_ts, tot.amount, hasData, "Vendor TS Total - Bill Amount Total")}
+            ${buildDiffCell(tot.vendor_ts, tot.amount, hasData, "Billed Vendor TS - Bill Amount Total")}
           `;
         });
         rowVendorMinusBill += `</tr>`;
