@@ -53,7 +53,8 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio 
       FROM timesheet_vehicles
     `);
-    if (vehicleResult.rows.length === 0) return res.json({ success: true, data: [] });
+    if (vehicleResult.rows.length === 0)
+      return res.json({ success: true, data: [] });
 
     const vehicles = vehicleResult.rows;
     let plates = vehicles.map((v) => v.plate_no);
@@ -68,7 +69,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       `);
       plateLogs = plateLogRes.rows;
 
-      plateLogs.forEach(pl => {
+      plateLogs.forEach((pl) => {
         if (pl.old_plate_no && !plates.includes(pl.old_plate_no)) {
           plates.push(pl.old_plate_no);
         }
@@ -86,36 +87,57 @@ router.get("/data", verifyAccessCode, async (req, res) => {
         WHERE plate_no = ANY($1) 
         ORDER BY COALESCE(work_start_date, '2000-01-01') ASC
       `,
-        [plates]
+        [plates],
       );
       ownerLogs = ownerLogRes.rows;
     } catch (e) {
       console.warn("vehicle_owner_log warning:", e.message);
     }
 
-    const getMonthOwnerInfo = (plateNo, mIdx, fallbackOwner, fallbackVat, fallbackLf = "") => {
+    const getMonthOwnerInfo = (
+      plateNo,
+      mIdx,
+      fallbackOwner,
+      fallbackVat,
+      fallbackLf = "",
+    ) => {
       const mStart = new Date(currentYear, mIdx, 1);
       const mEnd = new Date(currentYear, mIdx + 1, 0);
 
       const matchedLogs = ownerLogs.filter((l) => {
-        if ((l.plate_no || "").trim().toUpperCase() !== plateNo.trim().toUpperCase()) return false;
-        const sDate = l.work_start_date ? new Date(l.work_start_date) : new Date(2000, 0, 1);
-        const eDate = l.work_end_date ? new Date(l.work_end_date) : new Date(2099, 11, 31);
+        if (
+          (l.plate_no || "").trim().toUpperCase() !==
+          plateNo.trim().toUpperCase()
+        )
+          return false;
+        const sDate = l.work_start_date
+          ? new Date(l.work_start_date)
+          : new Date(2000, 0, 1);
+        const eDate = l.work_end_date
+          ? new Date(l.work_end_date)
+          : new Date(2099, 11, 31);
         return sDate <= mEnd && eDate >= mStart;
       });
 
       if (matchedLogs.length > 0) {
         const active = matchedLogs[matchedLogs.length - 1];
         return {
-          owner: active.owner_name && active.owner_name.trim() ? active.owner_name.trim() : fallbackOwner,
-          vat: String(active.vat || "").trim().toLowerCase(),
+          owner:
+            active.owner_name && active.owner_name.trim()
+              ? active.owner_name.trim()
+              : fallbackOwner,
+          vat: String(active.vat || "")
+            .trim()
+            .toLowerCase(),
           ledger_folio: (active.ledger_folio || "").trim() || fallbackLf,
         };
       }
 
       return {
         owner: fallbackOwner,
-        vat: String(fallbackVat || "").trim().toLowerCase(),
+        vat: String(fallbackVat || "")
+          .trim()
+          .toLowerCase(),
         ledger_folio: fallbackLf,
       };
     };
@@ -126,7 +148,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       FROM vehicle_site_log 
       WHERE plate_no = ANY($1) AND site_name IS NOT NULL AND TRIM(site_name) != ''
     `,
-      [plates]
+      [plates],
     );
 
     const billingResult = await pool.query(
@@ -135,13 +157,23 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       FROM vat_billing_records 
       WHERE year = $1 AND company = 'NON_VAT'
     `,
-      [currentYear]
+      [currentYear],
     );
     const billingData = billingResult.rows;
 
     const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     const shortYear = currentYear.toString().slice(-2);
 
@@ -163,7 +195,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       WHERE billing_month ILIKE $1 OR billing_month ILIKE $2
       ORDER BY id DESC
     `,
-      [`%${currentYear}%`, `%${shortYear}%`]
+      [`%${currentYear}%`, `%${shortYear}%`],
     );
     const erpData = erpResult.rows;
 
@@ -174,16 +206,19 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
       const logPlateUpper = (log.plate_no || "").trim().toUpperCase();
       let vehicle = vehicles.find(
-        (v) => (v.plate_no || "").trim().toUpperCase() === logPlateUpper
+        (v) => (v.plate_no || "").trim().toUpperCase() === logPlateUpper,
       );
 
       if (!vehicle && plateLogs.length > 0) {
         const foundLog = plateLogs.find(
-          (pl) => (pl.old_plate_no || "").trim().toUpperCase() === logPlateUpper
+          (pl) =>
+            (pl.old_plate_no || "").trim().toUpperCase() === logPlateUpper,
         );
         if (foundLog) {
           vehicle = vehicles.find(
-            (v) => (v.plate_no || "").trim().toUpperCase() === (foundLog.new_plate_no || "").trim().toUpperCase()
+            (v) =>
+              (v.plate_no || "").trim().toUpperCase() ===
+              (foundLog.new_plate_no || "").trim().toUpperCase(),
           );
         }
       }
@@ -193,12 +228,14 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       const defaultOwner = (vehicle.owner_name || "").trim();
       const defaultVat = vehicle.vat;
 
-      let sd = log.work_start_date ? new Date(log.work_start_date) : new Date(2000, 0, 1);
+      let sd = log.work_start_date
+        ? new Date(log.work_start_date)
+        : new Date(2000, 0, 1);
       let ed = log.work_end_date
         ? new Date(log.work_end_date)
         : log.status === "Running"
-        ? new Date(2099, 11, 31)
-        : new Date(sd);
+          ? new Date(2099, 11, 31)
+          : new Date(sd);
 
       for (let m = 0; m < 12; m++) {
         let mStart = new Date(currentYear, m, 1);
@@ -206,12 +243,23 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
         if (sd <= mEnd && ed >= mStart) {
           const defaultLf = (vehicle.ledger_folio || "").trim();
-          const ownerInfo = getMonthOwnerInfo(log.plate_no, m, defaultOwner, defaultVat, defaultLf);
+          const ownerInfo = getMonthOwnerInfo(
+            log.plate_no,
+            m,
+            defaultOwner,
+            defaultVat,
+            defaultLf,
+          );
           const isVat = ["yes", "true", "15"].includes(ownerInfo.vat);
           if (isVat) continue;
 
           const supName = ownerInfo.owner;
-          if (!supName || supName === "Unknown" || supName === "COMPANY VEHICLE") continue;
+          if (
+            !supName ||
+            supName === "Unknown" ||
+            supName === "COMPANY VEHICLE"
+          )
+            continue;
 
           const siteFirst = getSiteFirstName(log.site_name);
           if (!siteFirst) continue;
@@ -261,17 +309,22 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
           erpData.forEach((e) => {
             const bMonth = (e.raw_billing_month || "").trim().toLowerCase();
-            const isMonthMatch = bMonth.includes(shortM) || bMonth.includes(fullM);
+            const isMonthMatch =
+              bMonth.includes(shortM) || bMonth.includes(fullM);
             const eSiteFirst = getSiteFirstName(e.clean_site_name);
-            const isSiteMatch = eSiteFirst === sFirst || e.clean_site_name.includes(sFirst);
+            const isSiteMatch =
+              eSiteFirst === sFirst || e.clean_site_name.includes(sFirst);
 
             if (isMonthMatch && isSiteMatch && !isZSite(e.clean_site_name)) {
-              const isOwnerMatch = e.norm_owner === normSup || e.clean_owner === cleanSup;
+              const isOwnerMatch =
+                e.norm_owner === normSup || e.clean_owner === cleanSup;
               if (isOwnerMatch) {
                 const rawPKey = (e.plate_no || "").trim().toUpperCase();
-                const candidatePlates = rawPKey.includes("➔") 
-                  ? rawPKey.split("➔").map(p => p.trim()) 
-                  : (rawPKey.includes("->") ? rawPKey.split("->").map(p => p.trim()) : [rawPKey]);
+                const candidatePlates = rawPKey.includes("➔")
+                  ? rawPKey.split("➔").map((p) => p.trim())
+                  : rawPKey.includes("->")
+                    ? rawPKey.split("->").map((p) => p.trim())
+                    : [rawPKey];
 
                 let isVatVeh = false;
                 let vehicleLf = "";
@@ -281,19 +334,27 @@ router.get("/data", verifyAccessCode, async (req, res) => {
                   if (!pKey) continue;
 
                   let rowVeh = vehicles.find(
-                    (v) => (v.plate_no || "").trim().toUpperCase() === pKey
+                    (v) => (v.plate_no || "").trim().toUpperCase() === pKey,
                   );
 
                   let activePlateKey = pKey;
                   if (!rowVeh && plateLogs.length > 0) {
-                    const matchedPlateLog = plateLogs.find(pl => 
-                      (pl.old_plate_no || "").trim().toUpperCase() === pKey ||
-                      (pl.new_plate_no || "").trim().toUpperCase() === pKey
+                    const matchedPlateLog = plateLogs.find(
+                      (pl) =>
+                        (pl.old_plate_no || "").trim().toUpperCase() === pKey ||
+                        (pl.new_plate_no || "").trim().toUpperCase() === pKey,
                     );
                     if (matchedPlateLog) {
-                      rowVeh = vehicles.find(v => 
-                        (v.plate_no || "").trim().toUpperCase() === (matchedPlateLog.new_plate_no || "").trim().toUpperCase() ||
-                        (v.plate_no || "").trim().toUpperCase() === (matchedPlateLog.old_plate_no || "").trim().toUpperCase()
+                      rowVeh = vehicles.find(
+                        (v) =>
+                          (v.plate_no || "").trim().toUpperCase() ===
+                            (matchedPlateLog.new_plate_no || "")
+                              .trim()
+                              .toUpperCase() ||
+                          (v.plate_no || "").trim().toUpperCase() ===
+                            (matchedPlateLog.old_plate_no || "")
+                              .trim()
+                              .toUpperCase(),
                       );
                       activePlateKey = matchedPlateLog.new_plate_no || pKey;
                     }
@@ -304,10 +365,12 @@ router.get("/data", verifyAccessCode, async (req, res) => {
                     m,
                     rowVeh ? rowVeh.owner_name : "",
                     rowVeh ? rowVeh.vat : "",
-                    rowVeh ? rowVeh.ledger_folio : ""
+                    rowVeh ? rowVeh.ledger_folio : "",
                   );
                   isVatVeh = ["yes", "true", "15"].includes(ownerInfo.vat);
-                  vehicleLf = (ownerInfo.ledger_folio || "").trim().toLowerCase();
+                  vehicleLf = (ownerInfo.ledger_folio || "")
+                    .trim()
+                    .toLowerCase();
                   resolvedPlateKey = activePlateKey;
 
                   if (rowVeh) break;
@@ -329,7 +392,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
               (b.supplier || "").trim().toLowerCase() === normSup &&
               (b.site_name || "").toLowerCase().trim() === sFirst &&
               (b.ledger_folio || "").trim().toLowerCase() === siteLf &&
-              b.month_index === m
+              b.month_index === m,
           );
 
           siteObj.billing[m] = {
@@ -341,7 +404,9 @@ router.get("/data", verifyAccessCode, async (req, res) => {
         }
       });
 
-      sup.sites = Object.values(sup.sites).filter((s) => s.active_months.includes(true));
+      sup.sites = Object.values(sup.sites).filter((s) =>
+        s.active_months.includes(true),
+      );
     });
 
     const finalArray = Object.values(suppliersMap)

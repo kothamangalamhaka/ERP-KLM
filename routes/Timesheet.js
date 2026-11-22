@@ -5,6 +5,12 @@ const { bumpDbSyncVersion } = require("./TSDB_part2");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} = require("@simplewebauthn/server");
+const {
   verifyToken,
   verifySuperAdmin,
   verifyEditor,
@@ -179,10 +185,22 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// 🟢 Instant Session Verification on Page Load
+// 🟢 Instant Session Verification & Auto-Refresh on Page Load / Focus
 router.get("/api/verify-session", verifyToken, (req, res) => {
+  const refreshedToken = jwt.sign(
+    {
+      id: req.user.id,
+      username: req.user.username,
+      role: req.user.role,
+      email: req.user.email,
+    },
+    JWT_SECRET,
+    { expiresIn: "365d" },
+  );
+
   res.json({
     success: true,
+    token: refreshedToken,
     user: {
       username: req.user.username,
       role: req.user.role,
@@ -576,7 +594,17 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
       finalStartDate = minSiteRes.rows[0]?.first_start || null;
     }
 
+    // 🟢 UPDATE ചെയ്യുന്നതിന് മുൻപ് തന്നെ പഴയ Owner Name എടുത്തു വെക്കുന്നു
+    let oldOwnerVal = null;
     if (id) {
+      const prevOwnerRes = await client.query(
+        `SELECT owner_name FROM vehicle_owner_log WHERE id = $1`,
+        [id],
+      );
+      oldOwnerVal = prevOwnerRes.rows[0]?.owner_name
+        ? prevOwnerRes.rows[0].owner_name.trim()
+        : null;
+
       await client.query(
         `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9, ledger_folio=$10, company_arabic_name=$11 WHERE id=$12`,
         [
@@ -666,35 +694,69 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
         [owner_name.trim(), cleanPlate, periodStart, periodEnd],
       );
 
-      if (id) {
-        const prevOwnerRes = await client.query(
-          `SELECT owner_name FROM vehicle_owner_log WHERE id = $1`,
-          [id],
-        );
-        const oldOwnerVal = prevOwnerRes.rows[0]?.owner_name
-          ? prevOwnerRes.rows[0].owner_name.trim()
-          : null;
-        if (
-          oldOwnerVal &&
-          oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()
-        ) {
-          // 🟢 Cascade rename across all companies in vat_billing_records (VAT & NON_VAT)
-          await client.query(
-            `UPDATE vat_billing_records 
-             SET supplier = $1, updated_at = CURRENT_TIMESTAMP 
-             WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
-            [owner_name.trim(), oldOwnerVal],
-          );
+      } else if (id && oldOwnerVal && owner_name && oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()) {
+      // Start date ഇല്ലാത്ത സാഹചര്യത്തിലും past billing_records അപ്ഡേറ്റ് ചെയ്യുന്നു
+      await client.query(
+        `UPDATE billing_records
+         SET owner = $1
+         WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2))
+           AND LOWER(TRIM(owner)) = LOWER(TRIM($3))`,
+        [owner_name.trim(), cleanPlate, oldOwnerVal],
+      );
+    }
 
-          // 🟢 Cascade rename in supplier_notes as well
-          await client.query(
-            `UPDATE supplier_notes 
-             SET supplier_name = $1 
-             WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($2))`,
-            [owner_name.trim(), oldOwnerVal],
-          );
-        }
-      }
+    // 🟢 Start date ഉണ്ടെങ്കിലും ഇല്ലെങ്കിലും Owner Name മാറിയാൽ VAT, Non-VAT, Notes എന്നിവയിൽ അപ്ഡേറ്റ് ചെയ്യുന്നു
+    if (
+      id &&
+      oldOwnerVal &&
+      owner_name &&
+      oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()
+    ) {
+      const newOwnerClean = owner_name.trim();
+
+      // 1. പുതിയ പേരിൽ നിലവിൽ ഒഴിഞ്ഞു കിടക്കുന്ന ഡ്യൂപ്ലിക്കേറ്റ് റോകൾ ഉണ്ടെങ്കിൽ Conflict ഒഴിവാക്കാൻ നീക്കം ചെയ്യുന്നു
+      await client.query(
+        `DELETE FROM vat_billing_records dup
+         WHERE LOWER(TRIM(dup.supplier)) = LOWER(TRIM($1))
+           AND COALESCE(TRIM(dup.bill_no), '') = ''
+           AND COALESCE(TRIM(dup.amount), '') = ''
+           AND COALESCE(TRIM(dup.quick_dice), '') = ''
+           AND EXISTS (
+             SELECT 1 FROM vat_billing_records old_rec
+             WHERE LOWER(TRIM(old_rec.supplier)) = LOWER(TRIM($2))
+               AND old_rec.year = dup.year
+               AND old_rec.company = dup.company
+               AND LOWER(TRIM(old_rec.site_name)) = LOWER(TRIM(dup.site_name))
+               AND COALESCE(TRIM(old_rec.ledger_folio), '') = COALESCE(TRIM(dup.ledger_folio), '')
+               AND old_rec.month_index = dup.month_index
+           )`,
+        [newOwnerClean, oldOwnerVal],
+      );
+
+      // 2. Cascade rename across all companies in vat_billing_records (VAT & NON_VAT)
+      await client.query(
+        `UPDATE vat_billing_records vbr
+         SET supplier = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE LOWER(TRIM(vbr.supplier)) = LOWER(TRIM($2))
+           AND NOT EXISTS (
+             SELECT 1 FROM vat_billing_records ex
+             WHERE LOWER(TRIM(ex.supplier)) = LOWER(TRIM($1))
+               AND ex.year = vbr.year
+               AND ex.company = vbr.company
+               AND LOWER(TRIM(ex.site_name)) = LOWER(TRIM(vbr.site_name))
+               AND COALESCE(TRIM(ex.ledger_folio), '') = COALESCE(TRIM(vbr.ledger_folio), '')
+               AND ex.month_index = vbr.month_index
+           )`,
+        [newOwnerClean, oldOwnerVal],
+      );
+
+      // 3. Cascade rename in supplier_notes as well
+      await client.query(
+        `UPDATE supplier_notes 
+         SET supplier_name = $1 
+         WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($2))`,
+        [newOwnerClean, oldOwnerVal],
+      );
     }
 
     await logAudit(
@@ -2772,5 +2834,248 @@ async function runAutoLock() {
 runAutoLock();
 
 setInterval(runAutoLock, 12 * 60 * 60 * 1000);
+
+// ==========================================
+// 🔐 WINDOWS HELLO / FACE ID (WEBAUTHN PASSKEYS)
+// ==========================================
+const webauthnChallenges = new Map();
+
+function getRpConfig(req) {
+  const hostHeader = req.headers["x-forwarded-host"] || req.headers.host || "";
+  const rpID = hostHeader.split(":")[0];
+  const proto = req.headers["x-forwarded-proto"] || (req.secure ? "https" : "http");
+  const origin = `${proto}://${hostHeader}`;
+  return { rpID, origin };
+}
+
+// 1. Start Windows Hello / Face ID Registration (Requires valid token or username/password)
+router.post("/webauthn/register-options", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.json({ success: false, message: "Username and password required." });
+    }
+    const userRes = await pool.query(
+      "SELECT id, username, email, password_hash, webauthn_credentials FROM timesheet_users WHERE username = $1",
+      [username],
+    );
+    if (userRes.rows.length === 0) {
+      return res.json({ success: false, message: "User not found." });
+    }
+    const user = userRes.rows[0];
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
+      return res.json({ success: false, message: "Invalid credentials." });
+    }
+
+    const { rpID } = getRpConfig(req);
+    const existingCreds = Array.isArray(user.webauthn_credentials) ? user.webauthn_credentials : [];
+
+    const options = await generateRegistrationOptions({
+      rpName: "Haka ERP Timesheet",
+      rpID,
+      userName: user.username,
+      userDisplayName: user.username,
+      attestationType: "none",
+      authenticatorSelection: {
+        authenticatorAttachment: "platform",
+        userVerification: "required",
+        residentKey: "preferred",
+      },
+      excludeCredentials: existingCreds.map((c) => ({
+        id: c.id,
+        transports: c.transports || ["internal"],
+      })),
+    });
+
+    webauthnChallenges.set(`reg_${user.id}`, options.challenge);
+    res.json({ success: true, options, userId: user.id });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// 2. Verify & Save Windows Hello / Face ID Credential
+router.post("/webauthn/register-verify", async (req, res) => {
+  try {
+    const { userId, credential } = req.body;
+    const expectedChallenge = webauthnChallenges.get(`reg_${userId}`);
+    if (!expectedChallenge) {
+      return res.json({ success: false, message: "Registration session expired. Try again." });
+    }
+
+    const { rpID, origin } = getRpConfig(req);
+    const verification = await verifyRegistrationResponse({
+      response: credential,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+    });
+
+    if (!verification.verified || !verification.registrationInfo) {
+      return res.json({ success: false, message: "Biometric verification failed." });
+    }
+
+    const { credential: newCred } = verification.registrationInfo;
+    const credRecord = {
+      id: newCred.id,
+      publicKey: Buffer.from(newCred.publicKey).toString("base64url"),
+      counter: newCred.counter,
+      transports: credential.response?.transports || ["internal"],
+    };
+
+    const userRes = await pool.query(
+      "SELECT username, webauthn_credentials FROM timesheet_users WHERE id = $1",
+      [userId],
+    );
+    const existing = Array.isArray(userRes.rows[0]?.webauthn_credentials)
+      ? userRes.rows[0].webauthn_credentials
+      : [];
+    existing.push(credRecord);
+
+    await pool.query(
+      "UPDATE timesheet_users SET webauthn_credentials = $1::jsonb WHERE id = $2",
+      [JSON.stringify(existing), userId],
+    );
+
+    webauthnChallenges.delete(`reg_${userId}`);
+    await logAudit(
+      { username: userRes.rows[0]?.username },
+      "WEBAUTHN_REGISTER",
+      "Registered Windows Hello / Device Biometric",
+    );
+    res.json({ success: true, message: "Windows Hello / Biometric registered successfully!" });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// 3. Start Windows Hello / Face ID Login
+router.post("/webauthn/login-options", async (req, res) => {
+  try {
+    const { username } = req.body;
+    const { rpID } = getRpConfig(req);
+
+    let allowCredentials = [];
+    let challengeKey = `auth_discoverable_${Date.now()}`;
+
+    if (username && username.trim() !== "") {
+      const userRes = await pool.query(
+        "SELECT id, webauthn_credentials FROM timesheet_users WHERE username = $1",
+        [username.trim()],
+      );
+      if (userRes.rows.length > 0) {
+        const creds = Array.isArray(userRes.rows[0].webauthn_credentials)
+          ? userRes.rows[0].webauthn_credentials
+          : [];
+        allowCredentials = creds.map((c) => ({
+          id: c.id,
+          transports: c.transports || ["internal"],
+        }));
+      }
+    }
+
+    const options = await generateAuthenticationOptions({
+      rpID,
+      userVerification: "required",
+      allowCredentials,
+    });
+
+    webauthnChallenges.set(options.challenge, {
+      challenge: options.challenge,
+      ts: Date.now(),
+    });
+    res.json({ success: true, options });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// 4. Verify Windows Hello / Face ID Login & Issue JWT Token
+router.post("/webauthn/login-verify", async (req, res) => {
+  try {
+    const { credential, challenge } = req.body;
+    const stored = webauthnChallenges.get(challenge);
+    if (!stored) {
+      return res.json({ success: false, message: "Authentication challenge expired." });
+    }
+
+    const usersRes = await pool.query(
+      "SELECT id, username, role, email, status, webauthn_credentials FROM timesheet_users WHERE webauthn_credentials IS NOT NULL AND jsonb_array_length(webauthn_credentials) > 0",
+    );
+
+    let matchedUser = null;
+    let matchedCred = null;
+
+    for (const u of usersRes.rows) {
+      const creds = Array.isArray(u.webauthn_credentials) ? u.webauthn_credentials : [];
+      const found = creds.find((c) => c.id === credential.id);
+      if (found) {
+        matchedUser = u;
+        matchedCred = found;
+        break;
+      }
+    }
+
+    if (!matchedUser || !matchedCred) {
+      return res.json({ success: false, message: "Device biometric not registered for any user." });
+    }
+
+    if (matchedUser.status !== "Active") {
+      return res.json({ success: false, message: "Account Pending approval." });
+    }
+
+    const { rpID, origin } = getRpConfig(req);
+    const verification = await verifyAuthenticationResponse({
+      response: credential,
+      expectedChallenge: challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      credential: {
+        id: matchedCred.id,
+        publicKey: new Uint8Array(Buffer.from(matchedCred.publicKey, "base64url")),
+        counter: matchedCred.counter || 0,
+        transports: matchedCred.transports || ["internal"],
+      },
+    });
+
+    if (!verification.verified) {
+      return res.json({ success: false, message: "Biometric verification failed." });
+    }
+
+    // Update counter
+    matchedCred.counter = verification.authenticationInfo.newCounter;
+    await pool.query(
+      "UPDATE timesheet_users SET webauthn_credentials = $1::jsonb WHERE id = $2",
+      [JSON.stringify(matchedUser.webauthn_credentials), matchedUser.id],
+    );
+
+    webauthnChallenges.delete(challenge);
+
+    const token = jwt.sign(
+      {
+        id: matchedUser.id,
+        username: matchedUser.username,
+        role: matchedUser.role,
+        email: matchedUser.email,
+      },
+      JWT_SECRET,
+      { expiresIn: "365d" },
+    );
+
+    await logAudit(matchedUser, "WEBAUTHN_LOGIN", "Logged in via Windows Hello / Device Biometric");
+    res.json({
+      success: true,
+      token,
+      user: {
+        username: matchedUser.username,
+        role: matchedUser.role,
+        email: matchedUser.email,
+      },
+    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
 
 module.exports = router;

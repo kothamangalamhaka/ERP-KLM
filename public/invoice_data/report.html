@@ -878,8 +878,12 @@
         animation: liveSyncFlash 1.5s ease-out;
       }
       @keyframes liveSyncFlash {
-        0% { background-color: rgba(16, 185, 129, 0.45); }
-        100% { background-color: transparent; }
+        0% {
+          background-color: rgba(16, 185, 129, 0.45);
+        }
+        100% {
+          background-color: transparent;
+        }
       }
       .cell-remote-locked {
         background-color: #fee2e2 !important;
@@ -2861,18 +2865,29 @@
           const tr = findRowElement(draft.plate, draft.site, draft.month);
           if (!tr) return;
           const targetCell = resolveTargetCell(tr, draft.field);
-          if (targetCell && document.activeElement !== targetCell && targetCell.dataset.myEdited !== "true") {
+          if (
+            targetCell &&
+            document.activeElement !== targetCell &&
+            targetCell.dataset.myEdited !== "true"
+          ) {
             targetCell.innerText = draft.value;
             targetCell.dataset.remoteDraft = "true";
 
             if (draft.field === "inv_amount" || draft.field === "inv_deduct") {
               let subCell = tr.querySelector('[data-field="inv_amount"]');
               let dedCell = tr.querySelector(".inv-deduct-cell");
-              let sub = parseFloat(subCell ? subCell.innerText.replace(/,/g, "") : "0") || 0;
-              let ded = parseFloat(dedCell ? dedCell.innerText.replace(/,/g, "") : "0") || 0;
+              let sub =
+                parseFloat(
+                  subCell ? subCell.innerText.replace(/,/g, "") : "0",
+                ) || 0;
+              let ded =
+                parseFloat(
+                  dedCell ? dedCell.innerText.replace(/,/g, "") : "0",
+                ) || 0;
               let totCell = tr.querySelector(".inv-total-cell");
               if (totCell) {
-                totCell.innerText = sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
+                totCell.innerText =
+                  sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
               }
             }
           }
@@ -2903,10 +2918,14 @@
       function emitTypingUpdate(tr, field, value) {
         clearTimeout(typingSyncTimer);
         typingSyncTimer = setTimeout(() => {
-          const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+          const token =
+            localStorage.getItem("timesheetToken") ||
+            localStorage.getItem("invoiceToken") ||
+            "";
           const targetPlate = tr.dataset.masterPlate || tr.dataset.plate || "";
           const targetSite = tr.dataset.site || "";
-          const targetMonth = `${tr.dataset.month || ""} ${tr.dataset.year || ""}`.trim();
+          const targetMonth =
+            `${tr.dataset.month || ""} ${tr.dataset.year || ""}`.trim();
 
           fetch("/payment/live-typing-sync", {
             method: "POST",
@@ -2927,10 +2946,14 @@
       }
 
       function emitCellLock(tr, field, action) {
-        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        const token =
+          localStorage.getItem("timesheetToken") ||
+          localStorage.getItem("invoiceToken") ||
+          "";
         const targetPlate = tr.dataset.masterPlate || tr.dataset.plate || "";
         const targetSite = tr.dataset.site || "";
-        const targetMonth = `${tr.dataset.month || ""} ${tr.dataset.year || ""}`.trim();
+        const targetMonth =
+          `${tr.dataset.month || ""} ${tr.dataset.year || ""}`.trim();
 
         fetch("/payment/cell-lock-sync", {
           method: "POST",
@@ -2952,16 +2975,26 @@
       function resolveTargetCell(tr, field) {
         let targetCell = tr.querySelector(`[data-field="${field}"]`);
         if (!targetCell) {
-          if (field === "driver_ot") targetCell = tr.querySelector(".driver-ot-cell");
-          else if (field === "driver_amount") targetCell = tr.querySelector(".driver-amount-cell");
-          else if (field === "bill_nr") targetCell = tr.querySelector(".bill-nr-cell");
-          else if (field === "bill_ot") targetCell = tr.querySelector(".bill-ot-cell");
-          else if (field === "vbill_notes") targetCell = tr.querySelector(".vbill-cell");
-          else if (field === "inv_deduct") targetCell = tr.querySelector(".inv-deduct-cell");
-          else if (field === "deduct_reason") targetCell = tr.querySelector(".deduct-reason-cell");
-          else if (field === "crn_no") targetCell = tr.querySelector(".crn-no-cell");
+          if (field === "driver_ot")
+            targetCell = tr.querySelector(".driver-ot-cell");
+          else if (field === "driver_amount")
+            targetCell = tr.querySelector(".driver-amount-cell");
+          else if (field === "bill_nr")
+            targetCell = tr.querySelector(".bill-nr-cell");
+          else if (field === "bill_ot")
+            targetCell = tr.querySelector(".bill-ot-cell");
+          else if (field === "vbill_notes")
+            targetCell = tr.querySelector(".vbill-cell");
+          else if (field === "inv_deduct")
+            targetCell = tr.querySelector(".inv-deduct-cell");
+          else if (field === "deduct_reason")
+            targetCell = tr.querySelector(".deduct-reason-cell");
+          else if (field === "crn_no")
+            targetCell = tr.querySelector(".crn-no-cell");
           else {
-            targetCell = Array.from(tr.querySelectorAll(".editable-cell")).find(c => c.getAttribute("ondblclick")?.includes(field));
+            targetCell = Array.from(tr.querySelectorAll(".editable-cell")).find(
+              (c) => c.getAttribute("ondblclick")?.includes(field),
+            );
           }
         }
         return targetCell;
@@ -2969,7 +3002,6 @@
 
       document.addEventListener("DOMContentLoaded", () => {
         if (localStorage.getItem("invoiceToken")) {
-          // Re-map it to timesheetToken so the rest of the file's API calls work without breaking
           localStorage.setItem(
             "timesheetToken",
             localStorage.getItem("invoiceToken"),
@@ -2977,11 +3009,7 @@
           loadApp();
         } else {
           document.getElementById("loginUserId").focus();
-          if (sessionStorage.getItem("skipReportAutoFace")) {
-            sessionStorage.removeItem("skipReportAutoFace");
-          } else {
-            executeReportFaceLogin();
-          }
+          sessionStorage.removeItem("skipReportAutoFace");
         }
       });
 
@@ -3070,8 +3098,11 @@
           if (data.success) {
             localStorage.setItem("invoiceToken", data.token);
             // Timesheet auth sync: fallback to invoiceToken or session token
-            localStorage.setItem("timesheetToken", data.timesheetToken || data.token);
-            
+            localStorage.setItem(
+              "timesheetToken",
+              data.timesheetToken || data.token,
+            );
+
             // Try fetching valid timesheet session token if available
             try {
               const tsRes = await fetch("/timesheet/api/login", {
@@ -3200,7 +3231,10 @@
       async function ensureSpecialRules() {
         if (specialRulesCache.length > 0) return;
         try {
-          let token = localStorage.getItem("invoiceToken") || localStorage.getItem("timesheetToken") || "";
+          let token =
+            localStorage.getItem("invoiceToken") ||
+            localStorage.getItem("timesheetToken") ||
+            "";
           const res = await fetch("/payment/special-rules-cache", {
             headers: { Authorization: "Bearer " + token },
           });
@@ -3766,7 +3800,13 @@
               billData = sortedBilling.find((b) => {
                 if (!matchPlateWithAliases(b.plate_no)) return false;
                 const baseBillSite = cleanSiteCompare(b.site_name);
-                return baseBillSite && baseSName && (baseBillSite === baseSName || baseBillSite.includes(baseSName) || baseSName.includes(baseBillSite));
+                return (
+                  baseBillSite &&
+                  baseSName &&
+                  (baseBillSite === baseSName ||
+                    baseBillSite.includes(baseSName) ||
+                    baseSName.includes(baseBillSite))
+                );
               });
             }
 
@@ -3781,12 +3821,16 @@
               billData = sortedBilling.find(
                 (b) =>
                   matchPlateWithAliases(b.plate_no) &&
-                  (!b.site_name || b.site_name === "N/A" || b.site_name.trim() === ""),
+                  (!b.site_name ||
+                    b.site_name === "N/A" ||
+                    b.site_name.trim() === ""),
               );
             }
 
             if (!billData) {
-              let vehicleMonthBills = sortedBilling.filter(b => matchPlateWithAliases(b.plate_no));
+              let vehicleMonthBills = sortedBilling.filter((b) =>
+                matchPlateWithAliases(b.plate_no),
+              );
               if (vehicleMonthBills.length === 1) {
                 billData = vehicleMonthBills[0];
               }
@@ -3817,7 +3861,10 @@
             function cleanSiteCompare(str) {
               return String(str || "")
                 .toLowerCase()
-                .replace(/prev:|\(re-running\)|re-running|re running|running|released|replaced|[^a-z0-9]/g, "")
+                .replace(
+                  /prev:|\(re-running\)|re-running|re running|running|released|replaced|[^a-z0-9]/g,
+                  "",
+                )
                 .trim();
             }
 
@@ -3830,7 +3877,13 @@
               const baseSName = cleanSiteCompare(sName);
               invData = vInvoices.find((i) => {
                 const baseInvSite = cleanSiteCompare(i.site_name);
-                return baseInvSite && baseSName && (baseInvSite === baseSName || baseInvSite.includes(baseSName) || baseSName.includes(baseInvSite));
+                return (
+                  baseInvSite &&
+                  baseSName &&
+                  (baseInvSite === baseSName ||
+                    baseInvSite.includes(baseSName) ||
+                    baseSName.includes(baseInvSite))
+                );
               });
             }
 
@@ -3844,7 +3897,10 @@
             // 3. Fallback: match N/A or Blank site
             if (!invData && sName !== "N/A") {
               invData = vInvoices.find(
-                (i) => !i.site_name || i.site_name === "N/A" || i.site_name.trim() === "",
+                (i) =>
+                  !i.site_name ||
+                  i.site_name === "N/A" ||
+                  i.site_name.trim() === "",
               );
             }
 
@@ -4024,7 +4080,7 @@
             processedArray.push({
               report_date: shortDate,
               raw_month: monthStr,
-              raw_year: yearStr,
+              raw_year: String(yearStr),
               plate: effectivePlate,
               master_plate: originalPlate,
               related_plates: relatedPlatesList,
@@ -4240,10 +4296,14 @@
             ).toUpperCase();
 
             let inv_no = tr.querySelector('[data-field="inv_no"]')
-              ? tr.querySelector('[data-field="inv_no"]').innerText.toUpperCase()
+              ? tr
+                  .querySelector('[data-field="inv_no"]')
+                  .innerText.toUpperCase()
               : "";
             let bill_no = tr.querySelector('[data-field="bill_no"]')
-              ? tr.querySelector('[data-field="bill_no"]').innerText.toUpperCase()
+              ? tr
+                  .querySelector('[data-field="bill_no"]')
+                  .innerText.toUpperCase()
               : "";
 
             let matchO =
@@ -4340,15 +4400,24 @@
           const key = sortConfig.key;
           const getVal = (tr) => {
             try {
-              return String(JSON.parse(tr.dataset.fvals || "{}")[key] ?? "").toLowerCase();
+              return String(
+                JSON.parse(tr.dataset.fvals || "{}")[key] ?? "",
+              ).toLowerCase();
             } catch (e) {
               return "";
             }
           };
           rows.sort((a, b) => {
-            let valA = getVal(a), valB = getVal(b);
-            let numA = parseFloat(valA), numB = parseFloat(valB);
-            if (!isNaN(numA) && !isNaN(numB) && /^[\d.]+$/.test(valA) && /^[\d.]+$/.test(valB))
+            let valA = getVal(a),
+              valB = getVal(b);
+            let numA = parseFloat(valA),
+              numB = parseFloat(valB);
+            if (
+              !isNaN(numA) &&
+              !isNaN(numB) &&
+              /^[\d.]+$/.test(valA) &&
+              /^[\d.]+$/.test(valB)
+            )
               return dir === "asc" ? numA - numB : numB - numA;
             if (valA < valB) return dir === "asc" ? -1 : 1;
             if (valA > valB) return dir === "asc" ? 1 : -1;
@@ -4775,25 +4844,42 @@
 
                   let fieldName = targetCell.dataset.field;
                   if (!fieldName) {
-                    if (targetCell.classList.contains("vbill-cell")) fieldName = "vbill_notes";
-                    else if (targetCell.classList.contains("bill-nr-cell")) fieldName = "bill_nr";
-                    else if (targetCell.classList.contains("bill-ot-cell")) fieldName = "bill_ot";
-                    else if (targetCell.classList.contains("driver-ot-cell")) fieldName = "driver_ot";
-                    else if (targetCell.classList.contains("driver-amount-cell")) fieldName = "driver_amount";
-                    else if (targetCell.classList.contains("inv-deduct-cell")) fieldName = "inv_deduct";
-                    else if (targetCell.classList.contains("deduct-reason-cell")) fieldName = "deduct_reason";
-                    else if (targetCell.classList.contains("crn-no-cell")) fieldName = "crn_no";
+                    if (targetCell.classList.contains("vbill-cell"))
+                      fieldName = "vbill_notes";
+                    else if (targetCell.classList.contains("bill-nr-cell"))
+                      fieldName = "bill_nr";
+                    else if (targetCell.classList.contains("bill-ot-cell"))
+                      fieldName = "bill_ot";
+                    else if (targetCell.classList.contains("driver-ot-cell"))
+                      fieldName = "driver_ot";
+                    else if (
+                      targetCell.classList.contains("driver-amount-cell")
+                    )
+                      fieldName = "driver_amount";
+                    else if (targetCell.classList.contains("inv-deduct-cell"))
+                      fieldName = "inv_deduct";
+                    else if (
+                      targetCell.classList.contains("deduct-reason-cell")
+                    )
+                      fieldName = "deduct_reason";
+                    else if (targetCell.classList.contains("crn-no-cell"))
+                      fieldName = "crn_no";
                   }
 
                   if (targetCell.dataset.field === "inv_amount") {
                     let subText = val.replace(/,/g, "");
                     let dedCell = currentRow.querySelector(".inv-deduct-cell");
-                    let dedText = dedCell ? dedCell.innerText.replace(/,/g, "") : "0";
+                    let dedText = dedCell
+                      ? dedCell.innerText.replace(/,/g, "")
+                      : "0";
                     let sub = parseFloat(subText) || 0;
                     let ded = parseFloat(dedText) || 0;
                     let totCell = currentRow.querySelector(".inv-total-cell");
                     if (totCell) {
-                      totCell.innerText = sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
+                      totCell.innerText =
+                        sub > 0 || ded > 0
+                          ? ((sub - ded) * 1.15).toFixed(2)
+                          : "";
                     }
                   }
 
@@ -4825,9 +4911,9 @@
 
         rows.forEach((tr) => {
           if (!tr.cells || tr.cells.length < 6) return;
-          const hasMyEdits = Array.from(tr.querySelectorAll(".editable-field")).some(
-            (td) => td.dataset.myEdited === "true"
-          );
+          const hasMyEdits = Array.from(
+            tr.querySelectorAll(".editable-field"),
+          ).some((td) => td.dataset.myEdited === "true");
           if (!hasMyEdits) return;
 
           let site = tr.dataset.site;
@@ -4835,23 +4921,35 @@
 
           const getCellVal = (field, fallbackVal) => {
             const td = tr.querySelector(`[data-field="${field}"]`);
-            return td && td.dataset.myEdited === "true" ? td.innerText.trim() : fallbackVal;
+            return td && td.dataset.myEdited === "true"
+              ? td.innerText.trim()
+              : fallbackVal;
           };
 
-          let originalObj = masterData.find(
-            (d) =>
-              (d.master_plate === plate || d.plate === plate) &&
-              d.site === site &&
-              `${d.raw_month} ${d.raw_year}` === `${tr.dataset.month} ${tr.dataset.year}`
-          ) || {};
+          let originalObj =
+            masterData.find(
+              (d) =>
+                (d.master_plate === plate || d.plate === plate) &&
+                d.site === site &&
+                `${d.raw_month} ${d.raw_year}` ===
+                  `${tr.dataset.month} ${tr.dataset.year}`,
+            ) || {};
 
-          let inv_nr_text = getCellVal("inv_nr", originalObj.inv_nr || "").replace(/,/g, "");
+          let inv_nr_text = getCellVal(
+            "inv_nr",
+            originalObj.inv_nr || "",
+          ).replace(/,/g, "");
           let parsed_nr = parseFloat(inv_nr_text);
-          let inv_nr = inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
+          let inv_nr =
+            inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
 
-          let inv_ot_text = getCellVal("inv_ot", originalObj.inv_ot || "").replace(/,/g, "");
+          let inv_ot_text = getCellVal(
+            "inv_ot",
+            originalObj.inv_ot || "",
+          ).replace(/,/g, "");
           let parsed_ot = parseFloat(inv_ot_text);
-          let inv_ot = inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
+          let inv_ot =
+            inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
 
           const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
           let inv_amount = null;
@@ -4860,18 +4958,33 @@
             if (!parsedAmount.valid) hasInvalidFormula = true;
             inv_amount = parsedAmount.value;
           } else {
-            inv_amount = originalObj.inv_subtotal !== undefined && originalObj.inv_subtotal !== "" ? parseFloat(originalObj.inv_subtotal) : null;
+            inv_amount =
+              originalObj.inv_subtotal !== undefined &&
+              originalObj.inv_subtotal !== ""
+                ? parseFloat(originalObj.inv_subtotal)
+                : null;
           }
 
           let crn_no = getCellVal("crn_no", originalObj.crn_no || "");
           let reasonTd = tr.querySelector(".deduct-reason-cell");
-          let deduct_reason = reasonTd && reasonTd.dataset.myEdited === "true" ? reasonTd.innerText.trim() : (originalObj.deduct_reason || "");
+          let deduct_reason =
+            reasonTd && reasonTd.dataset.myEdited === "true"
+              ? reasonTd.innerText.trim()
+              : originalObj.deduct_reason || "";
           let inv_no = getCellVal("inv_no", originalObj.inv_no || "");
           let bill_no = getCellVal("bill_no", originalObj.bill_no || "");
 
           let deductTd = tr.querySelector(".inv-deduct-cell");
-          let deductVal = deductTd && deductTd.dataset.myEdited === "true" ? deductTd.innerText.trim().replace(/,/g, "") : (originalObj.inv_deduct || "0");
-          let inv_deduct = deductVal === "" ? 0 : isNaN(parseFloat(deductVal)) ? 0 : parseFloat(deductVal);
+          let deductVal =
+            deductTd && deductTd.dataset.myEdited === "true"
+              ? deductTd.innerText.trim().replace(/,/g, "")
+              : originalObj.inv_deduct || "0";
+          let inv_deduct =
+            deductVal === ""
+              ? 0
+              : isNaN(parseFloat(deductVal))
+                ? 0
+                : parseFloat(deductVal);
 
           let preciseMonth = `${tr.dataset.month} ${tr.dataset.year}`;
 
@@ -4952,7 +5065,7 @@
 
         let rowObj = masterData.find(
           (d) =>
-            d.plate === plate &&
+            (d.master_plate === plate || d.plate === plate) &&
             d.site === site &&
             d.raw_month === rMonth &&
             d.raw_year === rYear,
@@ -5037,13 +5150,19 @@
             treeData[fullYear].push({ raw: val, mStr: mStr });
           });
 
-          let sortedYears = Object.keys(treeData).sort((a, b) => Number(b) - Number(a));
+          let sortedYears = Object.keys(treeData).sort(
+            (a, b) => Number(b) - Number(a),
+          );
 
           sortedYears.forEach((year) => {
             let monthItems = treeData[year];
             monthItems.sort((a, b) => {
-              let idxA = months.findIndex((m) => m.toLowerCase().startsWith(a.mStr.toLowerCase()));
-              let idxB = months.findIndex((m) => m.toLowerCase().startsWith(b.mStr.toLowerCase()));
+              let idxA = months.findIndex((m) =>
+                m.toLowerCase().startsWith(a.mStr.toLowerCase()),
+              );
+              let idxB = months.findIndex((m) =>
+                m.toLowerCase().startsWith(b.mStr.toLowerCase()),
+              );
               return idxA - idxB;
             });
 
@@ -5065,14 +5184,15 @@
             monthList.style.display = "none";
 
             monthItems.forEach((m) => {
-              let isChecked = isAllSelected || previouslySelected.includes(m.raw);
+              let isChecked =
+                isAllSelected || previouslySelected.includes(m.raw);
               let mId = "flt_" + Math.random().toString(36).substr(2, 9);
               monthList.insertAdjacentHTML(
                 "beforeend",
                 `<div class="tree-month-row filter-row-item">
                   <input type="checkbox" id="${mId}" value="${m.raw.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb tree-month-cb" data-year-id="${yearId}" onchange="syncTreeYearState('${yearId}')" style="margin-right: 6px;">
                   <label for="${mId}" style="cursor: pointer; user-select: none;">${m.raw}</label>
-                </div>`
+                </div>`,
               );
             });
 
@@ -5083,7 +5203,10 @@
           });
         } else {
           let allDataArr = Array.from(allOptions).sort((a, b) =>
-            a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+            a.localeCompare(b, undefined, {
+              numeric: true,
+              sensitivity: "base",
+            }),
           );
           allDataArr.forEach((val) => {
             let displayVal = val === "" ? "(Blank)" : val;
@@ -5162,7 +5285,10 @@
           let keyword = this.value.toLowerCase();
           if (currentFilterColInfo.key === "report_date") {
             document.querySelectorAll(".tree-year-block").forEach((block) => {
-              let yearMatch = block.querySelector(".tree-year-row label").textContent.toLowerCase().includes(keyword);
+              let yearMatch = block
+                .querySelector(".tree-year-row label")
+                .textContent.toLowerCase()
+                .includes(keyword);
               let hasVisibleMonth = false;
               block.querySelectorAll(".tree-month-row").forEach((mRow) => {
                 let mMatch = mRow.textContent.toLowerCase().includes(keyword);
@@ -5757,7 +5883,8 @@
 
         dataArray.forEach((r) => {
           aoa.push([
-            r.report_date || `${(r.raw_month || "").substring(0, 3)} ${String(r.raw_year || "").slice(-2)}`,
+            r.report_date ||
+              `${(r.raw_month || "").substring(0, 3)} ${String(r.raw_year || "").slice(-2)}`,
             r.site,
             cleanExportRate(r.rate),
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
@@ -6088,7 +6215,6 @@
       }
 
       async function executeBatchView(preserveFilters = false) {
-        isBatchViewActive = true;
         const fromM = document.getElementById("batchViewFromM").value;
         const fromY = document.getElementById("batchViewFromY").value;
         const toM = document.getElementById("batchViewToM").value;
@@ -6099,6 +6225,7 @@
           window.alert("Invalid date range.");
           return;
         }
+        isBatchViewActive = true;
         closeBatchViewModal();
 
         const loader = document.getElementById("loader");
@@ -6331,9 +6458,11 @@
               if (el.classList.contains("bill-nr-cell")) return "bill_nr";
               if (el.classList.contains("bill-ot-cell")) return "bill_ot";
               if (el.classList.contains("driver-ot-cell")) return "driver_ot";
-              if (el.classList.contains("driver-amount-cell")) return "driver_amount";
+              if (el.classList.contains("driver-amount-cell"))
+                return "driver_amount";
               if (el.classList.contains("inv-deduct-cell")) return "inv_deduct";
-              if (el.classList.contains("deduct-reason-cell")) return "deduct_reason";
+              if (el.classList.contains("deduct-reason-cell"))
+                return "deduct_reason";
               if (el.classList.contains("crn-no-cell")) return "crn_no";
               return "";
             }
@@ -6388,7 +6517,10 @@
       }
 
       function clearAllMyActiveLocks() {
-        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        const token =
+          localStorage.getItem("timesheetToken") ||
+          localStorage.getItem("invoiceToken") ||
+          "";
         fetch("/payment/clear-client-locks", {
           method: "POST",
           headers: {
@@ -6710,14 +6842,22 @@
 
               let fieldName = this.dataset.field;
               if (!fieldName) {
-                if (this.classList.contains("vbill-cell")) fieldName = "vbill_notes";
-                else if (this.classList.contains("bill-nr-cell")) fieldName = "bill_nr";
-                else if (this.classList.contains("bill-ot-cell")) fieldName = "bill_ot";
-                else if (this.classList.contains("driver-ot-cell")) fieldName = "driver_ot";
-                else if (this.classList.contains("driver-amount-cell")) fieldName = "driver_amount";
-                else if (this.classList.contains("inv-deduct-cell")) fieldName = "inv_deduct";
-                else if (this.classList.contains("deduct-reason-cell")) fieldName = "deduct_reason";
-                else if (this.classList.contains("crn-no-cell")) fieldName = "crn_no";
+                if (this.classList.contains("vbill-cell"))
+                  fieldName = "vbill_notes";
+                else if (this.classList.contains("bill-nr-cell"))
+                  fieldName = "bill_nr";
+                else if (this.classList.contains("bill-ot-cell"))
+                  fieldName = "bill_ot";
+                else if (this.classList.contains("driver-ot-cell"))
+                  fieldName = "driver_ot";
+                else if (this.classList.contains("driver-amount-cell"))
+                  fieldName = "driver_amount";
+                else if (this.classList.contains("inv-deduct-cell"))
+                  fieldName = "inv_deduct";
+                else if (this.classList.contains("deduct-reason-cell"))
+                  fieldName = "deduct_reason";
+                else if (this.classList.contains("crn-no-cell"))
+                  fieldName = "crn_no";
               }
 
               if (this.classList.contains("inv-deduct-cell")) {
@@ -6814,7 +6954,9 @@
 
         rows.forEach((tr) => {
           const hasMySpecialEdits = Array.from(
-            tr.querySelectorAll(".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell, .crn-no-cell")
+            tr.querySelectorAll(
+              ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell, .crn-no-cell",
+            ),
           ).some((td) => td.dataset.myEdited === "true");
 
           if (!hasMySpecialEdits) return;
@@ -6833,33 +6975,61 @@
           let rMonth = vbillTd.dataset.month;
           let rYear = vbillTd.dataset.year;
 
-          let originalObj = masterData.find(
-            (d) =>
-              (d.master_plate === plate || d.plate === plate) &&
-              d.site === site &&
-              `${d.raw_month} ${d.raw_year}` === `${rMonth} ${rYear}`
-          ) || {};
+          let originalObj =
+            masterData.find(
+              (d) =>
+                (d.master_plate === plate || d.plate === plate) &&
+                d.site === site &&
+                `${d.raw_month} ${d.raw_year}` === `${rMonth} ${rYear}`,
+            ) || {};
 
           const getSpecialVal = (elem, fallbackVal) => {
-            return elem && elem.dataset.myEdited === "true" ? elem.innerText.trim() : fallbackVal;
+            return elem && elem.dataset.myEdited === "true"
+              ? elem.innerText.trim()
+              : fallbackVal;
           };
 
           let newNote = getSpecialVal(vbillTd, originalObj.vbill_notes || "-");
           if (newNote === "") newNote = "-";
 
-          let nrText = getSpecialVal(billNrTd, originalObj.bill_db_nr || "").replace(/,/g, "");
-          let otText = getSpecialVal(billOtTd, originalObj.bill_db_ot || "").replace(/,/g, "");
-          let driverOtText = getSpecialVal(driverOtTd, originalObj.driver_ot || "").replace(/,/g, "");
-          let driverAmtText = getSpecialVal(driverAmountTd, originalObj.driver_amount || "").replace(/,/g, "");
-          let deductText = getSpecialVal(deductTd, originalObj.inv_deduct || "0").replace(/,/g, "");
-          let reasonVal = getSpecialVal(reasonTd, originalObj.deduct_reason || "");
+          let nrText = getSpecialVal(
+            billNrTd,
+            originalObj.bill_db_nr || "",
+          ).replace(/,/g, "");
+          let otText = getSpecialVal(
+            billOtTd,
+            originalObj.bill_db_ot || "",
+          ).replace(/,/g, "");
+          let driverOtText = getSpecialVal(
+            driverOtTd,
+            originalObj.driver_ot || "",
+          ).replace(/,/g, "");
+          let driverAmtText = getSpecialVal(
+            driverAmountTd,
+            originalObj.driver_amount || "",
+          ).replace(/,/g, "");
+          let deductText = getSpecialVal(
+            deductTd,
+            originalObj.inv_deduct || "0",
+          ).replace(/,/g, "");
+          let reasonVal = getSpecialVal(
+            reasonTd,
+            originalObj.deduct_reason || "",
+          );
           let crnVal = getSpecialVal(crnTd, originalObj.crn_no || "");
 
           let nrVal = nrText === "" ? null : parseFloat(nrText);
           let otVal = otText === "" ? null : parseFloat(otText);
-          let driverOtVal = driverOtText === "" ? null : parseFloat(driverOtText);
-          let driverAmountVal = driverAmtText === "" ? null : parseFloat(driverAmtText);
-          let parsedDeduct = deductText === "" ? 0 : isNaN(parseFloat(deductText)) ? 0 : parseFloat(deductText);
+          let driverOtVal =
+            driverOtText === "" ? null : parseFloat(driverOtText);
+          let driverAmountVal =
+            driverAmtText === "" ? null : parseFloat(driverAmtText);
+          let parsedDeduct =
+            deductText === ""
+              ? 0
+              : isNaN(parseFloat(deductText))
+                ? 0
+                : parseFloat(deductText);
 
           updates.push({
             plate_no: plate,
@@ -6913,7 +7083,7 @@
         let newVal = cb.checked ? "Yes" : "No";
         let rowObj = masterData.find(
           (d) =>
-            d.plate === plate &&
+            (d.master_plate === plate || d.plate === plate) &&
             d.site === site &&
             d.raw_month === rMonth &&
             d.raw_year === rYear,
@@ -6974,11 +7144,9 @@
         }
       }
 
-      // ---------- 🟢 Face Login Logic with Active Liveness (MediaPipe) ----------
+      // ---------- 🟢 Direct Camera Face Capture (No MediaPipe) ----------
       let reportVideoStream = null;
-      let reportFaceMesh = null;
-      let reportMpCamera = null;
-      let reportLivenessChallenge = null;
+      let reportCaptureTimer = null;
       let reportChallengePassed = false;
       let isReportVerifying = false;
 
@@ -7030,81 +7198,77 @@
         reportChallengePassed = false;
         isReportVerifying = false;
 
-        const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
-        reportLivenessChallenge =
-          challenges[Math.floor(Math.random() * challenges.length)];
-        instruction.innerText = reportLivenessChallenge;
-        instruction.style.color = "#d97706";
+        if (instruction) {
+          instruction.innerText = "Opening Camera...";
+          instruction.style.color = "#0284c7";
+        }
 
         try {
-          if (!reportFaceMesh) {
-            reportFaceMesh = new FaceMesh({
-              locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`,
-            });
-            reportFaceMesh.setOptions({
-              maxNumFaces: 1,
-              minDetectionConfidence: 0.7,
-              minTrackingConfidence: 0.7,
-            });
-            reportFaceMesh.onResults(onReportFaceMeshResults);
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error(
+              "Camera API blocked on insecure HTTP. Open via HTTPS.",
+            );
+          }
+
+          if (reportVideoStream) {
+            reportVideoStream.getTracks().forEach((track) => track.stop());
+            reportVideoStream = null;
           }
 
           reportVideoStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
+            video: {
+              width: { ideal: 320 },
+              height: { ideal: 240 },
+              facingMode: "user",
+            },
+            audio: false,
           });
           video.srcObject = reportVideoStream;
+          await video.play();
 
-          reportMpCamera = new Camera(video, {
-            onFrame: async () => {
-              await reportFaceMesh.send({ image: video });
-            },
-            width: 320,
-            height: 240,
-          });
-          reportMpCamera.start();
+          if (instruction) {
+            instruction.innerText =
+              "Scanning face... Look straight at the camera";
+            instruction.style.color = "#10b981";
+          }
+
+          if (reportCaptureTimer) clearTimeout(reportCaptureTimer);
+          reportCaptureTimer = setTimeout(async () => {
+            if (
+              !reportVideoStream ||
+              reportChallengePassed ||
+              isReportVerifying
+            ) {
+              return;
+            }
+            reportChallengePassed = true;
+            if (instruction) {
+              instruction.innerText = "Face Captured! Verifying...";
+              instruction.style.color = "#10b981";
+            }
+            await captureAndVerifyReportFace(video);
+          }, 700);
         } catch (err) {
-          showToast("Camera access denied or not available.");
+          showToast(
+            "Camera Error: " +
+              (err.message || "Access denied or not available."),
+          );
           closeReportFaceModal();
         }
       }
 
-      async function onReportFaceMeshResults(results) {
-        if (isReportVerifying || reportChallengePassed) return;
-
-        const instruction = document.getElementById(
-          "reportLivenessInstruction",
-        );
-
-        if (
-          results.multiFaceLandmarks &&
-          results.multiFaceLandmarks.length > 0
-        ) {
-          const landmarks = results.multiFaceLandmarks[0];
-          const nose = landmarks[1];
-          const leftEdge = landmarks[234];
-          const rightEdge = landmarks[454];
-
-          const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
-
-          let passed = false;
-          // 🟢 Strict Bank KYC Logic
-          if (
-            reportLivenessChallenge === "Turn your head LEFT" &&
-            yawRatio > 0.65
-          )
-            passed = true;
-          if (
-            reportLivenessChallenge === "Turn your head RIGHT" &&
-            yawRatio < 0.35
-          )
-            passed = true;
-
-          if (passed) {
-            reportChallengePassed = true;
-            instruction.innerText = "Challenge Passed! Verifying...";
-            instruction.style.color = "#10b981";
-            await captureAndVerifyReportFace(results.image);
-          }
+      function closeReportFaceModal() {
+        const modal = document.getElementById("reportFaceModal");
+        modal.style.display = "none";
+        isReportVerifying = false;
+        reportChallengePassed = false;
+        if (reportCaptureTimer) {
+          clearTimeout(reportCaptureTimer);
+          reportCaptureTimer = null;
+        }
+        if (reportVideoStream) {
+          reportVideoStream.getTracks().forEach((track) => track.stop());
+          reportVideoStream = null;
         }
       }
 
@@ -7132,7 +7296,10 @@
 
           if (data.success) {
             localStorage.setItem("invoiceToken", data.token);
-            localStorage.setItem("timesheetToken", data.timesheetToken || data.token);
+            localStorage.setItem(
+              "timesheetToken",
+              data.timesheetToken || data.token,
+            );
             closeReportFaceModal();
             loadApp();
             initLiveSyncStream();
@@ -7150,27 +7317,10 @@
         }
       }
 
-      function closeReportFaceModal() {
-        const modal = document.getElementById("reportFaceModal");
-        modal.style.display = "none";
-        isReportVerifying = false;
-        reportChallengePassed = false;
-        if (reportMpCamera) {
-          reportMpCamera.stop();
-          reportMpCamera = null;
-        }
-        if (reportVideoStream) {
-          reportVideoStream.getTracks().forEach((track) => track.stop());
-          reportVideoStream = null;
-        }
-      }
-
       // ---------- Billing Face Reset Logic ----------
       let billingRfTempCreds = null;
       let resetFaceStream = null;
-      let resetFaceMesh = null;
-      let resetMpCamera = null;
-      let resetLivenessChallenge = null;
+      let resetCaptureTimer = null;
       let resetChallengePassed = false;
       let isResetProcessing = false;
 
@@ -7233,75 +7383,71 @@
         resetChallengePassed = false;
         isResetProcessing = false;
 
-        const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
-        resetLivenessChallenge =
-          challenges[Math.floor(Math.random() * challenges.length)];
-        instruction.innerText = resetLivenessChallenge;
-        instruction.style.color = "#d97706";
+        if (instruction) {
+          instruction.innerText = "Opening Camera...";
+          instruction.style.color = "#0284c7";
+        }
 
         try {
-          if (!resetFaceMesh) {
-            resetFaceMesh = new FaceMesh({
-              locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`,
-            });
-            resetFaceMesh.setOptions({
-              maxNumFaces: 1,
-              minDetectionConfidence: 0.7,
-              minTrackingConfidence: 0.7,
-            });
-            resetFaceMesh.onResults(onResetFaceMeshResults);
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error(
+              "Camera API blocked on insecure HTTP. Open via HTTPS.",
+            );
           }
+
+          if (resetFaceStream) {
+            resetFaceStream.getTracks().forEach((track) => track.stop());
+            resetFaceStream = null;
+          }
+
           resetFaceStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
+            video: {
+              width: { ideal: 320 },
+              height: { ideal: 240 },
+              facingMode: "user",
+            },
+            audio: false,
           });
           video.srcObject = resetFaceStream;
-          resetMpCamera = new Camera(video, {
-            onFrame: async () => {
-              await resetFaceMesh.send({ image: video });
-            },
-            width: 320,
-            height: 240,
-          });
-          resetMpCamera.start();
+          await video.play();
+
+          if (instruction) {
+            instruction.innerText =
+              "Scanning face... Look straight at the camera";
+            instruction.style.color = "#10b981";
+          }
+
+          if (resetCaptureTimer) clearTimeout(resetCaptureTimer);
+          resetCaptureTimer = setTimeout(async () => {
+            if (!resetFaceStream || resetChallengePassed || isResetProcessing) {
+              return;
+            }
+            resetChallengePassed = true;
+            if (instruction) {
+              instruction.innerText = "Face Captured! Processing...";
+              instruction.style.color = "#10b981";
+            }
+            await captureAndSubmitResetFace(video);
+          }, 700);
         } catch (err) {
-          window.alert("Camera access denied.");
+          window.alert(
+            "Camera Error: " + (err.message || "Access denied or unavailable."),
+          );
           closeBillingResetFaceModalAll();
         }
       }
 
-      async function onResetFaceMeshResults(results) {
-        if (isResetProcessing || resetChallengePassed) return;
-        const instruction = document.getElementById("billingResetInstruction");
-
-        if (
-          results.multiFaceLandmarks &&
-          results.multiFaceLandmarks.length > 0
-        ) {
-          const landmarks = results.multiFaceLandmarks[0];
-          const nose = landmarks[1];
-          const leftEdge = landmarks[234];
-          const rightEdge = landmarks[454];
-          const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
-
-          let passed = false;
-          // 🟢 Strict Bank KYC Logic for Reset
-          if (
-            resetLivenessChallenge === "Turn your head LEFT" &&
-            yawRatio > 0.65
-          )
-            passed = true;
-          if (
-            resetLivenessChallenge === "Turn your head RIGHT" &&
-            yawRatio < 0.35
-          )
-            passed = true;
-
-          if (passed) {
-            resetChallengePassed = true;
-            instruction.innerText = "Challenge Passed! Processing...";
-            instruction.style.color = "#10b981";
-            await captureAndSubmitResetFace(results.image);
-          }
+      function closeBillingResetFaceModalAll() {
+        document.getElementById("billingResetFaceModal").style.display = "none";
+        isResetProcessing = false;
+        resetChallengePassed = false;
+        if (resetCaptureTimer) {
+          clearTimeout(resetCaptureTimer);
+          resetCaptureTimer = null;
+        }
+        if (resetFaceStream) {
+          resetFaceStream.getTracks().forEach((track) => track.stop());
+          resetFaceStream = null;
         }
       }
 
@@ -7348,24 +7494,13 @@
         }
       }
 
-      function closeBillingResetFaceModalAll() {
-        document.getElementById("billingResetFaceModal").style.display = "none";
-        isResetProcessing = false;
-        resetChallengePassed = false;
-        if (resetMpCamera) {
-          resetMpCamera.stop();
-          resetMpCamera = null;
-        }
-        if (resetFaceStream) {
-          resetFaceStream.getTracks().forEach((track) => track.stop());
-          resetFaceStream = null;
-        }
-      }
-
       // 🟢 Realtime SSE Connection for Multi-User Sync
       let sseConnection = null;
       function initLiveSyncStream() {
-        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        const token =
+          localStorage.getItem("timesheetToken") ||
+          localStorage.getItem("invoiceToken") ||
+          "";
         if (!token) return;
 
         if (sseConnection) {
@@ -7373,7 +7508,9 @@
           sseConnection = null;
         }
 
-        sseConnection = new EventSource(`/payment/events?token=${encodeURIComponent(token)}&cid=${encodeURIComponent(myClientId)}`);
+        sseConnection = new EventSource(
+          `/payment/events?token=${encodeURIComponent(token)}&cid=${encodeURIComponent(myClientId)}`,
+        );
 
         sseConnection.onopen = function () {
           console.log("SSE Live Sync Stream Connected successfully.");
@@ -7400,20 +7537,32 @@
       function findRowElement(plate, site, month) {
         const targetClean = cleanPlate(plate);
         const rows = document.querySelectorAll("#reportBody tr");
-        const cleanTMonth = String(month || "").toUpperCase().replace(/\s+/g, "");
+        const cleanTMonth = String(month || "")
+          .toUpperCase()
+          .replace(/\s+/g, "");
 
         for (let tr of rows) {
-          const rowClean = cleanPlate(tr.dataset.masterPlate || tr.dataset.plate);
-          const relatedClean = (tr.dataset.relatedPlates || "").split(",").map(p => cleanPlate(p));
-          const plateMatches = rowClean === targetClean || relatedClean.includes(targetClean);
+          const rowClean = cleanPlate(
+            tr.dataset.masterPlate || tr.dataset.plate,
+          );
+          const relatedClean = (tr.dataset.relatedPlates || "")
+            .split(",")
+            .map((p) => cleanPlate(p));
+          const plateMatches =
+            rowClean === targetClean || relatedClean.includes(targetClean);
 
           if (!plateMatches) continue;
 
           const rSite = (tr.dataset.site || "").trim().toUpperCase();
           const targetSite = (site || "").trim().toUpperCase();
-          const rMonth = `${tr.dataset.month || ""} ${tr.dataset.year || ""}`.toUpperCase().replace(/\s+/g, "");
+          const rMonth = `${tr.dataset.month || ""} ${tr.dataset.year || ""}`
+            .toUpperCase()
+            .replace(/\s+/g, "");
 
-          const siteMatches = !targetSite || rSite === targetSite || (targetSite.startsWith("PREV:") && rSite.startsWith("PREV:"));
+          const siteMatches =
+            !targetSite ||
+            rSite === targetSite ||
+            (targetSite.startsWith("PREV:") && rSite.startsWith("PREV:"));
           const monthMatches = !cleanTMonth || rMonth === cleanTMonth;
 
           if (siteMatches && monthMatches) {
@@ -7428,10 +7577,14 @@
 
         if (data.type === "CONNECTED") {
           if (Array.isArray(data.activeDrafts)) {
-            pendingRemoteDrafts = data.activeDrafts.filter(d => d.senderId !== myClientId);
+            pendingRemoteDrafts = data.activeDrafts.filter(
+              (d) => d.senderId !== myClientId,
+            );
           }
           if (Array.isArray(data.activeLocks)) {
-            pendingRemoteLocks = data.activeLocks.filter(l => l.senderId !== myClientId);
+            pendingRemoteLocks = data.activeLocks.filter(
+              (l) => l.senderId !== myClientId,
+            );
           }
           applyPendingDraftsToTable();
           return;
@@ -7452,9 +7605,14 @@
           return;
         }
 
-        if (data.type === "CELL_UNLOCKED" || data.type === "CELL_UNLOCKED_BY_KEY") {
+        if (
+          data.type === "CELL_UNLOCKED" ||
+          data.type === "CELL_UNLOCKED_BY_KEY"
+        ) {
           if (data.senderId === myClientId) return;
-          const cells = document.querySelectorAll(`[data-lock-key="${data.lockKey}"]`);
+          const cells = document.querySelectorAll(
+            `[data-lock-key="${data.lockKey}"]`,
+          );
           cells.forEach((cell) => {
             delete cell.dataset.isLockedByOther;
             delete cell.dataset.lockKey;
@@ -7467,11 +7625,19 @@
           return;
         }
 
-        if (data.type === "LIVE_DRAFTS_CANCELLED" && Array.isArray(data.drafts)) {
+        if (
+          data.type === "LIVE_DRAFTS_CANCELLED" &&
+          Array.isArray(data.drafts)
+        ) {
           if (data.senderId === myClientId) return;
           data.drafts.forEach((draft) => {
             pendingRemoteDrafts = pendingRemoteDrafts.filter(
-              (d) => !(cleanPlate(d.plate) === cleanPlate(draft.plate) && String(d.month).trim() === String(draft.month).trim() && d.field === draft.field)
+              (d) =>
+                !(
+                  cleanPlate(d.plate) === cleanPlate(draft.plate) &&
+                  String(d.month).trim() === String(draft.month).trim() &&
+                  d.field === draft.field
+                ),
             );
 
             const tr = findRowElement(draft.plate, draft.site, draft.month);
@@ -7482,39 +7648,68 @@
 
             let originalObj = masterData.find(
               (d) =>
-                (cleanPlate(d.master_plate) === cleanPlate(draft.plate) || cleanPlate(d.plate) === cleanPlate(draft.plate)) &&
-                (d.site || "").trim().toUpperCase() === (draft.site || "").trim().toUpperCase() &&
-                `${d.raw_month} ${d.raw_year}`.replace(/\s+/g, "") === String(draft.month).replace(/\s+/g, "")
+                (cleanPlate(d.master_plate) === cleanPlate(draft.plate) ||
+                  cleanPlate(d.plate) === cleanPlate(draft.plate)) &&
+                (d.site || "").trim().toUpperCase() ===
+                  (draft.site || "").trim().toUpperCase() &&
+                `${d.raw_month} ${d.raw_year}`.replace(/\s+/g, "") ===
+                  String(draft.month).replace(/\s+/g, ""),
             );
 
             if (originalObj) {
               let resetVal = "";
               if (draft.field === "inv_nr") resetVal = originalObj.inv_nr || "";
-              else if (draft.field === "inv_ot") resetVal = originalObj.inv_ot || "";
-              else if (draft.field === "inv_amount") resetVal = originalObj.inv_subtotal ? Number(originalObj.inv_subtotal).toFixed(2) : "";
-              else if (draft.field === "inv_no") resetVal = originalObj.inv_no || "";
-              else if (draft.field === "bill_no") resetVal = originalObj.bill_no || "";
-              else if (draft.field === "vbill_notes") resetVal = originalObj.vbill_notes || "-";
-              else if (draft.field === "bill_nr") resetVal = originalObj.bill_db_nr || "";
-              else if (draft.field === "bill_ot") resetVal = originalObj.bill_db_ot || "";
-              else if (draft.field === "driver_ot") resetVal = originalObj.driver_ot || "";
-              else if (draft.field === "driver_amount") resetVal = originalObj.driver_amount ? Number(originalObj.driver_amount).toFixed(2) : "";
-              else if (draft.field === "inv_deduct") resetVal = originalObj.inv_deduct || "";
-              else if (draft.field === "deduct_reason") resetVal = originalObj.deduct_reason || "";
-              else if (draft.field === "crn_no") resetVal = originalObj.crn_no || "";
+              else if (draft.field === "inv_ot")
+                resetVal = originalObj.inv_ot || "";
+              else if (draft.field === "inv_amount")
+                resetVal = originalObj.inv_subtotal
+                  ? Number(originalObj.inv_subtotal).toFixed(2)
+                  : "";
+              else if (draft.field === "inv_no")
+                resetVal = originalObj.inv_no || "";
+              else if (draft.field === "bill_no")
+                resetVal = originalObj.bill_no || "";
+              else if (draft.field === "vbill_notes")
+                resetVal = originalObj.vbill_notes || "-";
+              else if (draft.field === "bill_nr")
+                resetVal = originalObj.bill_db_nr || "";
+              else if (draft.field === "bill_ot")
+                resetVal = originalObj.bill_db_ot || "";
+              else if (draft.field === "driver_ot")
+                resetVal = originalObj.driver_ot || "";
+              else if (draft.field === "driver_amount")
+                resetVal = originalObj.driver_amount
+                  ? Number(originalObj.driver_amount).toFixed(2)
+                  : "";
+              else if (draft.field === "inv_deduct")
+                resetVal = originalObj.inv_deduct || "";
+              else if (draft.field === "deduct_reason")
+                resetVal = originalObj.deduct_reason || "";
+              else if (draft.field === "crn_no")
+                resetVal = originalObj.crn_no || "";
               else resetVal = originalObj[draft.field] || "";
 
               targetCell.innerText = resetVal;
               delete targetCell.dataset.remoteDraft;
 
-              if (draft.field === "inv_amount" || draft.field === "inv_deduct") {
+              if (
+                draft.field === "inv_amount" ||
+                draft.field === "inv_deduct"
+              ) {
                 let subCell = tr.querySelector('[data-field="inv_amount"]');
                 let dedCell = tr.querySelector(".inv-deduct-cell");
-                let sub = parseFloat(subCell ? subCell.innerText.replace(/,/g, "") : "0") || 0;
-                let ded = parseFloat(dedCell ? dedCell.innerText.replace(/,/g, "") : "0") || 0;
+                let sub =
+                  parseFloat(
+                    subCell ? subCell.innerText.replace(/,/g, "") : "0",
+                  ) || 0;
+                let ded =
+                  parseFloat(
+                    dedCell ? dedCell.innerText.replace(/,/g, "") : "0",
+                  ) || 0;
                 let totCell = tr.querySelector(".inv-total-cell");
                 if (totCell) {
-                  totCell.innerText = sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
+                  totCell.innerText =
+                    sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
                 }
               }
             }
@@ -7530,30 +7725,49 @@
           let targetCell = resolveTargetCell(tr, data.field);
 
           if (targetCell) {
-            if (document.activeElement === targetCell || targetCell.dataset.myEdited === "true") return;
+            if (
+              document.activeElement === targetCell ||
+              targetCell.dataset.myEdited === "true"
+            )
+              return;
             targetCell.innerText = data.value;
             targetCell.dataset.remoteDraft = "true";
 
             if (data.field === "inv_amount" || data.field === "inv_deduct") {
               let subCell = tr.querySelector('[data-field="inv_amount"]');
               let dedCell = tr.querySelector(".inv-deduct-cell");
-              let sub = parseFloat(subCell ? subCell.innerText.replace(/,/g, "") : "0") || 0;
-              let ded = parseFloat(dedCell ? dedCell.innerText.replace(/,/g, "") : "0") || 0;
+              let sub =
+                parseFloat(
+                  subCell ? subCell.innerText.replace(/,/g, "") : "0",
+                ) || 0;
+              let ded =
+                parseFloat(
+                  dedCell ? dedCell.innerText.replace(/,/g, "") : "0",
+                ) || 0;
               let totCell = tr.querySelector(".inv-total-cell");
               if (totCell) {
-                totCell.innerText = sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
+                totCell.innerText =
+                  sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
               }
             }
 
             targetCell.classList.add("live-sync-pulse");
-            setTimeout(() => targetCell.classList.remove("live-sync-pulse"), 1200);
+            setTimeout(
+              () => targetCell.classList.remove("live-sync-pulse"),
+              1200,
+            );
           }
           return;
         }
 
         if (data.type === "INLINE_EDITS_SAVED" && Array.isArray(data.records)) {
-          pendingRemoteDrafts = pendingRemoteDrafts.filter(d => 
-            !data.records.some(r => cleanPlate(r.plate) === cleanPlate(d.plate) && String(r.month).trim() === String(d.month).trim())
+          pendingRemoteDrafts = pendingRemoteDrafts.filter(
+            (d) =>
+              !data.records.some(
+                (r) =>
+                  cleanPlate(r.plate) === cleanPlate(d.plate) &&
+                  String(r.month).trim() === String(d.month).trim(),
+              ),
           );
           data.records.forEach((rec) => {
             const tr = findRowElement(rec.plate, rec.site, rec.month);
@@ -7565,16 +7779,26 @@
             const invNoTd = tr.querySelector('[data-field="inv_no"]');
             const billNoTd = tr.querySelector('[data-field="bill_no"]');
 
-            if (invNrTd && rec.inv_nr !== undefined) invNrTd.innerText = rec.inv_nr !== null ? rec.inv_nr : "";
-            if (invOtTd && rec.inv_ot !== undefined) invOtTd.innerText = rec.inv_ot !== null ? rec.inv_ot : "";
-            if (invAmtTd && rec.inv_amount !== undefined) invAmtTd.innerText = rec.inv_amount ? Number(rec.inv_amount).toFixed(2) : "";
-            if (invNoTd && rec.inv_no !== undefined) invNoTd.innerText = rec.inv_no || "";
-            if (billNoTd && rec.bill_no !== undefined) billNoTd.innerText = rec.bill_no || "";
+            if (invNrTd && rec.inv_nr !== undefined)
+              invNrTd.innerText = rec.inv_nr !== null ? rec.inv_nr : "";
+            if (invOtTd && rec.inv_ot !== undefined)
+              invOtTd.innerText = rec.inv_ot !== null ? rec.inv_ot : "";
+            if (invAmtTd && rec.inv_amount !== undefined)
+              invAmtTd.innerText = rec.inv_amount
+                ? Number(rec.inv_amount).toFixed(2)
+                : "";
+            if (invNoTd && rec.inv_no !== undefined)
+              invNoTd.innerText = rec.inv_no || "";
+            if (billNoTd && rec.bill_no !== undefined)
+              billNoTd.innerText = rec.bill_no || "";
 
             tr.classList.add("live-sync-pulse");
             setTimeout(() => tr.classList.remove("live-sync-pulse"), 1500);
           });
-        } else if (data.type === "SPECIAL_EDITS_SAVED" && Array.isArray(data.records)) {
+        } else if (
+          data.type === "SPECIAL_EDITS_SAVED" &&
+          Array.isArray(data.records)
+        ) {
           data.records.forEach((rec) => {
             const tr = findRowElement(rec.plate_no, rec.site_name, rec.month);
             if (!tr || tr.classList.contains("special-row-edited")) return;
@@ -7588,14 +7812,25 @@
             const reasonTd = tr.querySelector(".deduct-reason-cell");
             const crnTd = tr.querySelector(".crn-no-cell");
 
-            if (vbillTd && rec.remark !== undefined) vbillTd.innerText = rec.remark || "-";
-            if (billNrTd && rec.bill_nr !== undefined) billNrTd.innerText = rec.bill_nr !== null ? rec.bill_nr : "";
-            if (billOtTd && rec.bill_ot !== undefined) billOtTd.innerText = rec.bill_ot !== null ? rec.bill_ot : "";
-            if (drvOtTd && rec.driver_ot !== undefined) drvOtTd.innerText = rec.driver_ot !== null ? rec.driver_ot : "";
-            if (drvAmtTd && rec.driver_amount !== undefined) drvAmtTd.innerText = rec.driver_amount !== null ? Number(rec.driver_amount).toFixed(2) : "";
-            if (dedTd && rec.inv_deduct !== undefined) dedTd.innerText = rec.inv_deduct || "";
-            if (reasonTd && rec.deduct_reason !== undefined) reasonTd.innerText = rec.deduct_reason || "";
-            if (crnTd && rec.crn_no !== undefined) crnTd.innerText = rec.crn_no || "";
+            if (vbillTd && rec.remark !== undefined)
+              vbillTd.innerText = rec.remark || "-";
+            if (billNrTd && rec.bill_nr !== undefined)
+              billNrTd.innerText = rec.bill_nr !== null ? rec.bill_nr : "";
+            if (billOtTd && rec.bill_ot !== undefined)
+              billOtTd.innerText = rec.bill_ot !== null ? rec.bill_ot : "";
+            if (drvOtTd && rec.driver_ot !== undefined)
+              drvOtTd.innerText = rec.driver_ot !== null ? rec.driver_ot : "";
+            if (drvAmtTd && rec.driver_amount !== undefined)
+              drvAmtTd.innerText =
+                rec.driver_amount !== null
+                  ? Number(rec.driver_amount).toFixed(2)
+                  : "";
+            if (dedTd && rec.inv_deduct !== undefined)
+              dedTd.innerText = rec.inv_deduct || "";
+            if (reasonTd && rec.deduct_reason !== undefined)
+              reasonTd.innerText = rec.deduct_reason || "";
+            if (crnTd && rec.crn_no !== undefined)
+              crnTd.innerText = rec.crn_no || "";
 
             tr.classList.add("live-sync-pulse");
             setTimeout(() => tr.classList.remove("live-sync-pulse"), 1500);
@@ -7616,18 +7851,26 @@
               }
             }
           } else {
-            const td = tr.querySelector(`[data-field="${rec.field}"]`) || Array.from(tr.querySelectorAll(".editable-cell")).find(c => c.getAttribute("ondblclick")?.includes(rec.field));
+            const td =
+              tr.querySelector(`[data-field="${rec.field}"]`) ||
+              Array.from(tr.querySelectorAll(".editable-cell")).find((c) =>
+                c.getAttribute("ondblclick")?.includes(rec.field),
+              );
             if (td) td.innerText = rec.value || "-";
           }
           tr.classList.add("live-sync-pulse");
           setTimeout(() => tr.classList.remove("live-sync-pulse"), 1500);
         } else if (data.type === "MASTER_EDITS_SAVED") {
-          handleLiveSyncEvent({ type: "INLINE_EDITS_SAVED", records: data.invoiceRecords });
-          handleLiveSyncEvent({ type: "SPECIAL_EDITS_SAVED", records: data.billingRecords });
+          handleLiveSyncEvent({
+            type: "INLINE_EDITS_SAVED",
+            records: data.invoiceRecords,
+          });
+          handleLiveSyncEvent({
+            type: "SPECIAL_EDITS_SAVED",
+            records: data.billingRecords,
+          });
         }
       }
     </script>
-    <script src="/node_xlsx_scripts/mediapipe/camera_utils.js"></script>
-    <script src="/node_xlsx_scripts/mediapipe/face_mesh.js"></script>
   </body>
 </html>

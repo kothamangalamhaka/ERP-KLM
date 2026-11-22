@@ -430,7 +430,8 @@
       .login-overlay {
         position: fixed;
         inset: 0;
-        background: radial-gradient(
+        background:
+          radial-gradient(
             circle at 22% 20%,
             rgba(245, 158, 11, 0.22),
             transparent 45%
@@ -2053,7 +2054,10 @@
           return;
         }
 
-        showStatus(`Capturing ${siteFirstName.toUpperCase()} HQ Image...`, "saving");
+        showStatus(
+          `Capturing ${siteFirstName.toUpperCase()} HQ Image...`,
+          "saving",
+        );
         btnEl.disabled = true;
 
         const isDark = document.body.classList.contains("dark-mode");
@@ -2125,7 +2129,10 @@
               await navigator.clipboard.write([
                 new ClipboardItem({ "image/png": blob }),
               ]);
-              showStatus(`✓ ${siteFirstName.toUpperCase()} Image Copied!`, "saved");
+              showStatus(
+                `✓ ${siteFirstName.toUpperCase()} Image Copied!`,
+                "saved",
+              );
             } catch (err) {
               showStatus("Clipboard copy failed", "error");
             }

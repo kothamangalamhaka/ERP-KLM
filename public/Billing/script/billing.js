@@ -3619,14 +3619,13 @@ async function openVendorBillForCard(cardId) {
   window.open("/Office/e-invoice/vendorbill.html", "_blank");
 }
 
-// ---------- Universal Face Login, Registration & Reset Logic ----------
+// ---------- Universal Face Login, Registration & Reset Logic (No MediaPipe / No Turn) ----------
 let registeredAppFaceDescriptor = null;
 let activeAppFaceAction = null;
 let appRfTempCreds = null;
 let appCamStream = null;
-let appFaceMeshInstance = null;
-let appMpCameraInstance = null;
-let appLivenessTarget = null;
+let appCaptureLoopId = null;
+let appScanStartTime = 0;
 let appLivenessPassed = false;
 let isAppProcessing = false;
 
@@ -3676,7 +3675,6 @@ window.verifyAndStartBillingAppFaceReset = async function () {
 };
 
 window.startBillingAppFaceAuth = async function (action) {
-  // 🟢 പുതിയ റിക്വസ്റ്റ് വരുന്നതിന് മുൻപ് പഴയ ക്യാമറ പൂർണ്ണമായും ക്ലോസ് ചെയ്തു എന്ന് ഉറപ്പാക്കുന്നു
   closeBillingAppUniversalFace();
 
   activeAppFaceAction = action;
@@ -3694,78 +3692,42 @@ window.startBillingAppFaceAuth = async function (action) {
   modal.style.display = "flex";
   appLivenessPassed = false;
   isAppProcessing = false;
-
-  const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
-  appLivenessTarget = challenges[Math.floor(Math.random() * challenges.length)];
-  instruction.innerText = appLivenessTarget;
-  instruction.style.color = "#f59e0b";
+  appScanStartTime = Date.now();
+  instruction.innerText = "Opening Camera...";
+  instruction.style.color = "#0284c7";
 
   try {
-    if (!appFaceMeshInstance) {
-      appFaceMeshInstance = new FaceMesh({
-        locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`,
-      });
-      appFaceMeshInstance.setOptions({
-        maxNumFaces: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.7,
-      });
-      appFaceMeshInstance.onResults(onBillingAppUniversalMeshResults);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Camera API unavailable on this connection.");
     }
 
-    appCamStream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = appCamStream;
-
-    appMpCameraInstance = new Camera(video, {
-      onFrame: async () => {
-        if (
-          video.videoWidth > 0 &&
-          video.videoHeight > 0 &&
-          appFaceMeshInstance
-        ) {
-          await appFaceMeshInstance.send({ image: video });
-        }
-      },
-      width: 300,
-      height: 225,
+    appCamStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 300 }, height: { ideal: 225 }, facingMode: "user" },
+      audio: false,
     });
-    await appMpCameraInstance.start();
+    video.srcObject = appCamStream;
+    await video.play();
+
+    instruction.innerText = "Scanning face... Look straight at the camera";
+    instruction.style.color = "#10b981";
+
+    const captureLoop = async () => {
+      if (!appCamStream || appLivenessPassed || isAppProcessing) return;
+      if (video.readyState >= 2 && Date.now() - appScanStartTime >= 700) {
+        appLivenessPassed = true;
+        instruction.innerText = "Capturing & Verifying...";
+        await handleBillingAppFaceCapture(video);
+        return;
+      }
+      appCaptureLoopId = requestAnimationFrame(captureLoop);
+    };
+    appCaptureLoopId = requestAnimationFrame(captureLoop);
   } catch (err) {
     console.error("Camera Init Error: ", err);
     showToast("Camera access denied or unavailable.");
     closeBillingAppUniversalFace();
   }
 };
-
-async function onBillingAppUniversalMeshResults(results) {
-  if (isAppProcessing || appLivenessPassed) return;
-  const instruction = document.getElementById("billingAppUniversalInstruction");
-
-  if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-    const landmarks = results.multiFaceLandmarks[0];
-    const nose = landmarks[1];
-    const leftEdge = landmarks[234];
-    const rightEdge = landmarks[454];
-    const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
-
-    let passed = false;
-    // 🟢 Strict Bank KYC Logic (Turn strictly > 0.65 or < 0.35)
-    if (appLivenessTarget === "Turn your head LEFT" && yawRatio > 0.65)
-      passed = true;
-    if (appLivenessTarget === "Turn your head RIGHT" && yawRatio < 0.35)
-      passed = true;
-
-    if (passed) {
-      appLivenessPassed = true;
-      instruction.innerText = "Challenge Passed! Processing...";
-      instruction.style.color = "#10b981";
-      const currentVideoEl = document.getElementById(
-        "billingAppUniversalVideo",
-      );
-      await handleBillingAppFaceCapture(currentVideoEl);
-    }
-  }
-}
 
 async function handleBillingAppFaceCapture(frame) {
   isAppProcessing = true;
@@ -3853,9 +3815,9 @@ window.closeBillingAppUniversalFace = function () {
     "none";
   isAppProcessing = false;
   appLivenessPassed = false;
-  if (appMpCameraInstance) {
-    appMpCameraInstance.stop();
-    appMpCameraInstance = null;
+  if (appCaptureLoopId) {
+    cancelAnimationFrame(appCaptureLoopId);
+    appCaptureLoopId = null;
   }
   if (appCamStream) {
     appCamStream.getTracks().forEach((t) => t.stop());

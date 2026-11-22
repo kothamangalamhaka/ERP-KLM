@@ -6,37 +6,70 @@ if (!token) {
   window.location.replace("index.html?redirect=" + currentPage);
 }
 
-// 🟢 Verify token with server immediately on page load, back-forward cache, or tab wake-up
-async function verifySessionOnEntry() {
+let lastSessionCheckTime = 0;
+
+// 🟢 Verify & Auto-Refresh token with server BEFORE loading or editing data
+async function verifySessionOnEntry(force = false) {
   const currentToken = localStorage.getItem("timesheetToken");
   if (!currentToken) {
-    return handleUnauthorizedSession();
+    handleUnauthorizedSession();
+    return false;
   }
+
+  // Avoid spamming server if checked within last 60 seconds (unless forced)
+  const now = Date.now();
+  if (!force && now - lastSessionCheckTime < 60000) {
+    return true;
+  }
+
   try {
     const res = await fetch("/timesheet/api/verify-session", {
       headers: { Authorization: "Bearer " + currentToken },
     });
     if (res.status === 401 || res.status === 403) {
       handleUnauthorizedSession();
+      return false;
+    }
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.token) {
+        token = data.token;
+        localStorage.setItem("timesheetToken", data.token);
+      }
+      lastSessionCheckTime = Date.now();
+      return true;
     }
   } catch (e) {
     console.warn("Session check network bypass:", e.message);
   }
+  return true;
 }
-
-verifySessionOnEntry();
 
 window.addEventListener("pageshow", function (event) {
   if (event.persisted || !localStorage.getItem("timesheetToken")) {
-    verifySessionOnEntry();
+    verifySessionOnEntry(true);
   }
 });
 
 document.addEventListener("visibilitychange", function () {
   if (document.visibilityState === "visible") {
-    verifySessionOnEntry();
+    verifySessionOnEntry(true);
   }
 });
+
+// 🟢 Pre-Edit Check: Refresh session silently the moment user clicks any input/cell to edit
+document.addEventListener("focusin", function (e) {
+  if (e.target.closest("#dbBody") || e.target.closest(".modal-overlay")) {
+    verifySessionOnEntry(false);
+  }
+});
+
+// 🟢 Keep session alive every 10 minutes while user stays on the page
+setInterval(() => {
+  if (document.visibilityState === "visible" && !isRedirectingToLogin) {
+    verifySessionOnEntry(true);
+  }
+}, 10 * 60 * 1000);
 
 let userRole = "";
 const userStr = localStorage.getItem("timesheetUser");
@@ -3624,8 +3657,13 @@ async function startLiveSyncWorker() {
   }, 1500);
 }
 
-initDB();
-startLiveSyncWorker();
+(async function bootApp() {
+  const isSessionValid = await verifySessionOnEntry(true);
+  if (isSessionValid) {
+    await initDB();
+    startLiveSyncWorker();
+  }
+})();
 
 async function editPlateNo() {
   const oldPlate = activeRowPlate;
