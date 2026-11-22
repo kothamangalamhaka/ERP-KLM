@@ -128,7 +128,9 @@ function buildDebitNoteFileName({
   ext,
 }) {
   const rawPlate = (plateNo || "").trim().toUpperCase();
-  const cleanMonth = ((monthYear || "MONTH").trim().toUpperCase())
+  const cleanMonth = (monthYear || "MONTH")
+    .trim()
+    .toUpperCase()
     .replace(/[^a-zA-Z0-9]+/g, "_")
     .replace(/^_|_$/g, "");
   const cleanPart = (particulars || "")
@@ -822,9 +824,12 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
     } = req.body;
 
     const numAmount = parseFloat(amount) || 0;
-    const numQcEntry = qc_entry !== null && qc_entry !== undefined && String(qc_entry).trim() !== ""
-      ? parseFloat(qc_entry)
-      : null;
+    const numQcEntry =
+      qc_entry !== null &&
+      qc_entry !== undefined &&
+      String(qc_entry).trim() !== ""
+        ? parseFloat(qc_entry)
+        : null;
 
     const cleanPlateVal = plate_no ? plate_no.trim().toUpperCase() : "";
     let finalAutoId = (auto_plate_id || "").trim();
@@ -900,7 +905,10 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
               fs.renameSync(oldFull, newFull);
               updatedAttachmentPath = `/uploads/Debit_Note/${newFileName}`;
             } catch (renErr) {
-              console.warn("Debit note attachment rename skipped:", renErr.message);
+              console.warn(
+                "Debit note attachment rename skipped:",
+                renErr.message,
+              );
             }
           }
         } else {
@@ -1046,10 +1054,16 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
       broadcastDebitNoteUpdate("UPSERT", bRow, senderId);
     }
 
+    const latestAttPath =
+      broadcastRowRes.rows.length > 0
+        ? broadcastRowRes.rows[0].attachment_path
+        : updatedAttachmentPath;
+
     res.json({
       success: true,
       id: finalId,
       auto_plate_id: finalAutoId || "",
+      attachment_path: latestAttPath || null,
       vat_amount: vatAmount,
       total_amount: totalAmount,
       seal_applied: sealResult.success,
@@ -1065,8 +1079,35 @@ router.post("/api/delete-row", verifyVatTrackerCode, async (req, res) => {
     const { id } = req.body;
     if (!id) return res.json({ success: false, message: "ID missing" });
 
+    const prevRes = await pool.query(
+      `SELECT attachment_path FROM debit_notes WHERE id = $1`,
+      [id],
+    );
+    const oldAtt = prevRes.rows[0]?.attachment_path || null;
+
     const senderId = req.headers["x-client-id"] || null;
     await pool.query(`DELETE FROM debit_notes WHERE id = $1`, [id]);
+
+    // Remove file from disk ONLY if no other row references it
+    if (oldAtt) {
+      const stillUsed = await pool.query(
+        `SELECT 1 FROM debit_notes WHERE attachment_path = $1 LIMIT 1`,
+        [oldAtt],
+      );
+      if (stillUsed.rows.length === 0) {
+        const fullDisk = path.join(
+          __dirname,
+          "../public",
+          oldAtt.replace(/^\/+/, ""),
+        );
+        if (fs.existsSync(fullDisk)) {
+          try {
+            fs.unlinkSync(fullDisk);
+          } catch (e) {}
+        }
+      }
+    }
+
     broadcastDebitNoteUpdate("DELETE", { id }, senderId);
     res.json({ success: true });
   } catch (error) {
