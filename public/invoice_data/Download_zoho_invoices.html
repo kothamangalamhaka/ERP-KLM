@@ -24,11 +24,29 @@
         --check-color: #64748b;
         --check-hover: #475569;
 
-        --bg-color: #f1f5f9;
+        --bg-gradient: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
         --card-bg: #ffffff;
+        --input-bg: #f8fafc;
+        --input-focus-bg: #ffffff;
+        --icon-bg: #eff6ff;
         --text-main: #0f172a;
         --text-muted: #64748b;
         --border-color: #e2e8f0;
+        --card-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.02);
+        --disabled-btn: #cbd5e1;
+      }
+
+      [data-theme="dark"] {
+        --bg-gradient: radial-gradient(circle at 20% 20%, #1e293b 0%, #090d16 100%);
+        --card-bg: #111827;
+        --input-bg: #1f2937;
+        --input-focus-bg: #1f2937;
+        --icon-bg: rgba(37, 99, 235, 0.18);
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+        --card-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        --disabled-btn: #334155;
       }
 
       * {
@@ -37,34 +55,27 @@
 
       body {
         font-family: "Inter", sans-serif;
-        background: linear-gradient(
-          135deg,
-          #e0e7ff 0%,
-          #f1f5f9 100%
-        );
-
+        background: var(--bg-gradient);
         display: flex;
         justify-content: center;
         align-items: center;
-
         min-height: 100vh;
         margin: 0;
-
         color: var(--text-main);
+        transition: background 0.25s ease, color 0.25s ease;
       }
 
       .app-wrapper {
         background: var(--card-bg);
         padding: 40px;
         border-radius: 16px;
-        box-shadow:
-          0 10px 40px -10px rgba(0, 0, 0, 0.1),
-          0 0 0 1px rgba(0, 0, 0, 0.02);
+        box-shadow: var(--card-shadow);
         width: 100%;
         max-width: 540px;
         text-align: center;
         position: relative;
         overflow: hidden;
+        transition: background-color 0.25s ease, box-shadow 0.25s ease;
       }
 
       .app-wrapper::before {
@@ -81,8 +92,31 @@
         );
       }
 
+      .theme-toggle-btn {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        min-height: auto !important;
+        padding: 6px 12px !important;
+        border-radius: 20px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        flex-direction: row !important;
+        gap: 5px !important;
+        background: var(--input-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border-color) !important;
+        box-shadow: none !important;
+        cursor: pointer;
+      }
+
+      .theme-toggle-btn:hover {
+        border-color: var(--primary-color) !important;
+        transform: none !important;
+      }
+
       .header-icon {
-        background: #eff6ff;
+        background: var(--icon-bg);
         color: var(--primary-color);
         width: 64px;
         height: 64px;
@@ -92,8 +126,7 @@
         justify-content: center;
         margin: 0 auto 20px;
         font-size: 28px;
-        box-shadow:
-          0 4px 6px -1px rgba(37, 99, 235, 0.1);
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.15);
       }
 
       h2 {
@@ -107,12 +140,12 @@
         color: var(--text-muted);
         font-size: 14px;
         line-height: 1.6;
-        margin: 0 0 30px;
+        margin: 0 0 26px;
       }
 
       .form-group {
         text-align: left;
-        margin-bottom: 25px;
+        margin-bottom: 22px;
       }
 
       label {
@@ -135,7 +168,7 @@
         font-family: inherit;
         font-size: 15px;
         color: var(--text-main);
-        background-color: #f8fafc;
+        background-color: var(--input-bg);
         border: 1px solid var(--border-color);
         border-radius: 10px;
         appearance: none;
@@ -146,14 +179,54 @@
 
       select:focus {
         border-color: var(--primary-color);
-        background-color: #fff;
-        box-shadow:
-          0 0 0 4px rgba(37, 99, 235, 0.1);
+        background-color: var(--input-focus-bg);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
       }
 
       select:disabled {
         cursor: not-allowed;
         opacity: 0.75;
+      }
+
+      .date-corner-wrap {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        display: flex;
+        align-items: center;
+      }
+
+      .date-emoji-btn {
+        min-height: auto !important;
+        padding: 6px 10px !important;
+        border-radius: 20px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        flex-direction: row !important;
+        gap: 5px !important;
+        background: var(--input-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border-color) !important;
+        box-shadow: none !important;
+        cursor: pointer;
+      }
+
+      .date-emoji-btn:hover {
+        border-color: var(--primary-color) !important;
+        transform: none !important;
+      }
+
+      .date-emoji-btn.has-custom-date {
+        border-color: var(--primary-color) !important;
+        background: var(--icon-bg);
+      }
+
+      #hiddenDatePicker {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
       }
 
       .custom-select::after {
@@ -167,12 +240,20 @@
         pointer-events: none;
       }
 
+      .browser-hint {
+        margin-top: 8px;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
       .action-cards {
         display: grid;
-        /* Changed to a 2x2 grid to accommodate 4 buttons */
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
-        margin-top: 20px;
+        margin-top: 18px;
       }
 
       button {
@@ -194,7 +275,8 @@
       }
 
       button:disabled {
-        background-color: #cbd5e1 !important;
+        background-color: var(--disabled-btn) !important;
+        color: #94a3b8 !important;
         box-shadow: none !important;
         cursor: not-allowed;
         transform: none !important;
@@ -202,7 +284,7 @@
 
       .btn-check {
         background-color: var(--check-color);
-        box-shadow: 0 4px 14px 0 rgba(100, 116, 139, 0.39);
+        box-shadow: 0 4px 14px 0 rgba(100, 116, 139, 0.35);
       }
 
       .btn-check:hover:not(:disabled) {
@@ -212,8 +294,7 @@
 
       .btn-zip {
         background-color: var(--secondary-color);
-        box-shadow:
-          0 4px 14px 0 rgba(16, 185, 129, 0.39);
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
       }
 
       .btn-zip:hover:not(:disabled) {
@@ -223,8 +304,7 @@
 
       .btn-pdf {
         background-color: var(--primary-color);
-        box-shadow:
-          0 4px 14px 0 rgba(37, 99, 235, 0.39);
+        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.35);
       }
 
       .btn-pdf:hover:not(:disabled) {
@@ -234,8 +314,7 @@
 
       .btn-bill {
         background-color: var(--bill-color);
-        box-shadow:
-          0 4px 14px 0 rgba(245, 158, 11, 0.39);
+        box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.35);
       }
 
       .btn-bill:hover:not(:disabled) {
@@ -261,32 +340,32 @@
       }
 
       .status-info {
-        background: #eff6ff;
-        color: #1d4ed8;
-        border: 1px solid #bfdbfe;
+        background: rgba(37, 99, 235, 0.12);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.3);
         display: flex;
       }
 
       .status-success {
-        background: #ecfdf5;
-        color: #047857;
-        border: 1px solid #a7f3d0;
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
         display: flex;
       }
 
       .status-error {
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
         display: flex;
       }
 
       .spinner {
         width: 18px;
         height: 18px;
-        border: 3px solid rgba(29, 78, 216, 0.2);
+        border: 3px solid rgba(59, 130, 246, 0.25);
         border-radius: 50%;
-        border-top-color: #1d4ed8;
+        border-top-color: #3b82f6;
         animation: spin 1s ease-in-out infinite;
         flex-shrink: 0;
       }
@@ -303,7 +382,7 @@
         }
 
         .app-wrapper {
-          padding: 30px 20px;
+          padding: 36px 20px 30px;
         }
 
         .action-cards {
@@ -319,41 +398,55 @@
 
   <body>
     <div class="app-wrapper">
-
-      <div class="header-icon">
-        📥
+      <div class="date-corner-wrap">
+        <button
+          type="button"
+          id="dateCornerBtn"
+          class="date-emoji-btn"
+          onclick="openCornerCalendar()"
+          title="Select Date (Default: Today)"
+        >
+          <span>📅</span>
+          <span id="dateCornerLabel" style="font-size: 11px; display: none"></span>
+        </button>
+        <input
+          type="date"
+          id="hiddenDatePicker"
+          onchange="onCornerDatePicked()"
+        />
       </div>
 
-      <h2>
-        Invoice Download Hub
-      </h2>
+      <button
+        type="button"
+        id="themeToggleBtn"
+        class="theme-toggle-btn"
+        onclick="toggleTheme()"
+      >
+        🌙 Dark
+      </button>
+
+      <div class="header-icon">📥</div>
+
+      <h2>Invoice Download Hub</h2>
 
       <p>
-        Securely fetch and download today's registered invoices
-        from the mail server to your local system.
+        Securely fetch and download today's registered invoices from the mail
+        server to your local system.
       </p>
 
       <div class="form-group">
-
-        <label for="vendorSelect">
-          Select Vendor Profile
-        </label>
+        <label for="vendorSelect">Select Vendor Profile</label>
 
         <div class="custom-select">
-
           <select id="vendorSelect" disabled>
-            <option value="">
-              Establishing connection...
-            </option>
+            <option value="">Establishing connection...</option>
           </select>
-
         </div>
 
+        <div id="browserModeHint" class="browser-hint"></div>
       </div>
 
       <div class="action-cards">
-
-        <!-- NEW CHECK BUTTON -->
         <button
           id="btnCheck"
           class="btn-check"
@@ -361,12 +454,8 @@
           onclick="checkFileCount()"
           disabled
         >
-          <span class="btn-icon">
-            🔍
-          </span>
-          <span>
-            Check
-          </span>
+          <span class="btn-icon">🔍</span>
+          <span>Check</span>
         </button>
 
         <button
@@ -376,12 +465,8 @@
           onclick="startDownload(true)"
           disabled
         >
-          <span class="btn-icon">
-            📦
-          </span>
-          <span>
-            ZIP
-          </span>
+          <span class="btn-icon">📦</span>
+          <span>ZIP</span>
         </button>
 
         <button
@@ -391,12 +476,8 @@
           onclick="startDownload(false)"
           disabled
         >
-          <span class="btn-icon">
-            📥
-          </span>
-          <span>
-            PDF
-          </span>
+          <span class="btn-icon">📥</span>
+          <span>PDF</span>
         </button>
 
         <button
@@ -406,53 +487,138 @@
           onclick="startBillProcess()"
           disabled
         >
-          <span class="btn-icon">
-            🧾
-          </span>
-          <span>
-            Bill
-          </span>
+          <span class="btn-icon">🧾</span>
+          <span>Bill</span>
         </button>
-
       </div>
 
-      <div
-        id="statusBox"
-        class="status-container"
-      >
-        <div
-          id="loadingSpinner"
-          class="spinner"
-          style="display: none"
-        ></div>
-
+      <div id="statusBox" class="status-container">
+        <div id="loadingSpinner" class="spinner" style="display: none"></div>
         <span id="statusText"></span>
       </div>
-
     </div>
 
     <script>
       "use strict";
 
-      /*
-       * ============================================================
-       * DOM ELEMENTS
-       * ============================================================
-       */
+      /* ============================================================
+         THEME MANAGEMENT (DARK / LIGHT)
+         ============================================================ */
+      function applySavedTheme() {
+        const saved = localStorage.getItem("zoho_hub_theme") || "dark";
+        document.documentElement.setAttribute("data-theme", saved);
+        const btn = document.getElementById("themeToggleBtn");
+        if (btn) {
+          btn.textContent = saved === "dark" ? "☀️ Light" : "🌙 Dark";
+        }
+      }
 
+      function toggleTheme() {
+        const current =
+          document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("zoho_hub_theme", next);
+        const btn = document.getElementById("themeToggleBtn");
+        if (btn) {
+          btn.textContent = next === "dark" ? "☀️ Light" : "🌙 Dark";
+        }
+      }
+
+      applySavedTheme();
+
+      /* ============================================================
+         BROWSER DETECTION & FOLDER PICKER SUPPORT
+         ============================================================ */
+      function detectBrowserInfo() {
+        const ua = navigator.userAgent;
+        let name = "Browser";
+        if (ua.includes("Edg/")) name = "Microsoft Edge";
+        else if (ua.includes("Firefox/")) name = "Mozilla Firefox";
+        else if (ua.includes("Chrome/")) name = "Google Chrome";
+        else if (ua.includes("Safari/")) name = "Safari";
+
+        const supportsFolderPicker =
+          typeof window.showDirectoryPicker === "function" &&
+          window.isSecureContext;
+
+        return { name, supportsFolderPicker };
+      }
+
+      const browserInfo = detectBrowserInfo();
+
+      function updateBrowserHint() {
+        const hintEl = document.getElementById("browserModeHint");
+        if (!hintEl) return;
+        if (browserInfo.supportsFolderPicker) {
+          hintEl.textContent = `📁 ${browserInfo.name}: Direct folder save popup enabled for PDF & Bill.`;
+        } else {
+          hintEl.textContent = `⬇️ ${browserInfo.name}: Files will save to your default Downloads folder.`;
+        }
+      }
+
+      /* ============================================================
+         DOM ELEMENTS
+         ============================================================ */
       const vendorSelect = document.getElementById("vendorSelect");
+      const hiddenDatePicker = document.getElementById("hiddenDatePicker");
+      const dateCornerBtn = document.getElementById("dateCornerBtn");
+      const dateCornerLabel = document.getElementById("dateCornerLabel");
       const btnCheck = document.getElementById("btnCheck");
       const btnZip = document.getElementById("btnZip");
       const btnIndiv = document.getElementById("btnIndiv");
       const btnBill = document.getElementById("btnBill");
 
-      /*
-       * ============================================================
-       * PAGE INITIALIZATION
-       * ============================================================
-       */
+      function getLocalTodayIso() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
 
-      window.addEventListener("DOMContentLoaded", loadVendors);
+      function openCornerCalendar() {
+        if (!hiddenDatePicker.value) {
+          hiddenDatePicker.value = getLocalTodayIso();
+        }
+        if (typeof hiddenDatePicker.showPicker === "function") {
+          hiddenDatePicker.showPicker();
+        } else {
+          hiddenDatePicker.click();
+        }
+      }
+
+      function onCornerDatePicked() {
+        const val = hiddenDatePicker.value;
+        const today = getLocalTodayIso();
+        if (!val || val === today) {
+          dateCornerBtn.classList.remove("has-custom-date");
+          dateCornerLabel.style.display = "none";
+          dateCornerLabel.textContent = "";
+        } else {
+          dateCornerBtn.classList.add("has-custom-date");
+          const parts = val.split("-");
+          dateCornerLabel.textContent = `${parts[2]}-${parts[1]}`;
+          dateCornerLabel.style.display = "inline";
+        }
+      }
+
+      function getDateFilterParams() {
+        const val = hiddenDatePicker ? hiddenDatePicker.value : "";
+        const today = getLocalTodayIso();
+        if (!val || val === today) {
+          return { dateMode: "today", customDate: "", label: "today's" };
+        }
+        return { dateMode: "custom", customDate: val, label: val };
+      }
+
+      /* ============================================================
+         PAGE INITIALIZATION
+         ============================================================ */
+      window.addEventListener("DOMContentLoaded", () => {
+        updateBrowserHint();
+        loadVendors();
+      });
 
       async function loadVendors() {
         disableControls();
@@ -463,16 +629,11 @@
         vendorSelect.appendChild(loadingOption);
 
         try {
-          const response = await fetch(
-            "/api/invoice-vendors",
-            {
-              method: "GET",
-              headers: {
-                Accept: "application/json"
-              },
-              cache: "no-store"
-            }
-          );
+          const response = await fetch("/api/invoice-vendors", {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          });
 
           if (!response.ok) {
             throw new Error(`Server returned HTTP ${response.status}`);
@@ -486,7 +647,6 @@
             "success",
             false
           );
-
         } catch (error) {
           console.error("Vendor loading error:", error);
           vendorSelect.innerHTML = "";
@@ -502,12 +662,6 @@
           );
         }
       }
-
-      /*
-       * ============================================================
-       * POPULATE VENDOR DROPDOWN
-       * ============================================================
-       */
 
       function populateDropdown(vendors) {
         vendorSelect.innerHTML = "";
@@ -537,12 +691,6 @@
         vendorSelect.focus();
       }
 
-      /*
-       * ============================================================
-       * CONTROL STATE
-       * ============================================================
-       */
-
       function disableControls() {
         vendorSelect.disabled = true;
         btnCheck.disabled = true;
@@ -559,66 +707,82 @@
         btnBill.disabled = false;
       }
 
-      /*
-       * ============================================================
-       * GET SELECTED VENDOR
-       * ============================================================
-       */
-
       function getSelectedVendor() {
         const vendorKey = vendorSelect.value;
         if (!vendorKey) {
           throw new Error("Please select a vendor.");
         }
-        const selectedOption = vendorSelect.options[vendorSelect.selectedIndex];
-        const vendorName = selectedOption ? selectedOption.textContent : vendorKey;
+        const selectedOption =
+          vendorSelect.options[vendorSelect.selectedIndex];
+        const vendorName = selectedOption
+          ? selectedOption.textContent
+          : vendorKey;
         return { vendorKey, vendorName };
       }
 
-      /*
-       * ============================================================
-       * CHECK FILE COUNT
-       * ============================================================
-       */
-      
+      /* ============================================================
+         FAST CHECK FILE COUNT (NO HEAVY BASE64 PAYLOAD)
+         ============================================================ */
       async function checkFileCount() {
-        let vendor;
+        let vendor, dateParams;
         try {
           vendor = getSelectedVendor();
+          dateParams = getDateFilterParams();
         } catch (error) {
           showStatus(error.message, "error");
           return;
         }
 
         disableControls();
-        showStatus(`Checking available invoices for ${vendor.vendorName}...`, "info", true);
+        showStatus(
+          `Checking ${dateParams.label} invoices for ${vendor.vendorName}...`,
+          "info",
+          true
+        );
 
         try {
           const response = await fetch("/api/invoice-download", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Accept: "application/json"
+              Accept: "application/json",
             },
             body: JSON.stringify({
-              vendorKey: vendor.vendorKey
-            })
+              vendorKey: vendor.vendorKey,
+              countOnly: true,
+              dateMode: dateParams.dateMode,
+              customDate: dateParams.customDate,
+            }),
           });
 
           const data = await parseJsonResponse(response);
 
           if (!response.ok) {
-            throw new Error(data.detail || data.error || "Server connection failed");
+            throw new Error(
+              data.detail || data.error || "Server connection failed"
+            );
           }
 
-          if (!data.files || data.files.length === 0) {
+          const count =
+            typeof data.count === "number"
+              ? data.count
+              : data.files
+                ? data.files.length
+                : 0;
+
+          if (count === 0) {
             showStatus("No matching invoices found for today.", "error");
             return;
           }
 
-          const count = data.files.length;
-          showStatus(`Found ${count} invoice file(s) ready to download.`, "success");
-
+          const billInfo =
+            typeof data.billMatchedCount === "number"
+              ? ` (${data.billMatchedCount} matched with Bill No)`
+              : "";
+          showStatus(
+            `Found ${count} invoice file(s)${billInfo} ready to download.`,
+            "success"
+          );
         } catch (error) {
           console.error("Check count error:", error);
           showStatus(`Error: ${error.message}`, "error");
@@ -627,40 +791,129 @@
         }
       }
 
-      /*
-       * ============================================================
-       * BILL DOWNLOAD
-       * ============================================================
-       */
+      /* ============================================================
+         FOLDER PICKER HELPER (CHROME / EDGE + FIREFOX FALLBACK)
+         ============================================================ */
+      async function pickTargetDirectory() {
+        if (!browserInfo.supportsFolderPicker) {
+          return null;
+        }
+        try {
+          const dirHandle = await window.showDirectoryPicker({
+            mode: "readwrite",
+          });
+          return dirHandle;
+        } catch (err) {
+          if (err && err.name === "AbortError") {
+            throw new Error("Folder selection cancelled.");
+          }
+          console.warn(
+            "Directory picker unavailable, falling back to browser download:",
+            err
+          );
+          return null;
+        }
+      }
 
+      function base64ToUint8Array(base64) {
+        const binaryString = window.atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+      }
+
+      async function saveFilesToDirectoryOrDownload(
+        files,
+        dirHandle,
+        typeLabel = "file"
+      ) {
+        const total = files.length;
+
+        if (dirHandle) {
+          for (let index = 0; index < total; index++) {
+            const file = files[index];
+            showStatus(
+              `Saving ${index + 1}/${total} ${typeLabel} to "${dirHandle.name}"...`,
+              "info",
+              true
+            );
+            const fileHandle = await dirHandle.getFileHandle(file.name, {
+              create: true,
+            });
+            const writable = await fileHandle.createWritable();
+            const bytes = base64ToUint8Array(file.data);
+            await writable.write(bytes);
+            await writable.close();
+          }
+          return `Saved ${total} ${typeLabel} file(s) inside folder "${dirHandle.name}".`;
+        } else {
+          for (let index = 0; index < total; index++) {
+            const file = files[index];
+            showStatus(
+              `Downloading ${index + 1}/${total} ${typeLabel} file(s)...`,
+              "info",
+              true
+            );
+            downloadBase64File(file);
+            if (index < total - 1) {
+              await sleep(600);
+            }
+          }
+          return `Successfully downloaded ${total} ${typeLabel} file(s).`;
+        }
+      }
+
+      /* ============================================================
+         BILL DOWNLOAD
+         ============================================================ */
       async function startBillProcess() {
-        let vendor;
+        let vendor, dateParams;
         try {
           vendor = getSelectedVendor();
+          dateParams = getDateFilterParams();
         } catch (error) {
           showStatus(error.message, "error");
           return;
         }
 
+        let dirHandle = null;
+        try {
+          dirHandle = await pickTargetDirectory();
+        } catch (cancelErr) {
+          showStatus(cancelErr.message, "error");
+          return;
+        }
+
         disableControls();
-        showStatus(`Processing Bills for ${vendor.vendorName}...`, "info", true);
+        showStatus(
+          `Processing ${dateParams.label} Bills for ${vendor.vendorName}...`,
+          "info",
+          true
+        );
 
         try {
           const response = await fetch("/api/invoice-bill-download", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Accept: "application/json"
+              Accept: "application/json",
             },
             body: JSON.stringify({
-              vendorKey: vendor.vendorKey
-            })
+              vendorKey: vendor.vendorKey,
+              dateMode: dateParams.dateMode,
+              customDate: dateParams.customDate,
+            }),
           });
 
           const data = await parseJsonResponse(response);
 
           if (!response.ok) {
-            throw new Error(data.detail || data.error || "Server connection failed");
+            throw new Error(
+              data.detail || data.error || "Server connection failed"
+            );
           }
 
           if (!data.files || data.files.length === 0) {
@@ -668,10 +921,12 @@
             return;
           }
 
-          const count = data.files.length;
-          await downloadFiles(data.files, "bill");
-          showStatus(`Successfully downloaded ${count} bill file(s).`, "success");
-
+          const doneMsg = await saveFilesToDirectoryOrDownload(
+            data.files,
+            dirHandle,
+            "bill"
+          );
+          showStatus(doneMsg, "success");
         } catch (error) {
           console.error("Bill download error:", error);
           showStatus(`Error: ${error.message}`, "error");
@@ -680,40 +935,56 @@
         }
       }
 
-      /*
-       * ============================================================
-       * NORMAL INVOICE DOWNLOAD
-       * ============================================================
-       */
-
+      /* ============================================================
+         NORMAL INVOICE DOWNLOAD (ZIP OR PDF)
+         ============================================================ */
       async function startDownload(asZip) {
-        let vendor;
+        let vendor, dateParams;
         try {
           vendor = getSelectedVendor();
+          dateParams = getDateFilterParams();
         } catch (error) {
           showStatus(error.message, "error");
           return;
         }
 
+        let dirHandle = null;
+        if (!asZip) {
+          try {
+            dirHandle = await pickTargetDirectory();
+          } catch (cancelErr) {
+            showStatus(cancelErr.message, "error");
+            return;
+          }
+        }
+
         disableControls();
-        showStatus(`Scanning mailbox for today's ${vendor.vendorName} invoices...`, "info", true);
+        showStatus(
+          `Scanning mailbox for ${dateParams.label} ${vendor.vendorName} invoices...`,
+          "info",
+          true
+        );
 
         try {
           const response = await fetch("/api/invoice-download", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Accept: "application/json"
+              Accept: "application/json",
             },
             body: JSON.stringify({
-              vendorKey: vendor.vendorKey
-            })
+              vendorKey: vendor.vendorKey,
+              dateMode: dateParams.dateMode,
+              customDate: dateParams.customDate,
+            }),
           });
 
           const data = await parseJsonResponse(response);
 
           if (!response.ok) {
-            throw new Error(data.detail || data.error || "Server connection failed");
+            throw new Error(
+              data.detail || data.error || "Server connection failed"
+            );
           }
 
           if (!data.files || data.files.length === 0) {
@@ -724,7 +995,11 @@
           const files = data.files;
 
           if (asZip) {
-            showStatus(`Creating ZIP containing ${files.length} file(s)...`, "info", true);
+            showStatus(
+              `Creating ZIP containing ${files.length} file(s)...`,
+              "info",
+              true
+            );
             const zip = new JSZip();
 
             files.forEach((file) => {
@@ -734,7 +1009,7 @@
             const content = await zip.generateAsync({ type: "blob" });
             const url = window.URL.createObjectURL(content);
             const link = document.createElement("a");
-            
+
             link.href = url;
             link.download = `${sanitizeClientFilename(vendor.vendorName)}_Invoices.zip`;
             document.body.appendChild(link);
@@ -746,12 +1021,14 @@
             }, 1000);
 
             showStatus("Successfully created and downloaded ZIP.", "success");
-
           } else {
-            await downloadFiles(files, "invoice");
-            showStatus(`Successfully downloaded ${files.length} invoice file(s).`, "success");
+            const doneMsg = await saveFilesToDirectoryOrDownload(
+              files,
+              dirHandle,
+              "invoice"
+            );
+            showStatus(doneMsg, "success");
           }
-
         } catch (error) {
           console.error("Invoice download error:", error);
           showStatus(`Error: ${error.message}`, "error");
@@ -760,34 +1037,9 @@
         }
       }
 
-      /*
-       * ============================================================
-       * DOWNLOAD MULTIPLE FILES
-       * ============================================================
-       */
-
-      async function downloadFiles(files, typeLabel = "file") {
-        const total = files.length;
-        for (let index = 0; index < total; index++) {
-          const file = files[index];
-          
-          // 🟢 Dynamic Progress Update: ഉദാഹരണത്തിന് "Downloading bill file 1 of 39 (3%)" അല്ലെങ്കിൽ "Downloading 1/39..."
-          showStatus(`Downloading ${index + 1}/${total} ${typeLabel} file(s)...`, "info", true);
-          
-          downloadBase64File(file);
-
-          if (index < total - 1) {
-            await sleep(600);
-          }
-        }
-      }
-
-      /*
-       * ============================================================
-       * BASE64 FILE DOWNLOAD
-       * ============================================================
-       */
-
+      /* ============================================================
+         BASE64 FILE DOWNLOAD (FALLBACK FOR FIREFOX / NON-HTTPS)
+         ============================================================ */
       function downloadBase64File(file) {
         if (!file || !file.data || !file.name) {
           console.warn("Invalid file received:", file);
@@ -798,17 +1050,11 @@
         const link = document.createElement("a");
         link.href = `data:${mimeType};base64,${file.data}`;
         link.download = file.name;
-        
+
         document.body.appendChild(link);
         link.click();
         link.remove();
       }
-
-      /*
-       * ============================================================
-       * RESPONSE PARSER
-       * ============================================================
-       */
 
       async function parseJsonResponse(response) {
         const text = await response.text();
@@ -823,12 +1069,6 @@
         }
       }
 
-      /*
-       * ============================================================
-       * STATUS
-       * ============================================================
-       */
-
       function showStatus(message, type, isLoading = false) {
         const statusBox = document.getElementById("statusBox");
         const statusText = document.getElementById("statusText");
@@ -838,12 +1078,6 @@
         statusText.textContent = message;
         spinner.style.display = isLoading ? "block" : "none";
       }
-
-      /*
-       * ============================================================
-       * UTILITIES
-       * ============================================================
-       */
 
       function sleep(milliseconds) {
         return new Promise((resolve) => setTimeout(resolve, milliseconds));

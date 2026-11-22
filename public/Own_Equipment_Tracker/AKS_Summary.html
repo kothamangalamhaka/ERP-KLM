@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AKS Equipment Summary Tracker</title>
     <script src="js/eq-session.js"></script>
+    <link rel="stylesheet" href="css/glass-theme.css" />
     <style>
       * {
         box-sizing: border-box;
@@ -12,7 +13,7 @@
       }
       body {
         margin: 0;
-        padding: 15px;
+        padding: 8px 12px;
         background-color: #f4f7f6;
       }
       .top-bar {
@@ -20,26 +21,28 @@
         justify-content: space-between;
         align-items: center;
         background: #fff;
-        padding: 12px 20px;
+        padding: 7px 14px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        margin-bottom: 15px;
+        margin-bottom: 8px;
+        gap: 8px;
       }
       .controls {
         display: flex;
-        gap: 10px;
+        gap: 6px;
         align-items: center;
       }
       .btn {
-        padding: 8px 15px;
+        padding: 6px 10px;
         border: none;
-        border-radius: 4px;
+        border-radius: 5px;
         cursor: pointer;
         font-weight: bold;
-        font-size: 13px;
-        display: flex;
+        font-size: 12px;
+        display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
+        white-space: nowrap;
       }
       .btn-blue {
         background: #2980b9;
@@ -55,7 +58,7 @@
       }
       .table-container {
         overflow-x: auto;
-        max-height: calc(100vh - 110px);
+        max-height: calc(100vh - 76px);
         background: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
@@ -66,7 +69,8 @@
         font-size: 13px;
         white-space: nowrap;
       }
-      th, td {
+      th,
+      td {
         border: 1px solid #c0c0c0;
         padding: 8px 10px;
         text-align: center;
@@ -121,8 +125,12 @@
         font-weight: 600;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
-      .toast.success { background: #27ae60; }
-      .toast.error { background: #e74c3c; }
+      .toast.success {
+        background: #27ae60;
+      }
+      .toast.error {
+        background: #e74c3c;
+      }
       .menu-btn {
         display: none;
         background: #1e293b;
@@ -162,45 +170,436 @@
           box-sizing: border-box;
         }
       }
+
+      /* =========================================================
+         👤 USER QUICK-SWITCH GLASSMORPHISM CENTER MODAL
+         ========================================================= */
+      .user-nav-btn {
+        background: linear-gradient(
+          135deg,
+          rgba(56, 189, 248, 0.22),
+          rgba(14, 116, 144, 0.28)
+        ) !important;
+        border: 1px solid rgba(56, 189, 248, 0.45) !important;
+        color: #f8fafc !important;
+        width: 34px;
+        height: 31px;
+        padding: 0 !important;
+        border-radius: 7px;
+        font-size: 16px;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+        transition: all 0.2s ease;
+      }
+      .user-nav-btn:hover {
+        border-color: #38bdf8 !important;
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+      }
+
+      .glass-hub-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            circle at 20% 20%,
+            rgba(14, 116, 144, 0.32),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(79, 70, 229, 0.28),
+            transparent 45%
+          ),
+          rgba(4, 9, 20, 0.78) !important;
+        backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        z-index: 10010;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .glass-hub-modal {
+        background: linear-gradient(
+          145deg,
+          rgba(30, 41, 59, 0.85),
+          rgba(15, 23, 42, 0.82)
+        ) !important;
+        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+        border-top-color: rgba(255, 255, 255, 0.4) !important;
+        box-shadow:
+          0 28px 65px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+        backdrop-filter: blur(26px) saturate(175%);
+        -webkit-backdrop-filter: blur(26px) saturate(175%);
+        border-radius: 22px !important;
+        width: 100%;
+        max-width: 820px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 26px 28px 28px;
+        color: #f8fafc;
+        animation: hubFadeScale 0.22s ease-out;
+      }
+
+      @keyframes hubFadeScale {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .glass-hub-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 14px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .glass-hub-title-wrap h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.3px;
+      }
+
+      .glass-hub-title-wrap span {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .glass-hub-close {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #e2e8f0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+      .glass-hub-close:hover {
+        background: rgba(239, 68, 68, 0.28);
+        border-color: rgba(239, 68, 68, 0.6);
+        color: #ffffff;
+      }
+
+      .glass-hub-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      @media (max-width: 768px) {
+        .glass-hub-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 480px) {
+        .glass-hub-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .hub-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 15px;
+        border-radius: 16px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.11) 0%,
+          rgba(255, 255, 255, 0.04) 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-top-color: rgba(255, 255, 255, 0.34);
+        color: #f8fafc;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+          transform 0.22s ease,
+          border-color 0.22s ease,
+          box-shadow 0.22s ease,
+          background 0.22s ease;
+      }
+
+      .hub-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(56, 189, 248, 0.85);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.18) 0%,
+          rgba(56, 189, 248, 0.12) 100%
+        );
+        box-shadow:
+          0 12px 26px rgba(0, 0, 0, 0.42),
+          0 0 18px rgba(56, 189, 248, 0.25);
+      }
+
+      .hub-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .hub-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+      }
+
+      .hub-card-arrow {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.65);
+        transition:
+          transform 0.2s ease,
+          color 0.2s ease;
+      }
+
+      .hub-card:hover .hub-card-arrow {
+        color: #38bdf8;
+        transform: translate(2px, -2px);
+      }
+
+      .hub-card h4 {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .hub-card:hover h4 {
+        color: #7dd3fc;
+      }
+
+      .hub-card p {
+        margin: 0;
+        font-size: 11.5px;
+        color: #cbd5e1;
+        line-height: 1.4;
+      }
+
+      .hub-card.hub-logout {
+        border-color: rgba(248, 113, 113, 0.35);
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.16),
+          rgba(127, 29, 29, 0.14)
+        );
+      }
+
+      .hub-card.hub-logout:hover {
+        border-color: #f87171;
+        box-shadow: 0 12px 26px rgba(220, 38, 38, 0.35);
+      }
+
+      /* =========================================================
+         🔍 RIBBON COMPACT SEARCH & EXCEL CASCADING FILTER MENU
+         ========================================================= */
+      .ribbon-search-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .ribbon-search-input {
+        display: none;
+        padding: 5px 9px;
+        border-radius: 5px;
+        font-size: 12px;
+        width: 155px;
+      }
+      .ribbon-search-input.open {
+        display: inline-block;
+      }
+
+      .excel-filter-menu {
+        display: none;
+        position: fixed;
+        background: rgba(15, 23, 42, 0.96);
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        border-radius: 8px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+        z-index: 10020;
+        width: 245px;
+        font-size: 13px;
+        color: #f8fafc;
+        backdrop-filter: blur(20px);
+        user-select: none;
+      }
+      .excel-filter-header {
+        padding: 8px 10px;
+        background: rgba(30, 41, 59, 0.9);
+        font-weight: 700;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+      }
+      .excel-filter-search {
+        padding: 8px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .excel-filter-search input {
+        width: 100%;
+        padding: 5px 8px;
+        font-size: 12px;
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 4px;
+        color: #ffffff;
+        outline: none;
+      }
+      .excel-filter-list {
+        max-height: 210px;
+        overflow-y: auto;
+        padding: 4px 0;
+        margin: 0;
+        list-style: none;
+      }
+      .excel-filter-list li {
+        padding: 5px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #f8fafc;
+      }
+      .excel-filter-list li:hover {
+        background-color: rgba(56, 189, 248, 0.2);
+      }
+      .excel-filter-list label {
+        cursor: pointer;
+        font-size: 12px;
+        flex: 1;
+        margin: 0;
+        color: #f8fafc;
+      }
+      .excel-filter-actions {
+        padding: 8px 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+        background: rgba(30, 41, 59, 0.85);
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+      }
     </style>
   </head>
   <body>
     <div class="top-bar">
       <div class="controls">
-        <h3 style="margin: 0; color: #2c3e50">AKS Equipment Summary</h3>
-        <input
-          type="text"
-          id="searchPlate"
-          placeholder="🔍 Search Plate / Code..."
-          oninput="filterRows()"
-          style="padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 200px;"
-        />
+        <h3 style="margin: 0; font-size: 15px; white-space: nowrap">
+          AKS Summary
+        </h3>
+        <div class="ribbon-search-wrap">
+          <button
+            type="button"
+            id="btnToggleSummarySearch"
+            class="btn"
+            style="
+              background: #0f172a;
+              color: #38bdf8;
+              border: 1px solid rgba(56, 189, 248, 0.45) !important;
+              padding: 5px 9px;
+            "
+            onclick="toggleSummaryRibbonSearch(event)"
+            title="Search Table"
+          >
+            🔍
+          </button>
+          <input
+            type="text"
+            id="searchPlate"
+            class="ribbon-search-input"
+            placeholder="Plate / Owner / Site..."
+            oninput="filterRows()"
+          />
+        </div>
+        <button
+          type="button"
+          id="btnSummaryPeriod"
+          class="btn"
+          style="
+            background: #0f172a;
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.45) !important;
+          "
+          onclick="openSummaryPeriodModal()"
+          title="Choose Period"
+        >
+          📅 Jan 26+
+        </button>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 6px">
         <div id="summaryActionMenu" class="controls action-controls">
-          <button id="btnEditAsset" class="btn" style="background: #d97706; color: white;" onclick="openEditAssetSelectModal()">
+          <button
+            id="btnEditAsset"
+            class="btn"
+            style="background: #d97706; color: white"
+            onclick="openEditAssetSelectModal()"
+          >
             🛠️ Edit Asset
           </button>
-          <button class="btn" style="background: #1e7e34; color: white;" onclick="exportSummaryExcel()">
+          <button
+            class="btn"
+            style="background: #1e7e34; color: white"
+            onclick="exportSummaryExcel()"
+          >
             📊 Export Excel
           </button>
-          <button class="btn" style="background: #0d9488; color: white;" onclick="openCombinedExportModal()">
+          <button
+            class="btn"
+            style="background: #0d9488; color: white"
+            onclick="openCombinedExportModal()"
+          >
             📑 AKS Export
           </button>
-          <button class="btn btn-blue" onclick="loadSummaryData()">
-            🔄 Refresh
+          <button class="btn btn-blue" onclick="loadSummaryData()" title="Refresh">
+            🔄
           </button>
-          <button class="btn" style="background: #0284c7; color: white;" onclick="window.location.href = 'Assets.html'">
-            🚜 Assets
-          </button>
-          <button class="btn btn-dark" onclick="window.location.href = 'AKS.html'">
-            📋 Detailed AKS
-          </button>
-          <button class="btn" style="background: #334155; color: white;" onclick="window.location.href = 'Dashboard.html'">
-            📊 Dashboard
+          <button
+            type="button"
+            class="btn user-nav-btn"
+            onclick="openUserNavigationModal()"
+            title="Switch Screen / User Menu"
+          >
+            👤
           </button>
         </div>
-        <button type="button" class="menu-btn" onclick="toggleResponsiveMenu(event)">☰</button>
+        <button
+          type="button"
+          class="menu-btn"
+          onclick="toggleResponsiveMenu(event)"
+        >
+          ☰
+        </button>
       </div>
     </div>
 
@@ -208,19 +607,19 @@
       <table id="summaryTable">
         <thead>
           <tr id="summaryHeadRow">
-            <th style="min-width: 50px;">SN</th>
-            <th style="min-width: 120px;">Asset Type</th>
-            <th style="min-width: 100px;">Model</th>
-            <th style="min-width: 100px;">Make</th>
-            <th style="min-width: 120px;">Owner Name</th>
-            <th style="min-width: 130px;">Plate No / Asset Code</th>
-            <th style="min-width: 110px;">Date Of Purchase</th>
-            <th style="min-width: 110px;">Purchase Cost</th>
-            <th style="min-width: 120px;">MTC During Purchase</th>
-            <th style="min-width: 110px;">Insurance Cost</th>
-            <th style="min-width: 110px; background: #e2efda;">Total Cost</th>
-            <th style="min-width: 120px;">Reached at Site</th>
-            <th style="min-width: 140px;">Which Site</th>
+            <th style="min-width: 50px">SN</th>
+            <th style="min-width: 120px">Asset Type</th>
+            <th style="min-width: 100px">Model</th>
+            <th style="min-width: 100px">Make</th>
+            <th style="min-width: 120px">Owner Name</th>
+            <th style="min-width: 130px">Plate No / Asset Code</th>
+            <th style="min-width: 110px">Date Of Purchase</th>
+            <th style="min-width: 110px">Purchase Cost</th>
+            <th style="min-width: 120px">MTC During Purchase</th>
+            <th style="min-width: 110px">Insurance Cost</th>
+            <th style="min-width: 110px; background: #e2efda">Total Cost</th>
+            <th style="min-width: 120px">Reached at Site</th>
+            <th style="min-width: 140px">Which Site</th>
           </tr>
         </thead>
         <tbody id="summaryTableBody"></tbody>
@@ -228,72 +627,720 @@
     </div>
 
     <!-- Edit Asset Selection Modal -->
-    <div id="editAssetSelectModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
-      <div style="background: #ffffff; border-radius: 8px; width: 350px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <h4 style="margin: 0 0 15px 0; color: #1e293b;">🛠️ Select Plate No to Edit</h4>
-        <div style="margin-bottom: 15px;">
-          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Plate No / Asset Code</label>
-          <select id="selectPlateToEdit" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; outline: none;"></select>
+    <div
+      id="editAssetSelectModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10001;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        style="
+          background: #ffffff;
+          border-radius: 8px;
+          width: 350px;
+          padding: 20px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        "
+      >
+        <h4 style="margin: 0 0 15px 0; color: #1e293b">
+          🛠️ Select Plate No to Edit
+        </h4>
+        <div style="margin-bottom: 15px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 600;
+              color: #475569;
+              display: block;
+              margin-bottom: 5px;
+            "
+            >Plate No / Asset Code</label
+          >
+          <select
+            id="selectPlateToEdit"
+            style="
+              width: 100%;
+              padding: 8px;
+              border: 1px solid #cbd5e1;
+              border-radius: 4px;
+              font-size: 13px;
+              outline: none;
+            "
+          ></select>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetSelectModal')">Cancel</button>
-          <button type="button" class="btn btn-blue" onclick="fetchAndOpenAssetEdit()">Fetch Data</button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            type="button"
+            class="btn"
+            style="background: #e2e8f0; color: #334155"
+            onclick="closeModal('editAssetSelectModal')"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-blue"
+            onclick="fetchAndOpenAssetEdit()"
+          >
+            Fetch Data
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Combined 3-Tab Export Modal -->
-    <div id="combinedExportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
-      <div style="background: #ffffff; border-radius: 8px; width: 380px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <h4 style="margin: 0 0 15px 0; color: #0f766e; font-size: 15px;">📑 AKS Master 3-Tab Export</h4>
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+    <div
+      id="combinedExportModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10001;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        style="
+          background: #ffffff;
+          border-radius: 8px;
+          width: 380px;
+          padding: 20px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        "
+      >
+        <h4 style="margin: 0 0 15px 0; color: #0f766e; font-size: 15px">
+          📑 AKS Master 3-Tab Export
+        </h4>
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+          "
+        >
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
             <input type="radio" name="combinedScope" value="all" checked />
             <span><b>All Data</b> (Entire timeline)</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
             <input type="radio" name="combinedScope" value="current" />
             <span><b>Current Year Data</b> (2026 only)</span>
           </label>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeCombinedExportModal()">Cancel</button>
-          <button type="button" class="btn" style="background: #0d9488; color: white;" onclick="confirmCombinedExport()">Download Excel</button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            type="button"
+            class="btn"
+            style="background: #e2e8f0; color: #334155"
+            onclick="closeCombinedExportModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn"
+            style="background: #0d9488; color: white"
+            onclick="confirmCombinedExport()"
+          >
+            Download Excel
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Edit Asset Details Modal -->
-    <div id="editAssetDetailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10002; justify-content: center; align-items: center;">
-      <div style="background: #ffffff; border-radius: 8px; width: 380px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <h4 id="editAssetDetailsTitle" style="margin: 0 0 15px 0; color: #d97706;">✏️ Edit Asset Details</h4>
+    <div
+      id="editAssetDetailsModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10002;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        style="
+          background: #ffffff;
+          border-radius: 8px;
+          width: 380px;
+          padding: 20px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        "
+      >
+        <h4
+          id="editAssetDetailsTitle"
+          style="margin: 0 0 15px 0; color: #d97706"
+        >
+          ✏️ Edit Asset Details
+        </h4>
         <input type="hidden" id="editEquipmentId" />
-        <div style="margin-bottom: 12px;">
-          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Asset Type</label>
-          <select id="editAssetTypeInput" onchange="onAssetTypeModalChange(this)" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; outline: none;"></select>
+        <div style="margin-bottom: 12px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 600;
+              color: #475569;
+              display: block;
+              margin-bottom: 5px;
+            "
+            >Asset Type</label
+          >
+          <select
+            id="editAssetTypeInput"
+            onchange="onAssetTypeModalChange(this)"
+            style="
+              width: 100%;
+              padding: 8px;
+              border: 1px solid #cbd5e1;
+              border-radius: 4px;
+              font-size: 13px;
+              outline: none;
+            "
+          ></select>
         </div>
-        <div style="margin-bottom: 12px;">
-          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Model</label>
-          <input type="text" id="editModelInput" placeholder="Enter Model" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box; outline: none;" />
+        <div style="margin-bottom: 12px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 600;
+              color: #475569;
+              display: block;
+              margin-bottom: 5px;
+            "
+            >Model</label
+          >
+          <input
+            type="text"
+            id="editModelInput"
+            placeholder="Enter Model"
+            style="
+              width: 100%;
+              padding: 8px;
+              border: 1px solid #cbd5e1;
+              border-radius: 4px;
+              font-size: 13px;
+              box-sizing: border-box;
+              outline: none;
+            "
+          />
         </div>
-        <div style="margin-bottom: 12px;">
-          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Make</label>
-          <input type="text" id="editMakeInput" placeholder="Enter Make" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box; outline: none;" />
+        <div style="margin-bottom: 12px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 600;
+              color: #475569;
+              display: block;
+              margin-bottom: 5px;
+            "
+            >Make</label
+          >
+          <input
+            type="text"
+            id="editMakeInput"
+            placeholder="Enter Make"
+            style="
+              width: 100%;
+              padding: 8px;
+              border: 1px solid #cbd5e1;
+              border-radius: 4px;
+              font-size: 13px;
+              box-sizing: border-box;
+              outline: none;
+            "
+          />
         </div>
-        <div style="margin-bottom: 20px;">
-          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Owner Name</label>
-          <input type="text" id="editOwnerNameInput" placeholder="Enter Owner Name" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box; outline: none;" />
+        <div style="margin-bottom: 20px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 600;
+              color: #475569;
+              display: block;
+              margin-bottom: 5px;
+            "
+            >Owner Name</label
+          >
+          <input
+            type="text"
+            id="editOwnerNameInput"
+            placeholder="Enter Owner Name"
+            style="
+              width: 100%;
+              padding: 8px;
+              border: 1px solid #cbd5e1;
+              border-radius: 4px;
+              font-size: 13px;
+              box-sizing: border-box;
+              outline: none;
+            "
+          />
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-          <button type="button" class="btn" style="background: #0284c7; color: white;" onclick="saveAssetModalDetails(true)">💾 Save & Next</button>
-          <div style="display: flex; gap: 8px;">
-            <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetDetailsModal')">Cancel</button>
-            <button type="button" class="btn" style="background: #27ae60; color: white;" onclick="saveAssetModalDetails(false)">Save Details</button>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+          "
+        >
+          <button
+            type="button"
+            class="btn"
+            style="background: #0284c7; color: white"
+            onclick="saveAssetModalDetails(true)"
+          >
+            💾 Save & Next
+          </button>
+          <div style="display: flex; gap: 8px">
+            <button
+              type="button"
+              class="btn"
+              style="background: #e2e8f0; color: #334155"
+              onclick="closeModal('editAssetDetailsModal')"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn"
+              style="background: #27ae60; color: white"
+              onclick="saveAssetModalDetails(false)"
+            >
+              Save Details
+            </button>
           </div>
         </div>
-          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetDetailsModal')">Cancel</button>
-          <button type="button" class="btn" style="background: #27ae60; color: white;" onclick="saveAssetModalDetails()">Save Details</button>
+      </div>
+    </div>
+
+    <!-- Period Selection Modal for AKS_Summary.html -->
+    <div
+      id="summaryPeriodModal"
+      class="modal-overlay"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.72);
+        backdrop-filter: blur(8px);
+        z-index: 10015;
+        justify-content: center;
+        align-items: center;
+      "
+      onclick="if (event.target === this) closeModal('summaryPeriodModal');"
+    >
+      <div
+        class="modal-box"
+        style="
+          width: 380px;
+          max-width: calc(100vw - 24px);
+          padding: 22px;
+          background: rgba(15, 23, 42, 0.96);
+          border: 1px solid rgba(56, 189, 248, 0.4);
+          border-radius: 12px;
+          color: #f8fafc;
+          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+        "
+      >
+        <h4 style="margin: 0 0 14px 0; font-size: 15px">
+          📅 Choose Summary Period
+        </h4>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+          "
+        >
+          <div>
+            <label
+              style="
+                font-size: 11px;
+                font-weight: 600;
+                display: block;
+                margin-bottom: 4px;
+              "
+              >Start Month</label
+            >
+            <select id="sumStartMonth" style="width: 100%; padding: 7px">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div>
+            <label
+              style="
+                font-size: 11px;
+                font-weight: 600;
+                display: block;
+                margin-bottom: 4px;
+              "
+              >Start Year</label
+            >
+            <input
+              type="number"
+              id="sumStartYear"
+              min="2000"
+              max="2100"
+              style="width: 100%; padding: 7px"
+            />
+          </div>
         </div>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+          "
+        >
+          <div>
+            <label
+              style="
+                font-size: 11px;
+                font-weight: 600;
+                display: block;
+                margin-bottom: 4px;
+              "
+              >End Month</label
+            >
+            <select id="sumEndMonth" style="width: 100%; padding: 7px">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div>
+            <label
+              style="
+                font-size: 11px;
+                font-weight: 600;
+                display: block;
+                margin-bottom: 4px;
+              "
+              >End Year</label
+            >
+            <input
+              type="number"
+              id="sumEndYear"
+              min="2000"
+              max="2100"
+              style="width: 100%; padding: 7px"
+            />
+          </div>
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <button
+            type="button"
+            class="btn"
+            style="background: #475569; color: white"
+            onclick="resetSummaryPeriodToJan2026()"
+          >
+            Default (Jan 2026+)
+          </button>
+          <div style="display: flex; gap: 8px">
+            <button
+              type="button"
+              class="btn"
+              style="background: #334155; color: white"
+              onclick="closeModal('summaryPeriodModal')"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-blue"
+              onclick="applySummaryPeriod()"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Glassmorphism Screen Switcher & User Modal -->
+    <div
+      id="userNavigationModal"
+      class="glass-hub-overlay"
+      onclick="if (event.target === this) closeUserNavigationModal();"
+    >
+      <div class="glass-hub-modal">
+        <div class="glass-hub-header">
+          <div class="glass-hub-title-wrap">
+            <h3>Own Equipment Navigation Hub</h3>
+            <span id="hubLoggedInUserLabel">Select a screen to navigate</span>
+          </div>
+          <button
+            type="button"
+            class="glass-hub-close"
+            onclick="closeUserNavigationModal()"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="glass-hub-grid">
+          <a href="Dashboard.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🚛</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Dashboard</h4>
+              <p>Track operational costs, expenses and fleet revenue.</p>
+            </div>
+          </a>
+
+          <a href="AKS.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🚜</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>AKS Report</h4>
+              <p>Equipment AKS tracking and operational analysis.</p>
+            </div>
+          </a>
+
+          <a href="Assets.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🏗️</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Own Equipment Assets</h4>
+              <p>Manage and view equipment spare parts and assets.</p>
+            </div>
+          </a>
+
+          <a href="../We1-own-EQ/" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🗄️</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Own Equipment Data Base</h4>
+              <p>Core own equipment master records database.</p>
+            </div>
+          </a>
+
+          <a href="summary.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">📅</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Annual Summary</h4>
+              <p>Annual profit &amp; loss statement across years.</p>
+            </div>
+          </a>
+
+          <a href="monthly_list_summary.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🗓️</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Monthly Summary</h4>
+              <p>Monthly income &amp; expenditure statement.</p>
+            </div>
+          </a>
+
+          <a href="list.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">📋</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Equipment List View</h4>
+              <p>Detailed history review of each equipment.</p>
+            </div>
+          </a>
+
+          <a href="../We1-own-EQ/EQ_Driver_payroll.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">💵</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Own Driver Payroll</h4>
+              <p>Manage monthly own equipment operator payroll.</p>
+            </div>
+          </a>
+
+          <div class="hub-card hub-logout" onclick="logoutSummaryTracker()">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🚪</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Logout</h4>
+              <p>End session and return to authentication screen.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Excel-Style Connected Column Filter Menu -->
+    <div
+      id="summaryFilterMenu"
+      class="excel-filter-menu"
+      onclick="event.stopPropagation()"
+    >
+      <div class="excel-filter-header">
+        <span id="filterMenuTitle">Filter</span>
+        <span
+          style="cursor: pointer; color: #94a3b8"
+          onclick="closeSummaryFilterMenu()"
+          >✖</span
+        >
+      </div>
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+          padding: 4px 0;
+        "
+      >
+        <button
+          type="button"
+          onclick="sortSummaryColumn('asc')"
+          style="
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <span>🔤</span> Sort A to Z
+        </button>
+        <button
+          type="button"
+          onclick="sortSummaryColumn('desc')"
+          style="
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <span>🔤</span> Sort Z to A
+        </button>
+      </div>
+      <div class="excel-filter-search">
+        <input
+          type="text"
+          id="filterSearchInput"
+          placeholder="Search..."
+          oninput="searchSummaryFilterItems()"
+        />
+      </div>
+      <ul class="excel-filter-list" id="filterItemList"></ul>
+      <div class="excel-filter-actions">
+        <button
+          type="button"
+          class="btn"
+          style="
+            background: #334155;
+            color: #f8fafc;
+            padding: 4px 8px;
+            font-size: 12px;
+          "
+          onclick="clearCurrentSummaryFilter()"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          class="btn btn-blue"
+          style="padding: 4px 8px; font-size: 12px"
+          onclick="applyCurrentSummaryFilter()"
+        >
+          Apply
+        </button>
       </div>
     </div>
 
@@ -306,12 +1353,28 @@
       let customAssetTypes = ["Head", "Dyna"];
       let isEditMode = false;
 
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
 
       function fmtNumber(val) {
         const num = Number(val);
         if (num === 0 || isNaN(num)) return "";
-        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return num.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
       }
 
       function formatDate(d) {
@@ -338,9 +1401,9 @@
           if (data.success) {
             rawData = data.records || [];
             currentTimeline = data.timeline || [];
-            
+
             // Gather any existing custom asset types from db
-            rawData.forEach(r => {
+            rawData.forEach((r) => {
               if (r.asset_type && !customAssetTypes.includes(r.asset_type)) {
                 customAssetTypes.push(r.asset_type);
               }
@@ -356,32 +1419,239 @@
         }
       }
 
-      function renderTable() {
-        const headRow = document.getElementById("summaryHeadRow");
-        
-        // Remove dynamic month headers if already populated (Now 13 base headers)
-        while (headRow.children.length > 13) {
-          headRow.removeChild(headRow.lastChild);
+      let summaryPeriodRange = {
+        startYear: 2026,
+        startMonth: 1,
+        endYear: null,
+        endMonth: null,
+      };
+
+      function getFilteredSummaryMonths() {
+        const sKey =
+          summaryPeriodRange.startYear * 100 + summaryPeriodRange.startMonth;
+        const eKey =
+          summaryPeriodRange.endYear && summaryPeriodRange.endMonth
+            ? summaryPeriodRange.endYear * 100 + summaryPeriodRange.endMonth
+            : 999999;
+
+        const items = [];
+        currentTimeline.forEach((tm, origIdx) => {
+          const k = tm.year * 100 + tm.month;
+          if (k >= sKey && k <= eKey) {
+            items.push({ tm, origIdx });
+          }
+        });
+        return items;
+      }
+
+      function updateSummaryPeriodBtnLabel() {
+        const btn = document.getElementById("btnSummaryPeriod");
+        if (!btn) return;
+        const sLbl = `${monthNames[summaryPeriodRange.startMonth - 1]} ${String(summaryPeriodRange.startYear).slice(-2)}`;
+        if (!summaryPeriodRange.endYear || !summaryPeriodRange.endMonth) {
+          btn.innerHTML = `📅 ${sLbl}+`;
+        } else {
+          const eLbl = `${monthNames[summaryPeriodRange.endMonth - 1]} ${String(summaryPeriodRange.endYear).slice(-2)}`;
+          btn.innerHTML = `📅 ${sLbl} - ${eLbl}`;
+        }
+      }
+
+      function openSummaryPeriodModal() {
+        const lastTm = currentTimeline[currentTimeline.length - 1] || {
+          year: 2026,
+          month: 12,
+        };
+        document.getElementById("sumStartYear").value =
+          summaryPeriodRange.startYear || 2026;
+        document.getElementById("sumStartMonth").value =
+          summaryPeriodRange.startMonth || 1;
+        document.getElementById("sumEndYear").value =
+          summaryPeriodRange.endYear || lastTm.year;
+        document.getElementById("sumEndMonth").value =
+          summaryPeriodRange.endMonth || lastTm.month;
+        openModal("summaryPeriodModal");
+      }
+
+      function applySummaryPeriod() {
+        const sy = parseInt(document.getElementById("sumStartYear").value, 10);
+        const sm = parseInt(document.getElementById("sumStartMonth").value, 10);
+        const ey = parseInt(document.getElementById("sumEndYear").value, 10);
+        const em = parseInt(document.getElementById("sumEndMonth").value, 10);
+
+        if (!sy || !sm || !ey || !em || sy * 100 + sm > ey * 100 + em) {
+          showToast("Please select a valid Start and End period!", "error");
+          return;
         }
 
-        // Add 1 Column per Month for MTC
-        currentTimeline.forEach((tm) => {
+        summaryPeriodRange = {
+          startYear: sy,
+          startMonth: sm,
+          endYear: ey,
+          endMonth: em,
+        };
+        updateSummaryPeriodBtnLabel();
+        closeModal("summaryPeriodModal");
+        renderTable();
+        filterRows();
+        showToast("Summary period updated!", "success");
+      }
+
+      function resetSummaryPeriodToJan2026() {
+        summaryPeriodRange = {
+          startYear: 2026,
+          startMonth: 1,
+          endYear: null,
+          endMonth: null,
+        };
+        updateSummaryPeriodBtnLabel();
+        closeModal("summaryPeriodModal");
+        renderTable();
+        filterRows();
+        showToast("Reset to Jan 2026 onwards", "success");
+      }
+
+      let activeSummaryFilters = {};
+      let currentSummaryFilterCol = null;
+
+      function toggleSummaryRibbonSearch(e) {
+        if (e) e.stopPropagation();
+        const inp = document.getElementById("searchPlate");
+        if (!inp) return;
+        const isOpen = inp.classList.toggle("open");
+        if (isOpen) {
+          inp.focus();
+        } else if (inp.value) {
+          inp.value = "";
+          filterRows();
+        }
+      }
+
+      function getSummaryColumnValue(item, idx, colKey) {
+        if (colKey === "sn") return String(idx + 1);
+        if (
+          [
+            "asset_type",
+            "model",
+            "make",
+            "owner_name",
+            "plate_no",
+            "first_site",
+          ].includes(colKey)
+        ) {
+          return item[colKey] || "";
+        }
+        if (colKey === "purchase_date") return formatDate(item.purchase_date);
+        if (colKey === "reached_site_date")
+          return formatDate(item.reached_site_date);
+        if (
+          ["purchase_cost", "mtc_during_purchase", "total_insurance"].includes(
+            colKey,
+          )
+        ) {
+          return fmtNumber(item[colKey]);
+        }
+        if (colKey === "total_cost") {
+          const tot =
+            Number(item.purchase_cost || 0) +
+            Number(item.mtc_during_purchase || 0) +
+            Number(item.total_insurance || 0);
+          return fmtNumber(tot);
+        }
+        if (colKey.startsWith("month_mtc_")) {
+          const origIdx = parseInt(colKey.replace("month_mtc_", ""), 10);
+          return fmtNumber((item.monthly_mtc || [])[origIdx]);
+        }
+        return "";
+      }
+
+      function passesSummaryFilters(item, idx, excludeColKey = null) {
+        for (const [col, selectedVals] of Object.entries(
+          activeSummaryFilters,
+        )) {
+          if (!selectedVals || col === excludeColKey) continue;
+          const val = getSummaryColumnValue(item, idx, col) || "__BLANK__";
+          if (!selectedVals.includes(val)) return false;
+        }
+        return true;
+      }
+
+      function renderTable() {
+        updateSummaryPeriodBtnLabel();
+        const headRow = document.getElementById("summaryHeadRow");
+        const dot = (k) =>
+          activeSummaryFilters[k]
+            ? ' <span style="color:#0284c7;font-size:10px;">●</span>'
+            : "";
+
+        const baseCols = [
+          { key: "sn", label: "SN", w: "50px" },
+          { key: "asset_type", label: "Asset Type", w: "120px" },
+          { key: "model", label: "Model", w: "100px" },
+          { key: "make", label: "Make", w: "100px" },
+          { key: "owner_name", label: "Owner Name", w: "120px" },
+          { key: "plate_no", label: "Plate No / Asset Code", w: "130px" },
+          { key: "purchase_date", label: "Date Of Purchase", w: "110px" },
+          { key: "purchase_cost", label: "Purchase Cost", w: "110px" },
+          {
+            key: "mtc_during_purchase",
+            label: "MTC During Purchase",
+            w: "120px",
+          },
+          { key: "total_insurance", label: "Insurance Cost", w: "110px" },
+          {
+            key: "total_cost",
+            label: "Total Cost",
+            w: "110px",
+            bg: "#e2efda",
+          },
+          {
+            key: "reached_site_date",
+            label: "Reached at Site",
+            w: "120px",
+          },
+          { key: "first_site", label: "Which Site", w: "140px" },
+        ];
+
+        headRow.innerHTML = baseCols
+          .map(
+            (c) =>
+              `<th oncontextmenu="openSummaryColumnFilter(event, '${c.key}', '${c.label}')" title="Right-click to filter" style="cursor:context-menu; min-width: ${c.w}; ${c.bg ? `background:${c.bg};` : ""}">${c.label}${dot(c.key)}</th>`,
+          )
+          .join("");
+
+        const visibleMonths = getFilteredSummaryMonths();
+
+        // Add 1 Column per Month for MTC (Jan 2026+ or selected period)
+        visibleMonths.forEach(({ tm, origIdx }) => {
+          const colK = `month_mtc_${origIdx}`;
           const th = document.createElement("th");
           th.style.minWidth = "95px";
           th.style.background = "#c6d9f1";
-          th.innerText = tm.label;
+          th.style.cursor = "context-menu";
+          th.title = "Right-click to filter";
+          th.setAttribute(
+            "oncontextmenu",
+            `openSummaryColumnFilter(event, '${colK}', '${tm.label}')`,
+          );
+          th.innerHTML = `${tm.label}${dot(colK)}`;
           headRow.appendChild(th);
         });
 
         const tbody = document.getElementById("summaryTableBody");
         tbody.innerHTML = "";
 
-        rawData.forEach((item, idx) => {
+        const filteredRows = rawData
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item, idx }) => passesSummaryFilters(item, idx));
+
+        filteredRows.forEach(({ item }, displayIdx) => {
           const tr = document.createElement("tr");
-          tr.setAttribute("data-plate", (item.plate_no || "").toLowerCase());
+          const searchBlob =
+            `${item.plate_no || ""} ${item.asset_type || ""} ${item.model || ""} ${item.make || ""} ${item.owner_name || ""} ${item.first_site || ""}`.toLowerCase();
+          tr.setAttribute("data-plate", searchBlob);
 
           let rowHtml = `
-            <td><b>${idx + 1}</b></td>
+            <td><b>${displayIdx + 1}</b></td>
             <td>${item.asset_type || ""}</td>
             <td>${item.model || ""}</td>
             <td>${item.make || ""}</td>
@@ -396,14 +1666,269 @@
             <td style="text-align: left;">${item.first_site || ""}</td>
           `;
 
-          // Monthly MTC Single Columns
-          (item.monthly_mtc || []).forEach(val => {
+          const mtcArr = item.monthly_mtc || [];
+          visibleMonths.forEach(({ origIdx }) => {
+            const val = mtcArr[origIdx] || 0;
             rowHtml += `<td>${fmtNumber(val)}</td>`;
           });
 
           tr.innerHTML = rowHtml;
           tbody.appendChild(tr);
         });
+
+        filterRows();
+      }
+
+      function openSummaryColumnFilter(e, colKey, colTitle) {
+        e.preventDefault();
+        e.stopPropagation();
+        currentSummaryFilterCol = colKey;
+
+        const menu = document.getElementById("summaryFilterMenu");
+        document.getElementById("filterMenuTitle").innerText =
+          `Filter: ${colTitle}`;
+        document.getElementById("filterSearchInput").value = "";
+
+        // Cascading / Connected Filter: മറ്റു കോളങ്ങളിലെ ആക്ടീവ് ഫിൽറ്ററുകൾ പാസ്സാകുന്ന വരികൾ മാത്രം എടുക്കുന്നു
+        const searchTerm = (
+          document.getElementById("searchPlate")?.value || ""
+        )
+          .trim()
+          .toLowerCase();
+
+        const contextRows = rawData
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item, idx }) => {
+            if (searchTerm) {
+              const blob =
+                `${item.plate_no || ""} ${item.asset_type || ""} ${item.model || ""} ${item.make || ""} ${item.owner_name || ""} ${item.first_site || ""}`.toLowerCase();
+              if (!blob.includes(searchTerm)) return false;
+            }
+            return passesSummaryFilters(item, idx, colKey);
+          });
+
+        const valueSet = new Set();
+        let hasBlank = false;
+
+        contextRows.forEach(({ item, idx }) => {
+          const val = getSummaryColumnValue(item, idx, colKey);
+          if (!val) hasBlank = true;
+          else valueSet.add(val);
+        });
+
+        const selectedList = activeSummaryFilters[colKey] || null;
+        let listHtml = `
+          <li style="padding: 4px 8px;">
+            <input type="checkbox" id="chkSumFilterSelectAll" onchange="toggleSelectAllSummaryFilter(this)" checked />
+            <label for="chkSumFilterSelectAll"><b>(Select All)</b></label>
+          </li>
+        `;
+
+        if (hasBlank) {
+          const isBlankChecked =
+            selectedList === null || selectedList.includes("__BLANK__");
+          listHtml += `
+            <li class="sum-filter-item" data-text="(blanks)" style="padding: 3px 8px;">
+              <input type="checkbox" class="sum-col-chk" value="__BLANK__" id="sum_chk_blank" ${isBlankChecked ? "checked" : ""} />
+              <label for="sum_chk_blank"><i>(Blanks)</i></label>
+            </li>
+          `;
+        }
+
+        if (["purchase_date", "reached_site_date"].includes(colKey)) {
+          const dateTree = {};
+          Array.from(valueSet)
+            .filter(Boolean)
+            .forEach((dStr) => {
+              const parts = dStr.split("-");
+              if (parts.length === 3) {
+                const [, mon, yr] = parts;
+                const fullYr = "20" + yr;
+                if (!dateTree[fullYr]) dateTree[fullYr] = {};
+                if (!dateTree[fullYr][mon]) dateTree[fullYr][mon] = [];
+                dateTree[fullYr][mon].push(dStr);
+              }
+            });
+
+          Object.keys(dateTree)
+            .sort()
+            .reverse()
+            .forEach((yr) => {
+              listHtml += `
+                <li class="sum-filter-item" data-text="${yr}" style="flex-direction: column; align-items: flex-start; padding: 2px 8px;">
+                  <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                    <span onclick="toggleSumTreeCollapse(this)" style="cursor: pointer; font-size: 10px; width: 12px;">▶</span>
+                    <input type="checkbox" class="sum-yr-chk" data-yr="${yr}" onchange="toggleSumYearCheck(this, '${yr}')" checked />
+                    <label style="font-weight: bold;">${yr}</label>
+                  </div>
+                  <ul class="sum-tree-group" style="list-style: none; padding-left: 20px; width: 100%; margin: 2px 0; display: none;">
+              `;
+
+              Object.keys(dateTree[yr]).forEach((mon) => {
+                listHtml += `
+                  <li style="margin: 2px 0; display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding: 0;">
+                    <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                      <span onclick="toggleSumTreeCollapse(this)" style="cursor: pointer; font-size: 10px; width: 12px;">▶</span>
+                      <input type="checkbox" class="sum-mon-chk" data-yr="${yr}" data-mon="${mon}" onchange="toggleSumMonthCheck(this, '${yr}', '${mon}')" checked />
+                      <label style="font-weight: 600;">${mon}</label>
+                    </div>
+                    <ul class="sum-tree-group" style="list-style: none; padding-left: 20px; margin: 2px 0; width: 100%; display: none; flex-direction: column;">
+                `;
+
+                dateTree[yr][mon].sort().forEach((fullDate) => {
+                  const isChecked =
+                    selectedList === null || selectedList.includes(fullDate);
+                  listHtml += `
+                    <li class="sum-filter-item" data-text="${fullDate.toLowerCase()}" style="padding: 2px 0; display: flex; align-items: center; gap: 6px; width: 100%;">
+                      <input type="checkbox" class="sum-col-chk" data-yr="${yr}" data-mon="${mon}" value="${fullDate}" ${isChecked ? "checked" : ""} />
+                      <label style="white-space: nowrap;">${fullDate}</label>
+                    </li>
+                  `;
+                });
+
+                listHtml += `</ul></li>`;
+              });
+
+              listHtml += `</ul></li>`;
+            });
+        } else {
+          const sortedVals = Array.from(valueSet).sort((a, b) =>
+            a.localeCompare(b, undefined, { numeric: true }),
+          );
+          sortedVals.forEach((val, i) => {
+            const isChecked =
+              selectedList === null || selectedList.includes(val);
+            listHtml += `
+              <li class="sum-filter-item" data-text="${val.toLowerCase()}">
+                <input type="checkbox" class="sum-col-chk" value="${val}" id="sum_chk_${i}" ${isChecked ? "checked" : ""} />
+                <label for="sum_chk_${i}">${val}</label>
+              </li>
+            `;
+          });
+        }
+
+        document.getElementById("filterItemList").innerHTML = listHtml;
+        menu.style.display = "block";
+        menu.style.left = `${Math.min(e.clientX, window.innerWidth - 260)}px`;
+        menu.style.top = `${Math.min(e.clientY + 12, window.innerHeight - 340)}px`;
+      }
+
+      function closeSummaryFilterMenu() {
+        const menu = document.getElementById("summaryFilterMenu");
+        if (menu) menu.style.display = "none";
+      }
+
+      function searchSummaryFilterItems() {
+        const q = document
+          .getElementById("filterSearchInput")
+          .value.trim()
+          .toLowerCase();
+        document.querySelectorAll(".sum-filter-item").forEach((li) => {
+          const txt = li.getAttribute("data-text") || "";
+          li.style.display = txt.includes(q) ? "flex" : "none";
+        });
+      }
+
+      function toggleSelectAllSummaryFilter(master) {
+        document
+          .querySelectorAll(".sum-col-chk, .sum-yr-chk, .sum-mon-chk")
+          .forEach((c) => (c.checked = master.checked));
+      }
+
+      function toggleSumTreeCollapse(btn) {
+        const subGroup = btn.closest("li")?.querySelector(".sum-tree-group");
+        if (!subGroup) return;
+        if (subGroup.style.display === "none") {
+          subGroup.style.display = "block";
+          btn.innerText = "▼";
+        } else {
+          subGroup.style.display = "none";
+          btn.innerText = "▶";
+        }
+      }
+
+      function toggleSumYearCheck(yrChk, yr) {
+        document
+          .querySelectorAll(
+            `.sum-mon-chk[data-yr="${yr}"], .sum-col-chk[data-yr="${yr}"]`,
+          )
+          .forEach((c) => (c.checked = yrChk.checked));
+      }
+
+      function toggleSumMonthCheck(monChk, yr, mon) {
+        document
+          .querySelectorAll(
+            `.sum-col-chk[data-yr="${yr}"][data-mon="${mon}"]`,
+          )
+          .forEach((c) => (c.checked = monChk.checked));
+      }
+
+      function applyCurrentSummaryFilter() {
+        if (!currentSummaryFilterCol) return;
+        const chks = Array.from(document.querySelectorAll(".sum-col-chk"));
+        const checkedVals = chks.filter((c) => c.checked).map((c) => c.value);
+
+        if (checkedVals.length === chks.length) {
+          delete activeSummaryFilters[currentSummaryFilterCol];
+        } else {
+          activeSummaryFilters[currentSummaryFilterCol] = checkedVals;
+        }
+
+        closeSummaryFilterMenu();
+        renderTable();
+      }
+
+      function clearCurrentSummaryFilter() {
+        if (currentSummaryFilterCol)
+          delete activeSummaryFilters[currentSummaryFilterCol];
+        closeSummaryFilterMenu();
+        renderTable();
+      }
+
+      function sortSummaryColumn(dir) {
+        if (!currentSummaryFilterCol) return;
+        const numericCols = [
+          "purchase_cost",
+          "mtc_during_purchase",
+          "total_insurance",
+          "total_cost",
+        ];
+
+        rawData.sort((a, b) => {
+          if (numericCols.includes(currentSummaryFilterCol)) {
+            const getNum = (item) =>
+              currentSummaryFilterCol === "total_cost"
+                ? Number(item.purchase_cost || 0) +
+                  Number(item.mtc_during_purchase || 0) +
+                  Number(item.total_insurance || 0)
+                : Number(item[currentSummaryFilterCol] || 0);
+            return dir === "asc" ? getNum(a) - getNum(b) : getNum(b) - getNum(a);
+          }
+
+          if (currentSummaryFilterCol.startsWith("month_mtc_")) {
+            const origIdx = parseInt(
+              currentSummaryFilterCol.replace("month_mtc_", ""),
+              10,
+            );
+            const valA = Number((a.monthly_mtc || [])[origIdx] || 0);
+            const valB = Number((b.monthly_mtc || [])[origIdx] || 0);
+            return dir === "asc" ? valA - valB : valB - valA;
+          }
+
+          const valA = String(a[currentSummaryFilterCol] || "");
+          const valB = String(b[currentSummaryFilterCol] || "");
+          return dir === "asc"
+            ? valA.localeCompare(valB, undefined, { numeric: true })
+            : valB.localeCompare(valA, undefined, { numeric: true });
+        });
+
+        closeSummaryFilterMenu();
+        renderTable();
+      }
+
+      function openModal(id) {
+        const m = document.getElementById(id);
+        if (m) m.style.display = "flex";
       }
 
       function closeModal(id) {
@@ -427,7 +1952,8 @@
 
         closeModal("editAssetSelectModal");
         document.getElementById("editEquipmentId").value = eqId;
-        document.getElementById("editAssetDetailsTitle").innerText = `✏️ Edit: ${item.plate_no || ""}`;
+        document.getElementById("editAssetDetailsTitle").innerText =
+          `✏️ Edit: ${item.plate_no || ""}`;
 
         if (item.asset_type && !customAssetTypes.includes(item.asset_type)) {
           customAssetTypes.push(item.asset_type);
@@ -440,10 +1966,12 @@
         typeSel.innerHTML += `<option value="__ADD_NEW__">➕ Add New...</option>`;
 
         const itemIdx = rawData.findIndex((x) => x.id === eqId);
-        document.getElementById("editAssetDetailsTitle").innerText = `✏️ [SN: ${itemIdx !== -1 ? itemIdx + 1 : ""}] Edit: ${item.plate_no || ""}`;
+        document.getElementById("editAssetDetailsTitle").innerText =
+          `✏️ [SN: ${itemIdx !== -1 ? itemIdx + 1 : ""}] Edit: ${item.plate_no || ""}`;
         document.getElementById("editModelInput").value = item.model || "";
         document.getElementById("editMakeInput").value = item.make || "";
-        document.getElementById("editOwnerNameInput").value = item.owner_name || "";
+        document.getElementById("editOwnerNameInput").value =
+          item.owner_name || "";
         document.getElementById("editAssetDetailsModal").style.display = "flex";
       }
 
@@ -472,7 +2000,9 @@
         const aType = document.getElementById("editAssetTypeInput").value;
         const aModel = document.getElementById("editModelInput").value.trim();
         const aMake = document.getElementById("editMakeInput").value.trim();
-        const aOwner = document.getElementById("editOwnerNameInput").value.trim();
+        const aOwner = document
+          .getElementById("editOwnerNameInput")
+          .value.trim();
 
         const updates = [
           { equipment_id: eqId, field: "asset_type", value: aType },
@@ -502,9 +2032,13 @@
               const currIdx = rawData.findIndex((x) => x.id === eqId);
               if (currIdx !== -1 && currIdx + 1 < rawData.length) {
                 const nextItem = rawData[currIdx + 1];
-                document.getElementById("selectPlateToEdit").value = nextItem.id;
+                document.getElementById("selectPlateToEdit").value =
+                  nextItem.id;
                 fetchAndOpenAssetEdit();
-                showToast(`Saved! Loaded next: ${nextItem.plate_no || ""}`, "success");
+                showToast(
+                  `Saved! Loaded next: ${nextItem.plate_no || ""}`,
+                  "success",
+                );
               } else {
                 closeModal("editAssetDetailsModal");
                 showToast("All items updated successfully!", "success");
@@ -538,14 +2072,19 @@
       }
 
       function confirmCombinedExport() {
-        const scope = document.querySelector('input[name="combinedScope"]:checked')?.value || "all";
+        const scope =
+          document.querySelector('input[name="combinedScope"]:checked')
+            ?.value || "all";
         closeCombinedExportModal();
         showToast("Generating 3-Tab Master Excel...", "success");
         window.location.href = `/py/aks-combined/export?scope=${scope}`;
       }
 
       function filterRows() {
-        const term = document.getElementById("searchPlate").value.trim().toLowerCase();
+        const term = document
+          .getElementById("searchPlate")
+          .value.trim()
+          .toLowerCase();
         document.querySelectorAll("#summaryTableBody tr").forEach((tr) => {
           const p = tr.getAttribute("data-plate") || "";
           tr.style.display = p.includes(term) ? "" : "none";
@@ -553,8 +2092,13 @@
       }
 
       window.addEventListener("click", (e) => {
+        closeSummaryFilterMenu();
         const menu = document.getElementById("summaryActionMenu");
-        if (menu && !e.target.closest(".menu-btn") && !e.target.closest(".action-controls")) {
+        if (
+          menu &&
+          !e.target.closest(".menu-btn") &&
+          !e.target.closest(".action-controls")
+        ) {
           menu.classList.remove("show");
         }
       });
@@ -564,6 +2108,37 @@
         const menu = document.getElementById("summaryActionMenu");
         if (menu) menu.classList.toggle("show");
       }
+
+      function openUserNavigationModal() {
+        const modal = document.getElementById("userNavigationModal");
+        const userLbl = document.getElementById("hubLoggedInUserLabel");
+        if (userLbl) {
+          try {
+            const u = JSON.parse(localStorage.getItem("eq_user") || "null");
+            if (u && u.username) {
+              userLbl.innerText = `Signed in as ${u.username} • Select a module`;
+            }
+          } catch (e) {}
+        }
+        if (modal) modal.style.display = "flex";
+      }
+
+      function closeUserNavigationModal() {
+        const modal = document.getElementById("userNavigationModal");
+        if (modal) modal.style.display = "none";
+      }
+
+      function logoutSummaryTracker() {
+        localStorage.removeItem("eq_token");
+        localStorage.removeItem("eq_user");
+        window.location.replace("index.html");
+      }
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          closeUserNavigationModal();
+        }
+      });
 
       document.addEventListener("DOMContentLoaded", () => {
         loadSummaryData();

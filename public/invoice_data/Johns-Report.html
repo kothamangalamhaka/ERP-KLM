@@ -38,10 +38,27 @@
         --secondary: #0f172a;
         --bg-color: #f8fafc;
         --card-bg: #ffffff;
+        --input-bg: #ffffff;
         --border-color: #cbd5e1;
         --text-main: #0f172a;
         --text-muted: #64748b;
+        --row-hover: #f1f5f9;
+        --calc-bg: #f0fdfa;
+        --calc-text: #0f766e;
       }
+
+      [data-theme="dark"] {
+        --bg-color: #0b1120;
+        --card-bg: #0f172a;
+        --input-bg: #1e293b;
+        --border-color: #334155;
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --row-hover: #1e293b;
+        --calc-bg: #132a2e;
+        --calc-text: #5eead4;
+      }
+
       body {
         font-family: "Inter", sans-serif;
         background-color: var(--bg-color);
@@ -80,6 +97,8 @@
         border: 1px solid var(--border-color);
         border-radius: 4px;
         font-size: 12px;
+        background: var(--input-bg);
+        color: var(--text-main);
         outline: none;
       }
       .btn {
@@ -92,6 +111,11 @@
         align-items: center;
         gap: 6px;
         font-size: 12px;
+      }
+      .btn-theme-toggle {
+        background: var(--input-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
       }
       .btn-primary {
         background: var(--primary);
@@ -106,7 +130,10 @@
         flex: 1;
         overflow: auto;
         position: relative;
-        background: #fff;
+        background: var(--card-bg);
+      }
+      tbody tr:hover {
+        background-color: var(--row-hover);
       }
       table {
         width: 100%;
@@ -158,9 +185,9 @@
         background: #0f766e !important;
       }
       .col-calc {
-        background: #f0fdfa;
+        background: var(--calc-bg);
         font-weight: 600;
-        color: #0f766e;
+        color: var(--calc-text);
       }
       .bottom-tabs-bar {
         background: #0f172a;
@@ -183,9 +210,193 @@
         white-space: nowrap;
       }
       .tab-btn.active {
-        background: #ffffff;
-        color: #0f172a;
-        border-bottom-color: #ffffff;
+        background: var(--card-bg);
+        color: var(--text-main);
+        border-bottom-color: var(--card-bg);
+      }
+
+      /* Dark Mode Adjustments for Modals, Filter Dropdown & Inline Colored Cells */
+      [data-theme="dark"] .export-modal-card,
+      [data-theme="dark"] .excel-filter-menu {
+        background: #1e293b;
+        color: #f1f5f9;
+        border-color: #334155;
+      }
+      [data-theme="dark"] .export-modal-card h3,
+      [data-theme="dark"] .filter-item label {
+        color: #f1f5f9;
+      }
+      [data-theme="dark"] .excel-filter-header,
+      [data-theme="dark"] .excel-filter-search,
+      [data-theme="dark"] .excel-filter-actions {
+        background: #0f172a;
+        border-color: #334155;
+      }
+      [data-theme="dark"] .excel-filter-header button {
+        background: #1e293b;
+        color: #f1f5f9;
+        border-color: #475569;
+      }
+      [data-theme="dark"] .filter-item {
+        background: transparent !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+      }
+      [data-theme="dark"] .filter-item:hover {
+        background: #334155 !important;
+      }
+      [data-theme="dark"] #backupListTableBody div[style*="color:#0f172a"] {
+        color: #f1f5f9 !important;
+      }
+      [data-theme="dark"] #netSupplierModeToggle {
+        background: #1e293b !important;
+        border: 1px solid #334155;
+      }
+      [data-theme="dark"] #btnNsDetailed[style*="color: rgb(51, 65, 85)"],
+      [data-theme="dark"] #btnNsCompact[style*="color: rgb(51, 65, 85)"] {
+        color: #cbd5e1 !important;
+      }
+      /* Fix Summary Badges readability in Dark Mode */
+      [data-theme="dark"] #diffSummaryBadges > div {
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border-color: #475569 !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div div {
+        color: #cbd5e1 !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div div:last-child,
+      [data-theme="dark"] #diffSummaryBadges > div b {
+        color: #38bdf8 !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#dcfce7"] {
+        background-color: rgba(22, 163, 74, 0.22) !important;
+        border-color: #16a34a !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#dcfce7"] div:last-child {
+        color: #4ade80 !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#fee2e2"],
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#fff1f2"] {
+        background-color: rgba(220, 38, 38, 0.22) !important;
+        border-color: #dc2626 !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#fee2e2"] div:last-child,
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#fff1f2"] div:last-child {
+        color: #f87171 !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#f0fdf4"] div:last-child {
+        color: #34d399 !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#fef2f2"] div:last-child {
+        color: #fca5a5 !important;
+      }
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#fefce8"] div:last-child,
+      [data-theme="dark"] #diffSummaryBadges > div[style*="#fff7ed"] div:last-child {
+        color: #facc15 !important;
+      }
+
+      /* Ribbon Right Actions & Responsive 3-Bar Menu */
+      .ribbon-actions-wrap {
+        margin-left: auto;
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .ribbon-actions-list {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hamburger-menu-btn {
+        display: none;
+        background: var(--input-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        padding: 6px 11px;
+        border-radius: 5px;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      @media (max-width: 1380px) {
+        .top-ribbon {
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 8px 12px;
+        }
+        .hamburger-menu-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .ribbon-actions-list {
+          display: none;
+          position: absolute;
+          right: 0;
+          top: calc(100% + 6px);
+          flex-direction: column;
+          align-items: stretch;
+          background: var(--card-bg);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 8px;
+          gap: 6px;
+          min-width: 175px;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+          z-index: 99999;
+        }
+        .ribbon-actions-list.open {
+          display: flex;
+        }
+        .ribbon-actions-list .btn {
+          width: 100%;
+          justify-content: flex-start;
+          margin-left: 0 !important;
+        }
+      }
+      [data-theme="dark"] td[style*="background-color: #dcfce7"],
+      [data-theme="dark"] td[style*="background-color:#dcfce7"] {
+        background-color: rgba(22, 163, 74, 0.25) !important;
+        color: #86efac !important;
+      }
+      [data-theme="dark"] td[style*="background-color: #fee2e2"],
+      [data-theme="dark"] td[style*="background-color:#fee2e2"] {
+        background-color: rgba(220, 38, 38, 0.25) !important;
+        color: #fca5a5 !important;
+      }
+      [data-theme="dark"] td[style*="background-color: #fef9c3"],
+      [data-theme="dark"] td[style*="background-color:#fef9c3"] {
+        background-color: rgba(202, 138, 4, 0.25) !important;
+        color: #fde047 !important;
+      }
+      [data-theme="dark"] td[style*="background-color: #ffedd5"],
+      [data-theme="dark"] td[style*="background-color:#ffedd5"] {
+        background-color: rgba(234, 88, 12, 0.25) !important;
+        color: #fdba74 !important;
+      }
+      [data-theme="dark"] td[style*="color:#000"],
+      [data-theme="dark"] td[style*="color: #000"] {
+        color: #f1f5f9 !important;
+      }
+      [data-theme="dark"] td[style*="color:#1e40af"],
+      [data-theme="dark"] td[style*="color: #1e40af"] {
+        color: #93c5fd !important;
+      }
+      [data-theme="dark"] td[style*="color:#0f766e"],
+      [data-theme="dark"] td[style*="color: #0f766e"] {
+        color: #5eead4 !important;
+      }
+      [data-theme="dark"] td[style*="color:#059669"],
+      [data-theme="dark"] td[style*="color: #059669"] {
+        color: #6ee7b7 !important;
+      }
+      [data-theme="dark"] td[style*="color:#b91c1c"],
+      [data-theme="dark"] td[style*="color: #b91c1c"],
+      [data-theme="dark"] td[style*="color:#dc2626"],
+      [data-theme="dark"] td[style*="color: #dc2626"] {
+        color: #fca5a5 !important;
       }
       .loader {
         display: none;
@@ -312,18 +523,96 @@
         display: flex;
         position: fixed;
         inset: 0;
-        background: #0f172a;
+        background:
+          radial-gradient(circle at 20% 25%, rgba(14, 165, 233, 0.35), transparent 45%),
+          radial-gradient(circle at 80% 75%, rgba(99, 102, 241, 0.3), transparent 45%),
+          rgba(15, 23, 42, 0.78);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         z-index: 1000000;
         justify-content: center;
         align-items: center;
       }
       .security-card {
-        background: #ffffff;
-        padding: 25px 30px;
-        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 32px 30px;
+        border-radius: 16px;
         width: 340px;
         text-align: center;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          0 25px 50px -12px rgba(0, 0, 0, 0.6),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      }
+      .security-card h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        color: #ffffff;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      }
+      .security-card p {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.72);
+        margin-bottom: 18px;
+      }
+      .security-card input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 11px 14px;
+        margin-bottom: 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(15, 23, 42, 0.45);
+        color: #ffffff;
+        text-align: center;
+        font-size: 15px;
+        letter-spacing: 3px;
+        outline: none;
+        transition: all 0.2s ease;
+      }
+      .security-card input::placeholder {
+        color: rgba(255, 255, 255, 0.45);
+        letter-spacing: 1px;
+        font-size: 12.5px;
+      }
+      .security-card input:focus {
+        border-color: #38bdf8;
+        background: rgba(15, 23, 42, 0.65);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+      }
+      .security-card .sec-err-box {
+        color: #fca5a5;
+        background: rgba(239, 68, 68, 0.18);
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: none;
+      }
+      .security-card button {
+        width: 100%;
+        justify-content: center;
+        background: linear-gradient(135deg, #0ea5e9, #2563eb);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 11px 14px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+        box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .security-card button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(14, 165, 233, 0.5);
       }
       .filter-icon {
         font-size: 9px;
@@ -428,41 +717,20 @@
   <body>
     <div id="securityPromptModal" class="security-modal-overlay">
       <div class="security-card">
-        <h3 style="margin-top: 0; color: #0f172a; font-size: 16px">
-          Security Verification
-        </h3>
-        <p style="font-size: 12px; color: #64748b; margin-bottom: 15px">
-          Enter authorization code to access report:
-        </p>
+        <div style="font-size: 36px; margin-bottom: 8px">🔒</div>
+        <h3>Security Verification</h3>
+        <p>Enter authorization code to access report:</p>
         <input
           type="password"
           id="inputSecurityCode"
           placeholder="Security Code"
-          style="
-            width: 100%;
-            box-sizing: border-box;
-            padding: 8px 10px;
-            margin-bottom: 12px;
-          "
           onkeypress="if (event.key === 'Enter') submitSecurityVerification();"
         />
-        <div
-          id="securityErrorMsg"
-          style="
-            color: #ef4444;
-            font-size: 11px;
-            margin-bottom: 12px;
-            display: none;
-          "
-        >
+        <div id="securityErrorMsg" class="sec-err-box">
           Invalid code. Please try again.
         </div>
-        <button
-          class="btn btn-primary"
-          style="width: 100%; justify-content: center"
-          onclick="submitSecurityVerification()"
-        >
-          Verify & Proceed
+        <button class="btn" onclick="submitSecurityVerification()">
+          Verify & Proceed 🔓
         </button>
       </div>
     </div>
@@ -478,7 +746,7 @@
         <input type="number" id="selToY" value="2026" style="width: 60px" />
       </div>
       <button class="btn btn-primary" onclick="loadAllSelectedMonths()">
-        ⚡ Fetch Data
+        ⚡ Fetch
       </button>
       <input
         type="text"
@@ -513,27 +781,47 @@
         style="display: flex; gap: 6px; align-items: center; margin-left: 4px"
       ></div>
       <div id="loader" class="loader">Loading Data...</div>
-      <button
-        class="btn"
-        style="background: #0d9488; color: #fff; margin-left: auto"
-        onclick="createCurrentDataBackup()"
-      >
-        💾 Backup
-      </button>
-      <button
-        class="btn"
-        style="background: #6366f1; color: #fff"
-        onclick="openBackupListModal()"
-      >
-        📂 View Backups
-      </button>
-      <button
-        class="btn btn-success"
-        style="margin-left: 0"
-        onclick="exportToExcelWorkbook()"
-      >
-        📊 Export Excel
-      </button>
+      <div class="ribbon-actions-wrap" id="ribbonActionsWrap">
+        <button
+          type="button"
+          class="hamburger-menu-btn"
+          onclick="toggleRibbonMenu(event)"
+          title="Menu"
+        >
+          ☰
+        </button>
+        <div class="ribbon-actions-list" id="ribbonActionsList">
+          <button
+            class="btn"
+            style="background: #0d9488; color: #fff"
+            onclick="closeRibbonMenu(); createCurrentDataBackup();"
+          >
+            💾 Backup
+          </button>
+          <button
+            class="btn"
+            style="background: #6366f1; color: #fff"
+            onclick="closeRibbonMenu(); openBackupListModal();"
+          >
+            📂 View Backups
+          </button>
+          <button
+            id="themeToggleBtn"
+            class="btn btn-theme-toggle"
+            onclick="toggleReportTheme()"
+            title="Switch Dark / Light Theme"
+          >
+            🌙
+          </button>
+          <button
+            class="btn btn-success"
+            style="margin-left: 0"
+            onclick="closeRibbonMenu(); exportToExcelWorkbook();"
+          >
+            📊 Export Excel
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="table-wrapper">
@@ -1191,6 +1479,29 @@
       let netSupplierMonthKeys = [];
 
       let isAuthorizedSession = false;
+
+      function applySavedReportTheme() {
+        const saved = localStorage.getItem("johns_report_theme") || "dark";
+        document.documentElement.setAttribute("data-theme", saved);
+        const btn = document.getElementById("themeToggleBtn");
+        if (btn) {
+          btn.innerText = saved === "dark" ? "☀️" : "🌙";
+        }
+      }
+
+      function toggleReportTheme() {
+        const current =
+          document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("johns_report_theme", next);
+        const btn = document.getElementById("themeToggleBtn");
+        if (btn) {
+          btn.innerText = next === "dark" ? "☀️" : "🌙";
+        }
+      }
+
+      applySavedReportTheme();
 
       async function submitSecurityVerification() {
         const codeInput = document.getElementById("inputSecurityCode");
@@ -2182,6 +2493,8 @@
 
       function switchTab(key) {
         activeMonthKey = key;
+        headerFilters = {};
+        sortConfig = null;
         const toggleDiv = document.getElementById("netSupplierModeToggle");
         if (toggleDiv) {
           toggleDiv.style.display = key === "Net Supplier" ? "flex" : "none";
@@ -2893,9 +3206,23 @@
         applyAllFilters();
       }
 
+      function toggleRibbonMenu(event) {
+        event.stopPropagation();
+        const list = document.getElementById("ribbonActionsList");
+        if (list) list.classList.toggle("open");
+      }
+
+      function closeRibbonMenu() {
+        const list = document.getElementById("ribbonActionsList");
+        if (list) list.classList.remove("open");
+      }
+
       document.addEventListener("click", (e) => {
         if (!e.target.closest("#excelFilterMenu")) {
           closeExcelFilter();
+        }
+        if (!e.target.closest("#ribbonActionsWrap")) {
+          closeRibbonMenu();
         }
       });
 
@@ -2954,7 +3281,7 @@
             const rows = list.map((r) => [
               r.sn,
               r.site,
-              cleanExportRate(r.rate),
+              formatRateValue(r.rate),
               r.vat,
               r.owner,
               r.driver,

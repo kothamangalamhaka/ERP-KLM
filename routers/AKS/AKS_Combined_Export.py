@@ -408,7 +408,7 @@ def export_combined_aks_excel(
 
         ws_sum.auto_filter.ref = f"A1:{get_column_letter(total_cols_3)}{curr_row - 1}"
         ws_sum.sheet_view.zoomScale = 85
-        ws_sum.freeze_panes = 'F2'
+        ws_sum.freeze_panes = 'A2'
 
         for col in ws_sum.columns:
             max_len = 0
@@ -554,7 +554,7 @@ def export_combined_aks_excel(
 
         ws_summarised.auto_filter.ref = f"A1:{get_column_letter(total_cols_4)}{curr_row_4 - 1}"
         ws_summarised.sheet_view.zoomScale = 85
-        ws_summarised.freeze_panes = 'F2'
+        ws_summarised.freeze_panes = 'A2'
 
         for col in ws_summarised.columns:
             max_len = 0

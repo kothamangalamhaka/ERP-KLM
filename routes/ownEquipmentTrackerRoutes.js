@@ -299,12 +299,27 @@ function cleanSiteNameForExcel(rawSite) {
     .trim();
 }
 
-// EXPORT EXCEL ROUTE (SINGLE & BATCH WITH DESIGNED SUMMARY SHEET - FIXED NaN & CARRY OVER BUGS)
+// EXPORT EXCEL ROUTE (SINGLE, BATCH, PERIOD & CURRENT UI)
 router.get("/export-excel", async (req, res) => {
   const type = req.query.type;
   const targetYear = req.query.year || new Date().getFullYear();
   const monthsParam = req.query.months || "1,2,3,4,5,6,7,8,9,10,11,12";
   const visibleMonths = monthsParam.split(",").map(Number);
+
+  const startYear = Number(req.query.start_year) || Number(targetYear);
+  const startMonth = Number(req.query.start_month) || 1;
+  const endYear = Number(req.query.end_year) || Number(targetYear);
+  const endMonth = Number(req.query.end_month) || 12;
+
+  const platesParam = (req.query.plates || "").trim();
+  const plateFilterSet = platesParam
+    ? new Set(
+        platesParam
+          .split(",")
+          .map((p) => p.trim().toUpperCase())
+          .filter(Boolean),
+      )
+    : null;
 
   const workbook = new excelJS.Workbook();
   const fullMonthNames = [
@@ -334,10 +349,21 @@ router.get("/export-excel", async (req, res) => {
     );
     const siteLogs = siteLogsRes.rows;
 
+    const filteredEquipments = plateFilterSet
+      ? eqRes.rows.filter((eq) =>
+          plateFilterSet.has((eq.plate_no || "").trim().toUpperCase()),
+        )
+      : eqRes.rows;
+
     let years = [];
     if (type === "batch") {
       years = [...new Set(logsRes.rows.map((x) => x.year))];
       if (years.length === 0) years = [new Date().getFullYear()];
+    } else if (type === "period") {
+      for (let y = startYear; y <= endYear; y++) {
+        years.push(y);
+      }
+      if (years.length === 0) years = [Number(targetYear)];
     } else {
       years = [Number(targetYear)];
     }
@@ -786,10 +812,18 @@ router.get("/export-excel", async (req, res) => {
       setMergedCell(ws, 1, 3, 4, 3, "Date of Purchase", colors.master);
       setMergedCell(ws, 1, 4, 4, 4, "Purchase Cost", colors.master);
 
-      let monthsToRender =
-        type === "batch"
-          ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-          : visibleMonths;
+      let monthsToRender = [];
+      if (type === "batch") {
+        monthsToRender = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      } else if (type === "period") {
+        const mStart = yr === startYear ? startMonth : 1;
+        const mEnd = yr === endYear ? endMonth : 12;
+        for (let m = mStart; m <= mEnd; m++) {
+          monthsToRender.push(m);
+        }
+      } else {
+        monthsToRender = visibleMonths;
+      }
 
       monthsToRender.forEach((m, idx) => {
         let sC = 5 + idx * 19;
@@ -859,7 +893,7 @@ router.get("/export-excel", async (req, res) => {
       };
 
       // 🟢 FIXED: carryGL IS NOW INSIDE THE EQUIPMENT LOOP - PREVENTS ACCUMULATION ACROSS VEHICLES
-      eqRes.rows.forEach((eq, idx) => {
+      filteredEquipments.forEach((eq, idx) => {
         let carryGL = 0; // Reset to 0 for each vehicle!
         let rowData = [
           idx + 1,
@@ -877,6 +911,7 @@ router.get("/export-excel", async (req, res) => {
           const maint = Number(l.maintenance_cost || 0),
             basic = Number(l.basic_salary || 0),
             ot = Number(l.overtime || 0),
+            allowance = Number(l.allowance || 0),
             pen = Number(l.penalty || 0),
             rent = Number(l.santook_rent || 0),
             rev = Number(l.op_revenue || 0);
@@ -934,7 +969,7 @@ router.get("/export-excel", async (req, res) => {
           const deb = Number(l.debit || 0),
             pwas = Number(l.pwas || 0),
             oth = Number(l.other_expense || 0);
-          const netSal = basic + ot - pen;
+          const netSal = basic + ot + allowance - pen;
           const opc = netSal + rent + kaf + own + inv + deb + pwas + oth;
           const tc = maint + opc;
           let gl = tc > 0 || rev > 0 ? rev - tc : 0;
@@ -1044,7 +1079,9 @@ router.get("/export-excel", async (req, res) => {
     const fileName =
       type === "batch"
         ? "Batch_Equipment_Tracker.xlsx"
-        : `Equipment_Tracker_${targetYear}.xlsx`;
+        : type === "period"
+          ? `Equipment_Tracker_${startYear}_${String(startMonth).padStart(2, "0")}_to_${endYear}_${String(endMonth).padStart(2, "0")}.xlsx`
+          : `Equipment_Tracker_${targetYear}.xlsx`;
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

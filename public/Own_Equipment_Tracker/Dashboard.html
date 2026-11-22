@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Own Equipment Tracker - Dashboard</title>
     <script src="js/eq-session.js"></script>
+    <link rel="stylesheet" href="css/glass-theme.css" />
     <style>
       * {
         box-sizing: border-box;
@@ -12,7 +13,7 @@
       }
       body {
         margin: 0;
-        padding: 15px;
+        padding: 8px 12px;
         background-color: #f4f7f6;
       }
 
@@ -29,30 +30,34 @@
       }
 
       .top-bar {
+        position: relative;
+        z-index: 1200;
         display: flex;
         justify-content: space-between;
         align-items: center;
         background: #fff;
-        padding: 15px 20px;
+        padding: 7px 14px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        margin-bottom: 15px;
+        margin-bottom: 8px;
+        gap: 8px;
       }
       .controls {
         display: flex;
-        gap: 10px;
+        gap: 6px;
         align-items: center;
       }
       .btn {
-        padding: 8px 15px;
+        padding: 6px 11px;
         border: none;
-        border-radius: 4px;
+        border-radius: 5px;
         cursor: pointer;
         font-weight: bold;
-        font-size: 13px;
+        font-size: 12px;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
+        white-space: nowrap;
       }
       .btn-primary {
         background: #27ae60;
@@ -104,37 +109,49 @@
         border: 1px solid #ccc;
         max-height: none;
         overflow-y: visible;
-        z-index: 100;
-        width: 100%;
+        z-index: 2500;
+        min-width: 165px;
+        width: max-content;
         margin: 0;
-        padding: 0;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 4px 0;
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.42);
       }
       .dropdown-check-list .items li {
         list-style: none;
-        padding: 8px 10px;
+        padding: 5px 12px;
         border-bottom: 1px solid #f1f1f1;
-        font-size: 13px;
+        font-size: 12.5px;
+        white-space: nowrap;
+      }
+      .dropdown-check-list .items li label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        width: 100%;
       }
       .dropdown-check-list.visible .items {
         display: block;
       }
       .table-container {
         overflow-x: auto;
-        max-height: calc(100vh - 120px);
+        max-height: calc(100vh - 76px);
         background: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       }
       table {
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
         width: 100%;
         font-size: 12px;
         white-space: nowrap;
       }
       th,
       td {
-        border: 1px solid #c0c0c0;
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1px solid #cbd5e1;
         padding: 6px 8px;
         text-align: center;
       }
@@ -146,84 +163,157 @@
         padding: 8px 10px;
       }
       /* ==========================================
-         ❄️ FULL HEADER FREEZE (All Top Rows)
+         ❄️ FULL HEADER FREEZE (Vertical + Horizontal Sticky)
          ========================================== */
-      thead {
+      thead th {
         position: sticky;
+        background-clip: padding-box;
+      }
+      thead tr:nth-child(1) th {
         top: 0;
-        z-index: 4;
+        z-index: 15;
+      }
+      thead tr:nth-child(2) th {
+        top: 30px;
+        z-index: 14;
+      }
+      thead tr:nth-child(3) th {
+        top: 56px;
+        z-index: 13;
+      }
+      thead tr:nth-child(4) th {
+        top: 82px;
+        z-index: 12;
       }
       th.master-head {
-        background: #d9e1f2;
-        color: #000;
-        position: sticky;
-        top: 0;
-        z-index: 5;
+        background: #0f172a;
+        color: #f8fafc;
+        border-right-color: #1e293b;
+        border-bottom-color: #1e293b;
       }
       th.month-head {
-        background: #d9ebd3;
-        color: #000;
-        font-size: 14px;
-        position: sticky;
-        top: 0;
-        z-index: 4;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+        border-right-color: #334155;
+        border-bottom-color: #334155;
       }
       th.sub-head {
-        background: #f2f2f2;
+        background: #273549;
+        color: #e2e8f0;
         font-size: 11px;
-        position: sticky;
-        top: 0;
-        z-index: 4;
+        font-weight: 600;
+        border-right-color: #334155;
+        border-bottom-color: #334155;
       }
-
+      th.sub-head.bg-opc {
+        background: #273549;
+        color: #cbd5e1;
+      }
+      th.sub-head.bg-total-cost {
+        background: #1e293b;
+        color: #f8fafc;
+      }
+      th.sub-head.bg-revenue {
+        background: #1e293b;
+        color: #86efac;
+      }
+      th.sub-head.bg-gl {
+        background: #1e293b;
+        color: #e2e8f0;
+      }
+      th.sub-head.bg-net {
+        background: #0f172a;
+        color: #7dd3fc;
+      }
+      th.sub-head.bg-opc {
+        background: #273549;
+        color: #cbd5e1;
+      }
+      th.sub-head.bg-total-cost {
+        background: #1e293b;
+        color: #f8fafc;
+      }
+      th.sub-head.bg-revenue {
+        background: #1e293b;
+        color: #86efac;
+      }
+      th.sub-head.bg-gl {
+        background: #1e293b;
+        color: #e2e8f0;
+      }
+      th.sub-head.bg-net {
+        background: #0f172a;
+        color: #7dd3fc;
+      }
       /* ==========================================
-         ❄️ FREEZE SN & PLATE NO COLUMNS (Sticky)
+         ❄️ FREEZE SN & PLATE NO COLUMNS (Top + Left Sticky)
          ========================================== */
       /* Freeze SN Column (Column 1) */
-      thead tr:first-child th:nth-child(1),
-      tbody td:nth-child(1) {
-        position: sticky;
-        left: 0;
-        z-index: 3;
-        background: #fff;
+      thead tr:first-child th:nth-child(1) {
+        position: sticky !important;
+        top: 0 !important;
+        left: 0 !important;
+        z-index: 25 !important;
+        background: #0f172a !important;
+        color: #f8fafc !important;
         width: 50px;
         min-width: 50px;
         max-width: 50px;
       }
-      thead tr:first-child th:nth-child(1) {
-        z-index: 6;
-        background: #d9e1f2;
+      tbody td:nth-child(1) {
+        position: sticky;
+        left: 0;
+        z-index: 5;
+        background: #ffffff;
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px;
+      }
+      tbody tr:nth-child(even) td:nth-child(1) {
+        background: #f8fafc;
       }
 
       /* Freeze Plate No Column (Column 2) */
-      thead tr:first-child th:nth-child(2),
+      thead tr:first-child th:nth-child(2) {
+        position: sticky !important;
+        top: 0 !important;
+        left: 50px !important;
+        z-index: 25 !important;
+        background: #0f172a !important;
+        color: #f8fafc !important;
+        min-width: 115px;
+        box-shadow: 3px 0 6px rgba(0, 0, 0, 0.14);
+      }
       tbody td:nth-child(2) {
         position: sticky;
         left: 50px;
-        z-index: 3;
-        background: #fff;
-        min-width: 110px;
-        box-shadow: 3px 0 5px rgba(0, 0, 0, 0.08);
+        z-index: 5;
+        background: #ffffff;
+        min-width: 115px;
+        box-shadow: 3px 0 6px rgba(0, 0, 0, 0.08);
       }
-      thead tr:first-child th:nth-child(2) {
-        z-index: 6;
-        background: #d9e1f2;
+      tbody tr:nth-child(even) td:nth-child(2) {
+        background: #f8fafc;
       }
+      /* Clean Corporate Neutral & Subtle Tints */
       .bg-opc {
-        background: #fff2cc;
+        background: #fafaf9;
       }
       .bg-total-cost {
-        background: #fce4d6;
+        background: #f1f5f9;
+        font-weight: 600;
       }
       .bg-revenue {
-        background: #e2efda;
+        background: #f0fdf4;
       }
       .bg-gl {
-        background: #edd9ff;
+        background: #f8fafc;
       }
       .bg-net {
-        background: #f8cbad;
-        font-weight: bold;
+        background: #eff6ff;
+        font-weight: 700;
       }
       .modal {
         display: none;
@@ -276,7 +366,6 @@
         margin-top: 15px;
       }
 
-
       /* ==========================================
          🔻 DROPDOWN MENU STYLES FOR BUTTONS
          ========================================== */
@@ -291,12 +380,12 @@
         display: none;
         position: absolute;
         background-color: #fff;
-        min-width: 170px;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-        z-index: 1000;
+        min-width: 185px;
+        box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.35);
+        z-index: 2500;
         border-radius: 6px;
         overflow: hidden;
-        top: 100%;
+        top: calc(100% + 4px);
         left: 0;
         border: 1px solid #ddd;
       }
@@ -327,7 +416,6 @@
         display: block;
       }
 
-
       /* ==========================================
          🍞 TOAST NOTIFICATION STYLES
          ========================================== */
@@ -354,7 +442,9 @@
         justify-content: space-between;
         opacity: 0;
         transform: translateY(20px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .toast.show {
         opacity: 1;
@@ -378,7 +468,9 @@
         background: #ffffff;
         border: 1px solid #cbd5e1;
         border-radius: 6px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        box-shadow:
+          0 10px 25px -5px rgba(0, 0, 0, 0.2),
+          0 8px 10px -6px rgba(0, 0, 0, 0.1);
         z-index: 10000;
         width: 240px;
         font-size: 13px;
@@ -514,19 +606,276 @@
         text-decoration: none;
         color: inherit;
       }
+
+      /* =========================================================
+         👤 USER QUICK-SWITCH GLASSMORPHISM CENTER MODAL
+         ========================================================= */
+      .user-nav-btn {
+        background: linear-gradient(
+          135deg,
+          rgba(56, 189, 248, 0.22),
+          rgba(14, 116, 144, 0.28)
+        );
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        color: #f8fafc;
+        width: 34px;
+        height: 32px;
+        padding: 0;
+        border-radius: 8px;
+        font-size: 16px;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+        transition: all 0.2s ease;
+      }
+      .user-nav-btn:hover {
+        border-color: #38bdf8;
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+      }
+
+      .glass-hub-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            circle at 20% 20%,
+            rgba(14, 116, 144, 0.32),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(79, 70, 229, 0.28),
+            transparent 45%
+          ),
+          rgba(4, 9, 20, 0.78);
+        backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .glass-hub-modal {
+        background: linear-gradient(
+          145deg,
+          rgba(30, 41, 59, 0.78),
+          rgba(15, 23, 42, 0.72)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-top-color: rgba(255, 255, 255, 0.4);
+        box-shadow:
+          0 28px 65px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(26px) saturate(175%);
+        -webkit-backdrop-filter: blur(26px) saturate(175%);
+        border-radius: 22px;
+        width: 100%;
+        max-width: 820px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 26px 28px 28px;
+        color: #f8fafc;
+        animation: hubFadeScale 0.22s ease-out;
+      }
+
+      @keyframes hubFadeScale {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .glass-hub-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 14px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .glass-hub-title-wrap h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.3px;
+      }
+
+      .glass-hub-title-wrap span {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .glass-hub-close {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #e2e8f0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+      .glass-hub-close:hover {
+        background: rgba(239, 68, 68, 0.28);
+        border-color: rgba(239, 68, 68, 0.6);
+        color: #ffffff;
+      }
+
+      .glass-hub-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      @media (max-width: 768px) {
+        .glass-hub-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 480px) {
+        .glass-hub-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .hub-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 15px;
+        border-radius: 16px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.11) 0%,
+          rgba(255, 255, 255, 0.04) 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-top-color: rgba(255, 255, 255, 0.34);
+        color: #f8fafc;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+          transform 0.22s ease,
+          border-color 0.22s ease,
+          box-shadow 0.22s ease,
+          background 0.22s ease;
+      }
+
+      .hub-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(56, 189, 248, 0.85);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.18) 0%,
+          rgba(56, 189, 248, 0.12) 100%
+        );
+        box-shadow:
+          0 12px 26px rgba(0, 0, 0, 0.42),
+          0 0 18px rgba(56, 189, 248, 0.25);
+      }
+
+      .hub-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .hub-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+      }
+
+      .hub-card-arrow {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.65);
+        transition:
+          transform 0.2s ease,
+          color 0.2s ease;
+      }
+
+      .hub-card:hover .hub-card-arrow {
+        color: #38bdf8;
+        transform: translate(2px, -2px);
+      }
+
+      .hub-card h4 {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .hub-card:hover h4 {
+        color: #7dd3fc;
+      }
+
+      .hub-card p {
+        margin: 0;
+        font-size: 11.5px;
+        color: #cbd5e1;
+        line-height: 1.4;
+      }
+
+      .hub-card.hub-logout {
+        border-color: rgba(248, 113, 113, 0.35);
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.16),
+          rgba(127, 29, 29, 0.14)
+        );
+      }
+
+      .hub-card.hub-logout:hover {
+        border-color: #f87171;
+        box-shadow: 0 12px 26px rgba(220, 38, 38, 0.35);
+      }
     </style>
   </head>
   <body>
     <div class="top-bar">
       <div class="controls">
-        <label><b>Year:</b></label>
-        <select id="filterYear" onchange="loadDashboardData()"></select>
-        <label><b>Months:</b></label>
-        <button class="btn" type="button" style="padding: 6px 10px; background: #e2e8f0; color: #1e293b;" onclick="navigateMonth(-1)" title="Previous Month">◀</button>
+        <select
+          id="filterYear"
+          onchange="loadDashboardData()"
+          style="padding: 5px 8px; font-size: 12px; font-weight: 700"
+        ></select>
+        <button
+          class="btn"
+          type="button"
+          style="padding: 5px 8px; background: #1e293b; color: #f8fafc"
+          onclick="navigateMonth(-1)"
+          title="Previous Month"
+        >
+          ◀
+        </button>
         <div id="monthSelector" class="dropdown-check-list">
           <span
             class="anchor"
             id="monthSelectorLabel"
+            style="padding: 5px 10px; font-size: 12px; min-width: 120px"
             onclick="
               document
                 .getElementById('monthSelector')
@@ -536,48 +885,80 @@
           >
           <ul class="items" id="monthCheckboxes"></ul>
         </div>
-        <button class="btn" type="button" style="padding: 6px 10px; background: #e2e8f0; color: #1e293b;" onclick="navigateMonth(1)" title="Next Month">▶</button>
+        <button
+          class="btn"
+          type="button"
+          style="padding: 5px 8px; background: #1e293b; color: #f8fafc"
+          onclick="navigateMonth(1)"
+          title="Next Month"
+        >
+          ▶
+        </button>
         <button class="btn btn-blue" onclick="renderTable()">Apply</button>
       </div>
- <div class="controls">
-
-   <!-- Active Users Badge -->
-        <button 
-          id="activeUserBadge" 
-          class="btn" 
-          style="background: #f39c12; color: white; display: none;" 
+      <div class="controls">
+        <!-- Active Users Badge -->
+        <button
+          id="activeUserBadge"
+          class="btn"
+          style="background: #f39c12; color: white; display: none"
           onclick="showActiveUsersModal()"
         >
           Loading...
         </button>
 
         <!-- Search Bar for Plate No -->
-        <input 
-          type="text" 
-          id="searchPlateNo" 
-          placeholder="🔍 Search Plate No..." 
-          onkeyup="filterByPlateNo()" 
-          style="padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 160px; outline: none;"
+        <input
+          type="text"
+          id="searchPlateNo"
+          placeholder="🔍 Search Plate No..."
+          onkeyup="filterByPlateNo()"
+          style="
+            padding: 7px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 160px;
+            outline: none;
+          "
         />
 
         <!-- Mobile Menu Toggle Button -->
-        <button class="btn mobile-menu-btn" onclick="toggleActionMenu()">☰</button>
+        <button class="btn mobile-menu-btn" onclick="toggleActionMenu()">
+          ☰
+        </button>
 
         <!-- Collapsible Action Menu -->
         <div id="actionMenu" class="action-menu-collapse">
           <!-- Group 0: Summary Options -->
           <div class="dropdown-btn-group">
-            <button class="btn btn-dark" onclick="toggleSubMenu(this, event)">📊 Summary ▼</button>
+            <button class="btn btn-dark" onclick="toggleSubMenu(this, event)">
+              📊 Summary ▼
+            </button>
             <div class="dropdown-content-menu">
-              <button onclick="window.location.href = 'summary.html'">📅 Yearly Summary</button>
-              <button onclick="window.location.href = 'monthly_list_summary.html'">🗓️ Monthly Summary</button>
-              <button onclick="window.location.href = 'list.html'">📋 List View</button>
+              <button onclick="window.location.href = 'summary.html'">
+                📅 Annual Summary
+              </button>
+              <button
+                onclick="window.location.href = 'monthly_list_summary.html'"
+              >
+                🗓️ Monthly Summary
+              </button>
+              <button onclick="window.location.href = 'list.html'">
+                📋 List View
+              </button>
             </div>
           </div>
 
           <!-- Group 1: Yearly Data -->
           <div class="dropdown-btn-group">
-            <button class="btn btn-primary" style="background: #16a085;" onclick="toggleSubMenu(this, event)">📅 Yearly Data ▼</button>
+            <button
+              class="btn btn-primary"
+              style="background: #16a085"
+              onclick="toggleSubMenu(this, event)"
+            >
+              📅 Yearly Data ▼
+            </button>
             <div class="dropdown-content-menu">
               <button onclick="openRevenueModal()">💰 Revenue</button>
               <button onclick="openExpenseModal()">🧾 Expense</button>
@@ -585,34 +966,53 @@
               <button onclick="openCommissionModal()">🤝 Commission's</button>
             </div>
           </div>
-          
+
           <!-- Group 2: Purchase -->
           <div class="dropdown-btn-group">
-            <button class="btn btn-primary" style="background: #e67e22;" onclick="toggleSubMenu(this, event)">🛒 Purchase ▼</button>
+            <button
+              class="btn btn-primary"
+              style="background: #e67e22"
+              onclick="toggleSubMenu(this, event)"
+            >
+              🛒 Purchase ▼
+            </button>
             <div class="dropdown-content-menu">
-              <button onclick="openEquipmentModal()">✏️ Add New EQ </button>
-              <button onclick="openEditCostModal()">✏️ Edit Purchase Cost</button>
+              <button onclick="openEquipmentModal()">✏️ Add New EQ</button>
+              <button onclick="openEditCostModal()">
+                ✏️ Edit Purchase Cost
+              </button>
               <a href="AKS.html"><button>📝 AKS Tracker</button></a>
             </div>
           </div>
 
           <!-- Group 3: Edit -->
           <div class="dropdown-btn-group">
-            <button class="btn btn-primary" style="background: #8e44ad;" onclick="toggleSubMenu(this, event)">📝 Edit ▼</button>
+            <button
+              class="btn btn-primary"
+              style="background: #8e44ad"
+              onclick="toggleSubMenu(this, event)"
+            >
+              📝 Edit ▼
+            </button>
             <div class="dropdown-content-menu">
               <button onclick="openDataModal()">✏️ Data Input Popup</button>
-              <button id="btnEditInline" onclick="toggleEditMode()">✏️ Edit All Data</button>
+              <button id="btnEditInline" onclick="toggleEditMode()">
+                ✏️ Edit All Data
+              </button>
             </div>
           </div>
 
-          <button class="btn btn-excel" onclick="exportToExcel()">Export Excel</button>
+          <button class="btn btn-excel" onclick="exportToExcel()">
+            Export Excel
+          </button>
 
-          <button class="btn btn-logout" onclick="logout()" title="Logout">
-            <svg style="margin-right: 5px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg> Logout
+          <button
+            type="button"
+            class="btn user-nav-btn"
+            onclick="openUserNavigationModal()"
+            title="Switch Screen / User Menu"
+          >
+            👤
           </button>
         </div>
       </div>
@@ -644,9 +1044,15 @@
           ><input type="number" id="eqRemainingCost" value="0" />
         </div>
         <div class="modal-actions">
-          <button class="btn" onclick="closeModal('equipmentModal')">Cancel</button>
-          <button class="btn btn-primary" onclick="saveEquipment(false)">Save & Close</button>
-          <button class="btn btn-blue" onclick="saveEquipment(true)">Save & Next</button>
+          <button class="btn" onclick="closeModal('equipmentModal')">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="saveEquipment(false)">
+            Save & Close
+          </button>
+          <button class="btn btn-blue" onclick="saveEquipment(true)">
+            Save & Next
+          </button>
         </div>
       </div>
     </div>
@@ -657,7 +1063,10 @@
         <h3>Edit Equipment Purchase Cost</h3>
         <div class="form-group">
           <label>Select Equipment</label>
-          <select id="editCostEqId" onchange="populateEditCostFields()"></select>
+          <select
+            id="editCostEqId"
+            onchange="populateEditCostFields()"
+          ></select>
         </div>
         <div class="form-group">
           <label>Purchase Date</label>
@@ -672,9 +1081,19 @@
           <input type="number" id="editCostRemaining" value="0" />
         </div>
         <div class="modal-actions">
-          <button class="btn" onclick="closeModal('editCostModal')">Cancel</button>
-          <button class="btn btn-primary" style="background: #e67e22;" onclick="saveEditedCost(false)">Update & Save</button>
-          <button class="btn btn-blue" onclick="saveEditedCost(true)">Update & Next</button>
+          <button class="btn" onclick="closeModal('editCostModal')">
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            style="background: #e67e22"
+            onclick="saveEditedCost(false)"
+          >
+            Update & Save
+          </button>
+          <button class="btn btn-blue" onclick="saveEditedCost(true)">
+            Update & Next
+          </button>
         </div>
       </div>
     </div>
@@ -793,19 +1212,71 @@
 
     <!-- Revenue Input Modal -->
     <div id="revenueModal" class="modal">
-      <div class="modal-content" style="width: 400px; padding: 20px;">
-        <h3 style="margin-bottom: 15px;">Update Operational Revenue</h3>
-        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
-          <select id="revenueEqId" onchange="populateRevenueTable()" style="flex: 1; margin: 0;"></select>
-          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px; color: #333;" onclick="copyRevenuePlateNo()" title="Copy Plate No">📋</button>
+      <div class="modal-content" style="width: 400px; padding: 20px">
+        <h3 style="margin-bottom: 15px">Update Operational Revenue</h3>
+        <div
+          class="form-group"
+          style="display: flex; align-items: center; gap: 10px"
+        >
+          <label style="margin: 0; white-space: nowrap">Plate No:</label>
+          <select
+            id="revenueEqId"
+            onchange="populateRevenueTable()"
+            style="flex: 1; margin: 0"
+          ></select>
+          <button
+            type="button"
+            class="btn"
+            style="
+              padding: 7px 12px;
+              background: #f2f2f2;
+              border: 1px solid #ccc;
+              font-size: 14px;
+              color: #333;
+            "
+            onclick="copyRevenuePlateNo()"
+            title="Copy Plate No"
+          >
+            📋
+          </button>
         </div>
-        <div class="table-container" style="max-height: 340px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
-          <table style="width: 100%; table-layout: fixed;">
+        <div
+          class="table-container"
+          style="
+            max-height: 340px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            box-shadow: none;
+            overflow-y: auto;
+          "
+        >
+          <table style="width: 100%; table-layout: fixed">
             <thead>
               <tr>
-                <th style="background: #f2f2f2; color: #000; width: 50%; position: sticky; top: 0; z-index: 5;">Month</th>
-                <th style="background: #e2efda; color: #000; width: 50%; position: sticky; top: 0; z-index: 5;">Operational Revenue</th>
+                <th
+                  style="
+                    background: #f2f2f2;
+                    color: #000;
+                    width: 50%;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Month
+                </th>
+                <th
+                  style="
+                    background: #e2efda;
+                    color: #000;
+                    width: 50%;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Operational Revenue
+                </th>
               </tr>
             </thead>
             <tbody id="revenueTableBody">
@@ -813,143 +1284,568 @@
             </tbody>
           </table>
         </div>
-        <div class="modal-actions" style="margin-top: 15px;">
-          <button class="btn" onclick="closeModal('revenueModal')">Cancel</button>
-          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveRevenueData()">Save & Close</button>
-          <button class="btn btn-blue" onclick="saveAndNextRevenue()">Save & Next</button>
+        <div class="modal-actions" style="margin-top: 15px">
+          <button class="btn" onclick="closeModal('revenueModal')">
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            style="background: #27ae60"
+            onclick="saveRevenueData()"
+          >
+            Save & Close
+          </button>
+          <button class="btn btn-blue" onclick="saveAndNextRevenue()">
+            Save & Next
+          </button>
         </div>
       </div>
     </div>
 
-<!-- ================= EXPENSE MODAL ================= -->
+    <!-- ================= EXPENSE MODAL ================= -->
     <div id="expenseModal" class="modal">
-      <div class="modal-content" style="width: 800px; padding: 20px;">
-        <h3 style="margin-bottom: 15px;">Update Expenses</h3>
-        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
-          <select id="expenseEqId" onchange="populateExpenseTable()" style="flex: 1; margin: 0;"></select>
-          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('expenseEqId')" title="Copy Plate No">📋</button>
+      <div class="modal-content" style="width: 800px; padding: 20px">
+        <h3 style="margin-bottom: 15px">Update Expenses</h3>
+        <div
+          class="form-group"
+          style="display: flex; align-items: center; gap: 10px"
+        >
+          <label style="margin: 0; white-space: nowrap">Plate No:</label>
+          <select
+            id="expenseEqId"
+            onchange="populateExpenseTable()"
+            style="flex: 1; margin: 0"
+          ></select>
+          <button
+            type="button"
+            class="btn"
+            style="
+              padding: 7px 12px;
+              background: #f2f2f2;
+              border: 1px solid #ccc;
+              font-size: 14px;
+            "
+            onclick="copyModalPlateNo('expenseEqId')"
+            title="Copy Plate No"
+          >
+            📋
+          </button>
         </div>
-        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
-          <table style="width: 100%; table-layout: fixed;">
-           <thead>
+        <div
+          class="table-container"
+          style="
+            max-height: 400px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            box-shadow: none;
+            overflow-y: auto;
+          "
+        >
+          <table style="width: 100%; table-layout: fixed">
+            <thead>
               <tr>
-                <th style="background: #f2f2f2; width: 15%; position: sticky; top: 0; z-index: 5;">Month</th>
-                <th style="background: #fce4d6; position: sticky; top: 0; z-index: 5;">EQ Maint</th>
-                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Santook</th>
-                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Debit Note</th>
-                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">PWAS</th>
-                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Other</th>
+                <th
+                  style="
+                    background: #f2f2f2;
+                    width: 15%;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Month
+                </th>
+                <th
+                  style="
+                    background: #fce4d6;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  EQ Maint
+                </th>
+                <th
+                  style="
+                    background: #fff2cc;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Santook
+                </th>
+                <th
+                  style="
+                    background: #fff2cc;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Debit Note
+                </th>
+                <th
+                  style="
+                    background: #fff2cc;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  PWAS
+                </th>
+                <th
+                  style="
+                    background: #fff2cc;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Other
+                </th>
               </tr>
             </thead>
             <tbody id="expenseTableBody"></tbody>
           </table>
         </div>
-        <div class="modal-actions" style="margin-top: 15px;">
-          <button class="btn" onclick="closeModal('expenseModal')">Cancel</button>
-          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveExpenseData()">Save & Close</button>
-          <button class="btn btn-blue" onclick="saveAndNextExpense()">Save & Next</button>
+        <div class="modal-actions" style="margin-top: 15px">
+          <button class="btn" onclick="closeModal('expenseModal')">
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            style="background: #27ae60"
+            onclick="saveExpenseData()"
+          >
+            Save & Close
+          </button>
+          <button class="btn btn-blue" onclick="saveAndNextExpense()">
+            Save & Next
+          </button>
         </div>
       </div>
     </div>
 
     <!-- ================= SALARY MODAL ================= -->
     <div id="salaryModal" class="modal">
-      <div class="modal-content" style="width: 700px; padding: 20px;">
-        <h3 style="margin-bottom: 15px;">Update Salary Details</h3>
-        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
-          <select id="salaryEqId" onchange="populateSalaryTable()" style="flex: 1; margin: 0;"></select>
-          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('salaryEqId')" title="Copy Plate No">📋</button>
+      <div class="modal-content" style="width: 700px; padding: 20px">
+        <h3 style="margin-bottom: 15px">Update Salary Details</h3>
+        <div
+          class="form-group"
+          style="display: flex; align-items: center; gap: 10px"
+        >
+          <label style="margin: 0; white-space: nowrap">Plate No:</label>
+          <select
+            id="salaryEqId"
+            onchange="populateSalaryTable()"
+            style="flex: 1; margin: 0"
+          ></select>
+          <button
+            type="button"
+            class="btn"
+            style="
+              padding: 7px 12px;
+              background: #f2f2f2;
+              border: 1px solid #ccc;
+              font-size: 14px;
+            "
+            onclick="copyModalPlateNo('salaryEqId')"
+            title="Copy Plate No"
+          >
+            📋
+          </button>
         </div>
-        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
-          <table style="width: 100%; table-layout: fixed;">
+        <div
+          class="table-container"
+          style="
+            max-height: 400px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            box-shadow: none;
+            overflow-y: auto;
+          "
+        >
+          <table style="width: 100%; table-layout: fixed">
             <thead>
               <tr>
-                <th style="background: #f2f2f2; width: 18%; position: sticky; top: 0; z-index: 5;">Month</th>
-                <th style="background: #e2efda; position: sticky; top: 0; z-index: 5;">Basic</th>
-                <th style="background: #e2efda; position: sticky; top: 0; z-index: 5;">OT</th>
-                <th style="background: #e2efda; position: sticky; top: 0; z-index: 5;">Allowance</th>
-                <th style="background: #f8d7da; color: #721c24; position: sticky; top: 0; z-index: 5;">Penalty</th>
-                <th style="background: #d4edda; font-weight: bold; position: sticky; top: 0; z-index: 5;">Net Salary</th>
+                <th
+                  style="
+                    background: #f2f2f2;
+                    width: 18%;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Month
+                </th>
+                <th
+                  style="
+                    background: #e2efda;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Basic
+                </th>
+                <th
+                  style="
+                    background: #e2efda;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  OT
+                </th>
+                <th
+                  style="
+                    background: #e2efda;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Allowance
+                </th>
+                <th
+                  style="
+                    background: #f8d7da;
+                    color: #721c24;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Penalty
+                </th>
+                <th
+                  style="
+                    background: #d4edda;
+                    font-weight: bold;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Net Salary
+                </th>
               </tr>
             </thead>
             <tbody id="salaryTableBody"></tbody>
           </table>
         </div>
-        <div class="modal-actions" style="margin-top: 15px;">
-          <button class="btn" onclick="closeModal('salaryModal')">Cancel</button>
-          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveSalaryData()">Save & Close</button>
-          <button class="btn btn-blue" onclick="saveAndNextSalary()">Save & Next</button>
+        <div class="modal-actions" style="margin-top: 15px">
+          <button class="btn" onclick="closeModal('salaryModal')">
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            style="background: #27ae60"
+            onclick="saveSalaryData()"
+          >
+            Save & Close
+          </button>
+          <button class="btn btn-blue" onclick="saveAndNextSalary()">
+            Save & Next
+          </button>
         </div>
       </div>
     </div>
 
     <!-- ================= COMMISSION MODAL ================= -->
     <div id="commissionModal" class="modal">
-      <div class="modal-content" style="width: 600px; padding: 20px;">
-        <h3 style="margin-bottom: 15px;">Update Commission</h3>
-        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
-          <select id="commissionEqId" onchange="populateCommissionTable()" style="flex: 1; margin: 0;"></select>
-          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('commissionEqId')" title="Copy Plate No">📋</button>
+      <div class="modal-content" style="width: 600px; padding: 20px">
+        <h3 style="margin-bottom: 15px">Update Commission</h3>
+        <div
+          class="form-group"
+          style="display: flex; align-items: center; gap: 10px"
+        >
+          <label style="margin: 0; white-space: nowrap">Plate No:</label>
+          <select
+            id="commissionEqId"
+            onchange="populateCommissionTable()"
+            style="flex: 1; margin: 0"
+          ></select>
+          <button
+            type="button"
+            class="btn"
+            style="
+              padding: 7px 12px;
+              background: #f2f2f2;
+              border: 1px solid #ccc;
+              font-size: 14px;
+            "
+            onclick="copyModalPlateNo('commissionEqId')"
+            title="Copy Plate No"
+          >
+            📋
+          </button>
         </div>
-        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
-          <table style="width: 100%; table-layout: fixed;">
+        <div
+          class="table-container"
+          style="
+            max-height: 400px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            box-shadow: none;
+            overflow-y: auto;
+          "
+        >
+          <table style="width: 100%; table-layout: fixed">
             <thead>
               <tr>
-                <th style="background: #f2f2f2; width: 25%; position: sticky; top: 0; z-index: 5;">Month</th>
-                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Kafil</th>
-                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Owner</th>
-                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Investor</th>
+                <th
+                  style="
+                    background: #f2f2f2;
+                    width: 25%;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Month
+                </th>
+                <th
+                  style="
+                    background: #fff2cc;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Kafil
+                </th>
+                <th
+                  style="
+                    background: #fff2cc;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Owner
+                </th>
+                <th
+                  style="
+                    background: #fff2cc;
+                    position: sticky;
+                    top: 0;
+                    z-index: 5;
+                  "
+                >
+                  Investor
+                </th>
               </tr>
             </thead>
             <tbody id="commissionTableBody"></tbody>
           </table>
         </div>
-        <div class="modal-actions" style="margin-top: 15px;">
-          <button class="btn" onclick="closeModal('commissionModal')">Cancel</button>
-          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveCommissionData()">Save & Close</button>
-          <button class="btn btn-blue" onclick="saveAndNextCommission()">Save & Next</button>
+        <div class="modal-actions" style="margin-top: 15px">
+          <button class="btn" onclick="closeModal('commissionModal')">
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            style="background: #27ae60"
+            onclick="saveCommissionData()"
+          >
+            Save & Close
+          </button>
+          <button class="btn btn-blue" onclick="saveAndNextCommission()">
+            Save & Next
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Export Excel Modal (New) -->
+    <!-- Export Excel Modal -->
     <div id="exportModal" class="modal">
-      <div class="modal-content" style="width: 400px; text-align: center">
-        <h3>Export to Excel</h3>
-        <p style="margin-bottom: 20px; font-size: 14px; color: #555">
-          How would you like to export the data?
-        </p>
+      <div class="modal-content" style="width: 430px; text-align: left">
+        <h3 style="text-align: center; margin-bottom: 14px">
+          📊 Export to Excel
+        </h3>
 
-        <div style="display: flex; flex-direction: column; gap: 10px">
-          <button
-            class="btn btn-blue"
-            onclick="executeExport('single')"
-            style="padding: 12px; font-size: 14px"
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 14px;
+          "
+        >
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+              font-weight: 700;
+              color: #38bdf8 !important;
+            "
           >
-            Export Current Year & Summary
-          </button>
-          <button
-            class="btn btn-excel"
-            onclick="executeExport('batch')"
-            style="padding: 12px; font-size: 14px"
+            <input
+              type="radio"
+              name="dashExportOption"
+              value="current_ui"
+              checked
+              onchange="toggleDashExportPeriod(false)"
+              style="width: auto"
+            />
+            <span
+              >Current UI (Export filtered rows &amp; months shown on
+              screen)</span
+            >
+          </label>
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+            "
           >
-            Export BATCH (All Years & Summary)
-          </button>
+            <input
+              type="radio"
+              name="dashExportOption"
+              value="single"
+              onchange="toggleDashExportPeriod(false)"
+              style="width: auto"
+            />
+            <span>Current Year &amp; Summary</span>
+          </label>
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
+            <input
+              type="radio"
+              name="dashExportOption"
+              value="batch"
+              onchange="toggleDashExportPeriod(false)"
+              style="width: auto"
+            />
+            <span>BATCH (All Years &amp; Summary)</span>
+          </label>
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
+            <input
+              type="radio"
+              name="dashExportOption"
+              value="period"
+              onchange="toggleDashExportPeriod(true)"
+              style="width: auto"
+            />
+            <span>Custom Period (Choose Start &amp; End Month/Year)</span>
+          </label>
+        </div>
+
+        <div
+          id="dashPeriodBox"
+          style="
+            display: none;
+            background: rgba(2, 6, 23, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+          "
+        >
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 8px;
+              margin-bottom: 8px;
+            "
+          >
+            <div>
+              <label style="font-size: 11px; margin-bottom: 3px"
+                >Start Month</label
+              >
+              <select id="dashExpStartMonth">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; margin-bottom: 3px"
+                >Start Year</label
+              >
+              <input
+                type="number"
+                id="dashExpStartYear"
+                min="2000"
+                max="2100"
+              />
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+            <div>
+              <label style="font-size: 11px; margin-bottom: 3px"
+                >End Month</label
+              >
+              <select id="dashExpEndMonth">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; margin-bottom: 3px"
+                >End Year</label
+              >
+              <input type="number" id="dashExpEndYear" min="2000" max="2100" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 12px">
           <button
             class="btn"
             onclick="closeModal('exportModal')"
-            style="
-              background: #95a5a6;
-              color: white;
-              padding: 12px;
-              font-size: 14px;
-              margin-top: 10px;
-            "
+            style="background: #475569; color: white"
           >
             Cancel
+          </button>
+          <button class="btn btn-excel" onclick="confirmDashboardExport()">
+            ⬇ Export Excel
           </button>
         </div>
       </div>
@@ -959,83 +1855,324 @@
     <div id="activeUsersModal" class="modal">
       <div class="modal-content" style="width: 300px; text-align: center">
         <h3>Active Users Online</h3>
-        <ul id="activeUsersList" style="list-style: none; padding: 0; margin-top: 15px; font-size: 15px; text-align: left;"></ul>
-        <div class="modal-actions" style="justify-content: center; margin-top: 20px;">
-          <button class="btn" onclick="closeModal('activeUsersModal')" style="background: #95a5a6; color: white; padding: 8px 20px;">Close</button>
+        <ul
+          id="activeUsersList"
+          style="
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+            font-size: 15px;
+            text-align: left;
+          "
+        ></ul>
+        <div
+          class="modal-actions"
+          style="justify-content: center; margin-top: 20px"
+        >
+          <button
+            class="btn"
+            onclick="closeModal('activeUsersModal')"
+            style="background: #95a5a6; color: white; padding: 8px 20px"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Excel-Style Column Filter Menu -->
-    <div id="plateNoFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
+    <div
+      id="plateNoFilterMenu"
+      class="excel-filter-menu"
+      onclick="event.stopPropagation()"
+    >
       <div class="excel-filter-header">
         <span>Filter: Plate No</span>
-        <span style="cursor: pointer; color: #64748b;" onclick="closePlateFilterMenu()">✖</span>
+        <span
+          style="cursor: pointer; color: #64748b"
+          onclick="closePlateFilterMenu()"
+          >✖</span
+        >
       </div>
-      <div id="plateSortSection" style="display: flex; flex-direction: column; border-bottom: 1px solid #e2e8f0; padding: 4px 0;">
-        <button type="button" onclick="sortPlateNo('asc')" style="background: none; border: none; text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+      <div
+        id="plateSortSection"
+        style="
+          display: flex;
+          flex-direction: column;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 4px 0;
+        "
+      >
+        <button
+          type="button"
+          onclick="sortPlateNo('asc')"
+          style="
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
           <span>🔤</span> Sort A to Z
         </button>
-        <button type="button" onclick="sortPlateNo('desc')" style="background: none; border: none; text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+        <button
+          type="button"
+          onclick="sortPlateNo('desc')"
+          style="
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
           <span>🔤</span> Sort Z to A
         </button>
       </div>
       <div class="excel-filter-search">
-        <input type="text" id="plateFilterSearch" placeholder="Search..." oninput="searchPlateFilterItems()" />
+        <input
+          type="text"
+          id="plateFilterSearch"
+          placeholder="Search..."
+          oninput="searchPlateFilterItems()"
+        />
       </div>
       <ul class="excel-filter-list" id="plateFilterList"></ul>
       <div class="excel-filter-actions">
-        <button type="button" id="btnCopyPlateList" class="btn" style="background:#10b981; color:white; display:none;" onclick="copyVisiblePlates()">📋 Copy</button>
-        <button type="button" class="btn" style="background:#e2e8f0; color:#334155;" onclick="clearPlateFilter()">Clear</button>
-        <button type="button" class="btn btn-blue" onclick="applyPlateFilter()">Apply</button>
+        <button
+          type="button"
+          id="btnCopyPlateList"
+          class="btn"
+          style="background: #10b981; color: white; display: none"
+          onclick="copyVisiblePlates()"
+        >
+          📋 Copy
+        </button>
+        <button
+          type="button"
+          class="btn"
+          style="background: #e2e8f0; color: #334155"
+          onclick="clearPlateFilter()"
+        >
+          Clear
+        </button>
+        <button type="button" class="btn btn-blue" onclick="applyPlateFilter()">
+          Apply
+        </button>
       </div>
     </div>
 
     <script src="js/dashboard.js"></script>
     <script>
+      function openUserNavigationModal() {
+        const modal = document.getElementById("userNavigationModal");
+        const userLbl = document.getElementById("hubLoggedInUserLabel");
+        if (userLbl) {
+          try {
+            const u = JSON.parse(localStorage.getItem("eq_user") || "null");
+            if (u && u.username) {
+              userLbl.innerText = `Signed in as ${u.username} • Select a module`;
+            }
+          } catch (e) {}
+        }
+        if (modal) modal.style.display = "flex";
+      }
+
+      function closeUserNavigationModal() {
+        const modal = document.getElementById("userNavigationModal");
+        if (modal) modal.style.display = "none";
+      }
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          closeUserNavigationModal();
+        }
+      });
+
       // Mobile menu toggle logic
       function toggleActionMenu() {
-        const menu = document.getElementById('actionMenu');
-        menu.classList.toggle('show');
+        const menu = document.getElementById("actionMenu");
+        menu.classList.toggle("show");
       }
 
       function toggleSubMenu(btn, event) {
         event.preventDefault();
         event.stopPropagation();
-        
+
         const parent = btn.parentElement;
-        const isActive = parent.classList.contains('active');
-        
+        const isActive = parent.classList.contains("active");
+
         // Mattu open aaya sub menukal close cheyyaan
-        document.querySelectorAll('.dropdown-btn-group').forEach(group => {
-          group.classList.remove('active');
+        document.querySelectorAll(".dropdown-btn-group").forEach((group) => {
+          group.classList.remove("active");
         });
 
         // Click cheytha button open/close aakkuka
         if (!isActive) {
-          parent.classList.add('active');
+          parent.classList.add("active");
         }
       }
 
       // Close menu when clicking outside
-      document.addEventListener('click', function(event) {
-        const menu = document.getElementById('actionMenu');
-        const toggleBtn = document.querySelector('.mobile-menu-btn');
-        
+      document.addEventListener("click", function (event) {
+        const menu = document.getElementById("actionMenu");
+        const toggleBtn = document.querySelector(".mobile-menu-btn");
+
         // Sub-dropdown menu-kku purathu click cheythaal adayaan
-        if (!event.target.closest('.dropdown-btn-group')) {
-          document.querySelectorAll('.dropdown-btn-group').forEach(group => {
-            group.classList.remove('active');
+        if (!event.target.closest(".dropdown-btn-group")) {
+          document.querySelectorAll(".dropdown-btn-group").forEach((group) => {
+            group.classList.remove("active");
           });
         }
 
-        if (menu && menu.classList.contains('show')) {
-          if (!menu.contains(event.target) && !toggleBtn.contains(event.target)) {
-            menu.classList.remove('show');
+        if (menu && menu.classList.contains("show")) {
+          if (
+            !menu.contains(event.target) &&
+            !toggleBtn.contains(event.target)
+          ) {
+            menu.classList.remove("show");
           }
         }
       });
     </script>
+
+    <!-- Center Glassmorphism Screen Switcher & User Modal -->
+    <div
+      id="userNavigationModal"
+      class="glass-hub-overlay"
+      onclick="if (event.target === this) closeUserNavigationModal();"
+    >
+      <div class="glass-hub-modal">
+        <div class="glass-hub-header">
+          <div class="glass-hub-title-wrap">
+            <h3>Own Equipment Navigation Hub</h3>
+            <span id="hubLoggedInUserLabel">Select a screen to navigate</span>
+          </div>
+          <button
+            type="button"
+            class="glass-hub-close"
+            onclick="closeUserNavigationModal()"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="glass-hub-grid">
+          <a href="AKS.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🚜</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>AKS Report</h4>
+              <p>Equipment AKS tracking and operational analysis.</p>
+            </div>
+          </a>
+
+          <a href="Assets.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🏗️</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Equipment Assets</h4>
+              <p>Manage and view equipment spare parts and assets.</p>
+            </div>
+          </a>
+
+          <a href="AKS_Summary.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">📈</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>AKS Cost Summary</h4>
+              <p>Consolidated summary of AKS costs and expenses.</p>
+            </div>
+          </a>
+
+          <a href="../We1-own-EQ/" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🗄️</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Own Equipment Data Base</h4>
+              <p>Core own equipment master records database.</p>
+            </div>
+          </a>
+
+          <a href="summary.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">📅</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Annual Summary</h4>
+              <p>Annual profit &amp; loss statement across years.</p>
+            </div>
+          </a>
+
+          <a href="monthly_list_summary.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🗓️</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Monthly Summary</h4>
+              <p>Monthly income &amp; expenditure statement.</p>
+            </div>
+          </a>
+
+          <a href="list.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">📋</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Equipment List View</h4>
+              <p>Detailed history review of each equipment.</p>
+            </div>
+          </a>
+
+          <a href="../We1-own-EQ/EQ_Driver_payroll.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">💵</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Own Driver Payroll</h4>
+              <p>Manage monthly own equipment operator payroll.</p>
+            </div>
+          </a>
+
+          <div class="hub-card hub-logout" onclick="logout()">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🚪</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Logout</h4>
+              <p>End session and return to authentication screen.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div id="toast-container"></div>
   </body>

@@ -148,7 +148,7 @@ def get_aks_data():
                 COALESCE(penalty, 0) AS penalty,
                 COALESCE(santook_rent, 0) AS santook_rent,
                 COALESCE(kafil_comm, 0) AS kafil_comm,
-                COALESCE(kafil_pct, 0) AS kafil_pct,
+                kafil_pct,
                 COALESCE(owner_comm, 0) AS owner_comm,
                 COALESCE(investor_comm, 0) AS investor_comm,
                 COALESCE(debit, 0) AS debit,
@@ -175,8 +175,31 @@ def get_aks_data():
 
             # Calculate Operational Expenses (OTC) - without commission
             rev = float(ml["op_revenue"])
-            pct = float(ml["kafil_pct"])
-            kaf = rev * (pct / 100.0) if (pct > 0 and rev > 0) else float(ml["kafil_comm"])
+            raw_pct = ml["kafil_pct"]
+            raw_comm = float(ml["kafil_comm"])
+
+            if raw_pct is not None:
+                pct = float(raw_pct)
+                kaf = round(rev * (pct / 100.0), 1) if (pct > 0 and rev > 0) else raw_comm
+            elif raw_comm > 0:
+                kaf = raw_comm
+            else:
+                # Default 3% if single non-We1 company active in that month
+                eq_obj = next((e for e in equipments if e["id"] == ml["equipment_id"]), None)
+                p_up = (eq_obj["plate_no"] or "").strip().upper() if eq_obj else ""
+                m_start_d = date(ml["year"], ml["month"], 1)
+                _, l_day = calendar.monthrange(ml["year"], ml["month"])
+                m_end_d = date(ml["year"], ml["month"], l_day)
+                active_comps = set()
+                for s in site_logs:
+                    if (s["plate_no"] or "").strip().upper() == p_up:
+                        st, en = s["work_start_date"], s["work_end_date"]
+                        if st and ((not en and st <= m_end_d) or (en and st <= m_end_d and en >= m_start_d)):
+                            cn = normalize_company_name(s["site_name"])
+                            if cn:
+                                active_comps.add(cn)
+                is_single_non_we1 = (len(active_comps) == 1 and "We1" not in active_comps)
+                kaf = round(rev * 0.03, 1) if (is_single_non_we1 and rev > 0) else 0.0
             net_sal = float(ml["basic_salary"]) + float(ml["overtime"]) + float(ml["allowance"]) - float(ml["penalty"])
             tot_otc = (
                 net_sal + float(ml["santook_rent"]) +

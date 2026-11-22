@@ -255,124 +255,97 @@ function isMatchingInvoice(
  * ============================================================
  */
 
+function resolveDateFilter(dateMode, customDate) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  if (dateMode === "yesterday") {
+    start.setDate(start.getDate() - 1);
+    end.setDate(end.getDate() - 1);
+  } else if (dateMode === "3days") {
+    start.setDate(start.getDate() - 2);
+  } else if (dateMode === "7days") {
+    start.setDate(start.getDate() - 6);
+  } else if (dateMode === "10days") {
+    start.setDate(start.getDate() - 9);
+  } else if (dateMode === "custom" && customDate) {
+    const parts = String(customDate).split("-");
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      start.setFullYear(y, m, d);
+      end.setFullYear(y, m, d);
+    }
+  }
+
+  return { start, end };
+}
+
 async function processEmail(
   stream,
   vendor,
-  useBillNumber
+  useBillNumber,
+  countOnly = false,
+  dateFilter = null
 ) {
+  const parsed = await simpleParser(stream);
 
-  const parsed =
-    await simpleParser(stream);
-
-  if (!parsed) {
+  if (!parsed || !parsed.date) {
     return [];
   }
 
-  /*
-   * Make sure the email has a valid date.
-   */
-  if (!parsed.date) {
-    return [];
+  const emailDate = new Date(parsed.date);
+
+  if (dateFilter) {
+    if (emailDate < dateFilter.start || emailDate > dateFilter.end) {
+      return [];
+    }
+  } else {
+    const emailDateString = dateToLocalDateString(emailDate);
+    const todayString = getTodayDateString();
+    if (emailDateString !== todayString) {
+      return [];
+    }
   }
 
-  const emailDate =
-    new Date(parsed.date);
-
-  const emailDateString =
-    dateToLocalDateString(
-      emailDate
-    );
-
-  const todayString =
-    getTodayDateString();
-
-  /*
-   * Only process today's emails.
-   */
-  if (
-    emailDateString !==
-    todayString
-  ) {
-    return [];
-  }
-
-  if (
-    !Array.isArray(
-      parsed.attachments
-    )
-  ) {
+  if (!Array.isArray(parsed.attachments)) {
     return [];
   }
 
   const files = [];
 
-  for (
-    const attachment
-    of parsed.attachments
-  ) {
-
-    if (
-      !isMatchingInvoice(
-        attachment,
-        vendor
-      )
-    ) {
+  for (const attachment of parsed.attachments) {
+    if (!isMatchingInvoice(attachment, vendor)) {
       continue;
     }
 
-    const originalFilename =
-      attachment.filename;
-
+    const originalFilename = attachment.filename;
     const invoiceNo =
-      originalFilename.substring(
-        0,
-        originalFilename.lastIndexOf(".")
-      ) ||
+      originalFilename.substring(0, originalFilename.lastIndexOf(".")) ||
       originalFilename;
 
-    let finalFilename =
-      sanitizeFilename(
-        originalFilename
-      );
+    let finalFilename = sanitizeFilename(originalFilename);
+    let billMatched = false;
 
-    /*
-     * Bill process:
-     *
-     * Find the invoice number in PostgreSQL and use the
-     * bill_no as the downloaded filename.
-     */
     if (useBillNumber) {
-
-      const billNumber =
-        await getBillNumber(
-          invoiceNo
-        );
-
+      const billNumber = await getBillNumber(invoiceNo);
       if (billNumber) {
-
-        finalFilename =
-          `${sanitizeFilename(
-            billNumber
-          )}.pdf`;
+        finalFilename = `${sanitizeFilename(billNumber)}.pdf`;
+        billMatched = true;
       }
     }
 
-    /*
-     * Ensure the attachment is actually a PDF.
-     */
-    const mimeType =
-      attachment.contentType ||
-      "application/pdf";
+    const mimeType = attachment.contentType || "application/pdf";
 
     files.push({
       name: finalFilename,
-
       mimeType,
-
-      data:
-        attachment.content.toString(
-          "base64"
-        ),
+      billMatched,
+      data: countOnly ? null : attachment.content.toString("base64"),
     });
   }
 
@@ -380,15 +353,19 @@ async function processEmail(
 }
 
 /*
- * ============================================================
- * FETCH INVOICES FROM IMAP
- * ============================================================
+- ============================================================
+- FETCH INVOICES FROM IMAP
+- ============================================================
  */
 
 function fetchInvoicesFromMailbox(
   vendor,
-  useBillNumber = false
+  useBillNumber = false,
+  countOnly = false,
+  dateMode = "today",
+  customDate = null
 ) {
+  const dateFilter = resolveDateFilter(dateMode, customDate);
 
   return new Promise(
     (resolve, reject) => {
@@ -470,27 +447,14 @@ function fetchInvoicesFromMailbox(
                 return;
               }
 
-              /*
-               * Gmail's SINCE search is inclusive.
-               *
-               * We deliberately search from today and then
-               * perform an exact date check after parsing.
-               */
-              const today =
-                new Date();
-
-              today.setHours(
-                0,
-                0,
-                0,
-                0
-              );
+              const searchSince = new Date(dateFilter.start);
+              searchSince.setHours(0, 0, 0, 0);
 
               imap.search(
                 [
                   [
                     "SINCE",
-                    today,
+                    searchSince,
                   ],
 
                   [
@@ -570,7 +534,9 @@ function fetchInvoicesFromMailbox(
                                 processEmail(
                                   stream,
                                   vendor,
-                                  useBillNumber
+                                  useBillNumber,
+                                  countOnly,
+                                  dateFilter
                                 )
                                   .then(
                                     (files) => {
@@ -791,28 +757,27 @@ function getVendor(
 router.post(
   "/invoice-download",
   async (req, res) => {
-
     try {
+      const vendor = getVendor(req, res);
+      if (!vendor) return;
 
-      const vendor =
-        getVendor(
-          req,
-          res
-        );
-
-      if (!vendor) {
-        return;
-      }
+      const countOnly = Boolean(req.body && req.body.countOnly);
+      const dateMode = (req.body && req.body.dateMode) || "today";
+      const customDate = (req.body && req.body.customDate) || null;
 
       console.log(
-        `[Invoice] Searching today's invoices for ${vendor.label}`
+        `[Invoice] Searching invoices for ${vendor.label} (mode=${dateMode}, custom=${customDate}, countOnly=${countOnly})`
       );
 
-      const files =
-        await fetchInvoicesFromMailbox(
-          vendor,
-          false
-        );
+      const files = await fetchInvoicesFromMailbox(
+        vendor,
+        countOnly ? true : false,
+        countOnly,
+        dateMode,
+        customDate
+      );
+
+      const billMatchedCount = files.filter((f) => f.billMatched).length;
 
       console.log(
         `[Invoice] Found ${files.length} invoice file(s)`
@@ -820,22 +785,14 @@ router.post(
 
       return res.json({
         count: files.length,
-        files,
+        billMatchedCount,
+        files: countOnly ? [] : files,
       });
-
     } catch (error) {
-
-      console.error(
-        "Invoice download route error:",
-        error
-      );
-
+      console.error("Invoice download route error:", error);
       if (!res.headersSent) {
-
         return res.status(500).json({
-          error:
-            error.message ||
-            "Failed to download invoices.",
+          error: error.message || "Failed to download invoices.",
         });
       }
     }
@@ -843,36 +800,32 @@ router.post(
 );
 
 /*
- * ============================================================
- * BILL DOWNLOAD
- * ============================================================
+- ============================================================
+- BILL DOWNLOAD
+- ============================================================
  */
 
 router.post(
   "/invoice-bill-download",
   async (req, res) => {
-
     try {
+      const vendor = getVendor(req, res);
+      if (!vendor) return;
 
-      const vendor =
-        getVendor(
-          req,
-          res
-        );
-
-      if (!vendor) {
-        return;
-      }
+      const dateMode = (req.body && req.body.dateMode) || "today";
+      const customDate = (req.body && req.body.customDate) || null;
 
       console.log(
-        `[Bill] Searching today's bills for ${vendor.label}`
+        `[Bill] Searching bills for ${vendor.label} (mode=${dateMode}, custom=${customDate})`
       );
 
-      const files =
-        await fetchInvoicesFromMailbox(
-          vendor,
-          true
-        );
+      const files = await fetchInvoicesFromMailbox(
+        vendor,
+        true,
+        false,
+        dateMode,
+        customDate
+      );
 
       console.log(
         `[Bill] Found ${files.length} bill file(s)`
@@ -882,16 +835,13 @@ router.post(
         count: files.length,
         files,
       });
-
     } catch (error) {
-
       console.error(
         "Bill download route error:",
         error
       );
 
       if (!res.headersSent) {
-
         return res.status(500).json({
           error:
             error.message ||

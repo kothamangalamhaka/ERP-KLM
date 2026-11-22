@@ -1,0 +1,314 @@
+/* ==========================================================================
+   HAKA RENTALS - CLASSIC MODERN GLASSMORPHISM THEME (OWN EQUIPMENT TRACKER)
+   ========================================================================== */
+:root {
+  --glass-bg: rgba(15, 23, 42, 0.68);
+  --glass-card: rgba(30, 41, 59, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-border-strong: rgba(56, 189, 248, 0.45);
+  --accent-cyan: #22d3ee;
+  --accent-blue: #38bdf8;
+  --text-light: #f8fafc;
+  --text-muted: #94a3b8;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 12% 8%, rgba(14, 116, 144, 0.34), transparent 42%),
+    radial-gradient(ellipse at 88% 88%, rgba(79, 70, 229, 0.28), transparent 40%),
+    linear-gradient(135deg, #060b16 0%, #0f172a 52%, #070d19 100%) !important;
+  background-attachment: fixed !important;
+  color: var(--text-light) !important;
+  min-height: 100vh;
+}
+
+.top-bar {
+  position: relative;
+  z-index: 1200 !important;
+}
+
+/* Glass Top Ribbon / Header Bar */
+.top-bar,
+.filter-section,
+.plate-container,
+.details-box,
+.summary-card,
+.month-container {
+  background: linear-gradient(
+    145deg,
+    rgba(30, 41, 59, 0.76),
+    rgba(15, 23, 42, 0.65)
+  ) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+  color: var(--text-light) !important;
+}
+
+.top-bar h2,
+.top-bar h3,
+.details-box h3,
+.month-title,
+.summary-card h3 {
+  color: #f8fafc !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* Glass Inputs & Dropdowns */
+.top-bar select,
+.top-bar input[type="text"],
+.top-bar input[type="number"],
+.dropdown-check-list .anchor,
+.dropbtn {
+  background: rgba(0, 0, 0, 0.55) !important;
+  border: 1px solid rgba(203, 213, 225, 0.25) !important;
+  color: #f8fafc !important;
+  border-radius: 7px !important;
+  backdrop-filter: blur(10px);
+}
+
+.top-bar input::placeholder {
+  color: #ffffff !important;
+}
+
+.top-bar select:focus,
+.top-bar input:focus {
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18) !important;
+}
+
+.dropdown-check-list .items,
+.dropdown-content,
+.dropdown-content-menu,
+.action-controls,
+.action-menu-collapse {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(22px) !important;
+  color: #f8fafc !important;
+}
+
+.dropdown-check-list .items li,
+.dropdown-content label,
+.dropdown-content-menu button {
+  color: #e2e8f0 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dropdown-content-menu button:hover,
+.dropdown-check-list .items li:hover {
+  background: rgba(0, 0, 0, 0.18) !important;
+  color: #ffffff !important;
+}
+
+/* Buttons Glossy Finish */
+.btn,
+.filter-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 7px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
+  transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.btn:hover,
+.filter-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.filter-btn {
+  background: rgba(15, 23, 42, 0.65) !important;
+  color: #e2e8f0 !important;
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+}
+
+/* Table Container (Crisp Light/Readable Data Cells inside Glass Shell) */
+.table-container {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+  color: #0f172a !important;
+}
+
+.table-container table,
+.details-box table,
+.summary-card table,
+.month-container table {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Glassmorphism Modals & Popups (All Modals Included) */
+.modal,
+.modal-overlay,
+#uiCustomPeriodModal,
+#exportModal,
+#combinedExportModal,
+#editAssetSelectModal,
+#editAssetDetailsModal {
+  background: rgba(3, 7, 18, 0.78) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.modal-content,
+.modal-box,
+.modal-box-large,
+#uiCustomPeriodModal > div,
+#exportModal > div,
+#combinedExportModal > div,
+#editAssetSelectModal > div,
+#editAssetDetailsModal > div {
+  background: linear-gradient(
+    145deg,
+    rgba(22, 33, 54, 0.96),
+    rgba(11, 18, 34, 0.96)
+  ) !important;
+  border: 1px solid rgba(56, 189, 248, 0.32) !important;
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  color: #f8fafc !important;
+  border-radius: 16px !important;
+}
+
+.modal-content h3,
+.modal-box h4,
+.modal-box-large h4,
+#uiCustomPeriodModal h4,
+#exportModal h4,
+#combinedExportModal h4,
+#editAssetSelectModal h4,
+#editAssetDetailsModal h4 {
+  color: #38bdf8 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.modal-content label,
+.modal-box label,
+.modal-box-large label,
+#uiCustomPeriodModal label,
+#exportModal label,
+#combinedExportModal label,
+#editAssetSelectModal label,
+#editAssetDetailsModal label,
+.modal-content h4 {
+  color: #dbeafe !important;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-box input,
+.modal-box select,
+#uiCustomPeriodModal input,
+#uiCustomPeriodModal select,
+#exportModal input[type="number"],
+#combinedExportModal input[type="number"],
+#editAssetSelectModal select,
+#editAssetDetailsModal input,
+#editAssetDetailsModal select {
+  background: rgba(6, 12, 26, 0.85) !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  color: #f8fafc !important;
+  border-radius: 8px !important;
+}
+
+/* Standard Clean ERP Table Styling (No Sticky Bleed / Overlap) */
+.table-container table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.table-container th,
+.table-container td {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: 1px solid #cbd5e1 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  background-clip: padding-box !important;
+}
+
+.table-container thead th {
+  border-bottom: 1px solid #94a3b8 !important;
+}
+
+.table-container tbody tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+
+.table-container tbody tr:hover td {
+  background-color: #eff6ff !important;
+}
+
+#aksPeriodBox,
+#combinedPeriodBox,
+#periodInputsBox {
+  background: rgba(2, 6, 23, 0.42) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Excel Filter Context Menus */
+.excel-filter-menu,
+.year-context-menu {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  color: #f8fafc !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55) !important;
+}
+
+.excel-filter-header,
+.excel-filter-actions,
+.year-context-header,
+.year-context-actions {
+  background: rgba(30, 41, 59, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+.excel-filter-search input {
+  background: rgba(2, 6, 23, 0.65) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.excel-filter-menu button,
+.excel-filter-list li,
+.excel-filter-list label,
+.year-context-menu button,
+.year-context-list li,
+.year-context-list label {
+  color: #f8fafc !important;
+}
+
+.excel-filter-menu button:hover,
+.excel-filter-list li:hover,
+.year-context-list li:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.excel-filter-actions button:first-child {
+  background: #334155 !important;
+  color: #f8fafc !important;
+}
+
+@media (max-width: 1100px) {
+  .menu-btn,
+  .mobile-menu-btn {
+    background: rgba(30, 41, 59, 0.85) !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    color: #38bdf8 !important;
+  }
+}

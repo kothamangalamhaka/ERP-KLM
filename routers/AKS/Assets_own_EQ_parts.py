@@ -359,7 +359,20 @@ def export_assets_excel(
                     c_sub.alignment = center_align
                 col_cursor += 5
 
-            total_cols = col_cursor - 1
+            ws.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 3)
+            c_tot_head = ws.cell(row=1, column=col_cursor, value="Total")
+            c_tot_head.fill = head_fill_main
+            c_tot_head.font = head_font
+            c_tot_head.alignment = center_align
+
+            sub_total_headers = ["Total Purchase", "Total Off Site", "Total On Site", "Total Revenue"]
+            for idx_t, lbl_t in enumerate(sub_total_headers):
+                c_sub_t = ws.cell(row=2, column=col_cursor + idx_t, value=lbl_t)
+                c_sub_t.fill = head_fill_sub
+                c_sub_t.font = head_font
+                c_sub_t.alignment = center_align
+
+            total_cols = col_cursor + 3
             for r in [1, 2]:
                 for c in range(1, total_cols + 1):
                     ws.cell(row=r, column=c).border = thin_border
@@ -393,6 +406,10 @@ def export_assets_excel(
                 c_rem.number_format = '#,##0.00'
 
                 m_data_list = item.get("months_data", [])
+                sum_off = 0.0
+                sum_on = 0.0
+                sum_rev = 0.0
+
                 for t_idx, tm in enumerate(sheet_timeline):
                     orig_t_idx = next((i for i, x in enumerate(full_timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
                     m_info = m_data_list[orig_t_idx] if orig_t_idx != -1 and orig_t_idx < len(m_data_list) else {
@@ -404,20 +421,46 @@ def export_assets_excel(
                     ws.cell(row=curr_row, column=s_col + 1, value=m_info.get("plate_no") or "").alignment = center_align
 
                     off_val = float(m_info.get("off_site_exp") or 0)
+                    sum_off += off_val
                     c_off = ws.cell(row=curr_row, column=s_col + 2, value=off_val if off_val > 0 else "")
                     c_off.alignment = center_align
                     if off_val > 0: c_off.number_format = '#,##0.00'
 
                     on_val = float(m_info.get("on_site_exp") or 0)
+                    sum_on += on_val
                     c_on = ws.cell(row=curr_row, column=s_col + 3, value=on_val if on_val > 0 else "")
                     c_on.alignment = center_align
                     if on_val > 0: c_on.number_format = '#,##0.00'
 
                     rev_val = float(m_info.get("revenue") or 0)
+                    sum_rev += rev_val
                     c_rev = ws.cell(row=curr_row, column=s_col + 4, value=rev_val if rev_val > 0 else "")
                     c_rev.alignment = center_align
                     c_rev.fill = rev_fill
                     if rev_val > 0: c_rev.number_format = '#,##0.00'
+
+                tot_purchase_val = (
+                    float(item.get("purchase_cost") or 0)
+                    + float(item.get("remaining_purchase_price") or 0)
+                )
+                summary_vals = [
+                    (tot_purchase_val, None),
+                    (sum_off, None),
+                    (sum_on, None),
+                    (sum_rev, rev_fill),
+                ]
+                for idx_s, (s_val, s_fill) in enumerate(summary_vals):
+                    c_s = ws.cell(
+                        row=curr_row,
+                        column=col_cursor + idx_s,
+                        value=s_val if s_val > 0 else "",
+                    )
+                    c_s.alignment = center_align
+                    c_s.font = Font(name="Segoe UI", size=10, bold=True)
+                    if s_fill:
+                        c_s.fill = s_fill
+                    if s_val > 0:
+                        c_s.number_format = '#,##0.00'
 
                 for c_num in range(1, total_cols + 1):
                     cell = ws.cell(row=curr_row, column=c_num)

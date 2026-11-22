@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Assets Own EQ Parts Tracker</title>
     <script src="js/eq-session.js"></script>
+    <link rel="stylesheet" href="css/glass-theme.css" />
     <style>
       * {
         box-sizing: border-box;
@@ -12,7 +13,7 @@
       }
       body {
         margin: 0;
-        padding: 15px;
+        padding: 8px 12px;
         background-color: #f4f7f6;
       }
       .top-bar {
@@ -20,26 +21,28 @@
         justify-content: space-between;
         align-items: center;
         background: #fff;
-        padding: 12px 20px;
+        padding: 7px 14px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        margin-bottom: 15px;
+        margin-bottom: 8px;
+        gap: 8px;
       }
       .controls {
         display: flex;
-        gap: 10px;
+        gap: 6px;
         align-items: center;
       }
       .btn {
-        padding: 8px 15px;
+        padding: 6px 10px;
         border: none;
-        border-radius: 4px;
+        border-radius: 5px;
         cursor: pointer;
         font-weight: bold;
-        font-size: 13px;
+        font-size: 12px;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
+        white-space: nowrap;
       }
       .btn-blue {
         background: #2980b9;
@@ -51,7 +54,7 @@
       }
       .table-container {
         overflow-x: auto;
-        max-height: calc(100vh - 110px);
+        max-height: calc(100vh - 76px);
         background: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
@@ -70,11 +73,23 @@
       }
       thead th {
         position: sticky;
-        top: 0;
-        z-index: 5;
         background: #d9e1f2;
         color: #000;
         font-weight: 700;
+        background-clip: padding-box;
+      }
+      thead tr:first-child th {
+        top: 0;
+        height: 34px;
+        z-index: 8;
+      }
+      thead tr:nth-child(2) th {
+        top: 34px;
+        height: 32px;
+        z-index: 7;
+      }
+      thead tr:first-child th[style*="position: sticky"] {
+        z-index: 25 !important;
       }
       tbody tr:hover {
         background: #f8fafc;
@@ -331,65 +346,324 @@
           box-sizing: border-box;
         }
       }
+
+      /* =========================================================
+         👤 USER QUICK-SWITCH GLASSMORPHISM CENTER MODAL
+         ========================================================= */
+      .user-nav-btn {
+        background: linear-gradient(
+          135deg,
+          rgba(56, 189, 248, 0.22),
+          rgba(14, 116, 144, 0.28)
+        ) !important;
+        border: 1px solid rgba(56, 189, 248, 0.45) !important;
+        color: #f8fafc !important;
+        width: 34px;
+        height: 31px;
+        padding: 0 !important;
+        border-radius: 7px;
+        font-size: 16px;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+        transition: all 0.2s ease;
+      }
+      .user-nav-btn:hover {
+        border-color: #38bdf8 !important;
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+      }
+
+      .glass-hub-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            circle at 20% 20%,
+            rgba(14, 116, 144, 0.32),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(79, 70, 229, 0.28),
+            transparent 45%
+          ),
+          rgba(4, 9, 20, 0.78) !important;
+        backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        z-index: 10010;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .glass-hub-modal {
+        background: linear-gradient(
+          145deg,
+          rgba(30, 41, 59, 0.85),
+          rgba(15, 23, 42, 0.82)
+        ) !important;
+        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+        border-top-color: rgba(255, 255, 255, 0.4) !important;
+        box-shadow:
+          0 28px 65px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+        backdrop-filter: blur(26px) saturate(175%);
+        -webkit-backdrop-filter: blur(26px) saturate(175%);
+        border-radius: 22px !important;
+        width: 100%;
+        max-width: 820px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 26px 28px 28px;
+        color: #f8fafc;
+        animation: hubFadeScale 0.22s ease-out;
+      }
+
+      @keyframes hubFadeScale {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .glass-hub-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 14px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .glass-hub-title-wrap h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.3px;
+      }
+
+      .glass-hub-title-wrap span {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .glass-hub-close {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #e2e8f0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+      .glass-hub-close:hover {
+        background: rgba(239, 68, 68, 0.28);
+        border-color: rgba(239, 68, 68, 0.6);
+        color: #ffffff;
+      }
+
+      .glass-hub-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      @media (max-width: 768px) {
+        .glass-hub-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 480px) {
+        .glass-hub-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .hub-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 15px;
+        border-radius: 16px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.11) 0%,
+          rgba(255, 255, 255, 0.04) 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-top-color: rgba(255, 255, 255, 0.34);
+        color: #f8fafc;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+          transform 0.22s ease,
+          border-color 0.22s ease,
+          box-shadow 0.22s ease,
+          background 0.22s ease;
+      }
+
+      .hub-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(56, 189, 248, 0.85);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.18) 0%,
+          rgba(56, 189, 248, 0.12) 100%
+        );
+        box-shadow:
+          0 12px 26px rgba(0, 0, 0, 0.42),
+          0 0 18px rgba(56, 189, 248, 0.25);
+      }
+
+      .hub-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .hub-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+      }
+
+      .hub-card-arrow {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.65);
+        transition:
+          transform 0.2s ease,
+          color 0.2s ease;
+      }
+
+      .hub-card:hover .hub-card-arrow {
+        color: #38bdf8;
+        transform: translate(2px, -2px);
+      }
+
+      .hub-card h4 {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .hub-card:hover h4 {
+        color: #7dd3fc;
+      }
+
+      .hub-card p {
+        margin: 0;
+        font-size: 11.5px;
+        color: #cbd5e1;
+        line-height: 1.4;
+      }
+
+      .hub-card.hub-logout {
+        border-color: rgba(248, 113, 113, 0.35);
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.16),
+          rgba(127, 29, 29, 0.14)
+        );
+      }
+
+      .hub-card.hub-logout:hover {
+        border-color: #f87171;
+        box-shadow: 0 12px 26px rgba(220, 38, 38, 0.35);
+      }
     </style>
   </head>
   <body>
     <div class="top-bar">
       <div class="controls">
-        <h3 style="margin: 0; color: #2c3e50">Assets EQ Parts Tracker</h3>
+        <h3 style="margin: 0; font-size: 15px; white-space: nowrap">
+          Assets Tracker
+        </h3>
         <input
           type="text"
           id="searchAsset"
-          placeholder="🔍 Search Code / Type..."
+          placeholder="🔍 Code / Type..."
           oninput="filterTableRows()"
           style="
-            padding: 7px 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 13px;
-            width: 200px;
+            padding: 5px 9px;
+            border-radius: 5px;
+            font-size: 12px;
+            width: 145px;
           "
         />
-        <div style="display: flex; gap: 8px; margin-left: 10px">
+        <button
+          type="button"
+          id="btnAssetsUiPeriod"
+          class="btn"
+          style="
+            background: #0f172a;
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.45) !important;
+          "
+          onclick="openAssetsUiPeriodModal()"
+          title="Choose UI Period"
+        >
+          📅 All Period
+        </button>
+        <div style="display: flex; gap: 6px; margin-left: 4px">
           <div
             style="
-              background: #e0f2fe;
-              border: 1px solid #bae6fd;
-              padding: 4px 10px;
-              border-radius: 4px;
-              font-size: 12px;
+              background: rgba(2, 132, 199, 0.18);
+              border: 1px solid rgba(56, 189, 248, 0.35);
+              padding: 4px 8px;
+              border-radius: 5px;
+              font-size: 11.5px;
+              white-space: nowrap;
             "
           >
-            <span style="color: #0369a1; font-weight: 600"
-              >Total Purchase:</span
-            >
+            <span style="color: #7dd3fc; font-weight: 600">Purchase:</span>
             <b
               id="summaryTotalPurchase"
-              style="color: #0c4a6e; margin-left: 4px"
+              style="color: #ffffff; margin-left: 3px"
               >0.00</b
             >
           </div>
           <div
             style="
-              background: #fef3c7;
-              border: 1px solid #fde68a;
-              padding: 4px 10px;
-              border-radius: 4px;
-              font-size: 12px;
+              background: rgba(217, 119, 6, 0.18);
+              border: 1px solid rgba(251, 191, 36, 0.35);
+              padding: 4px 8px;
+              border-radius: 5px;
+              font-size: 11.5px;
+              white-space: nowrap;
             "
           >
-            <span style="color: #b45309; font-weight: 600"
-              >Total Remaining:</span
-            >
+            <span style="color: #fde68a; font-weight: 600">Remaining:</span>
             <b
               id="summaryTotalRemaining"
-              style="color: #78350f; margin-left: 4px"
+              style="color: #ffffff; margin-left: 3px"
               >0.00</b
             >
           </div>
         </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px">
         <div id="assetsActionMenu" class="controls action-controls">
           <button
             class="btn"
@@ -442,8 +716,22 @@
           >
             📊 Dashboard
           </button>
+          <button
+            type="button"
+            class="btn user-nav-btn"
+            onclick="openUserNavigationModal()"
+            title="Switch Screen / User Menu"
+          >
+            👤
+          </button>
         </div>
-        <button type="button" class="menu-btn" onclick="toggleResponsiveMenu(event)">☰</button>
+        <button
+          type="button"
+          class="menu-btn"
+          onclick="toggleResponsiveMenu(event)"
+        >
+          ☰
+        </button>
       </div>
     </div>
 
@@ -476,7 +764,7 @@
         style="
           display: flex;
           flex-direction: column;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.14);
           padding: 4px 0;
         "
       >
@@ -491,7 +779,7 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            color: #1e293b;
+            color: #f8fafc;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -510,7 +798,7 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            color: #1e293b;
+            color: #f8fafc;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -932,6 +1220,235 @@
       </div>
     </div>
 
+    <!-- UI Period Filter Modal for Assets.html -->
+    <div id="assetsUiPeriodModal" class="modal-overlay" style="z-index: 10006">
+      <div class="modal-box" style="width: 380px">
+        <h4 style="margin: 0 0 14px 0; color: #38bdf8">
+          📅 Choose UI Display Period
+        </h4>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+          "
+        >
+          <div class="form-group" style="margin-bottom: 0">
+            <label>Start Month</label>
+            <select id="assetsUiStartMonth">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0">
+            <label>Start Year</label>
+            <input type="number" id="assetsUiStartYear" min="2000" max="2100" />
+          </div>
+        </div>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+          "
+        >
+          <div class="form-group" style="margin-bottom: 0">
+            <label>End Month</label>
+            <select id="assetsUiEndMonth">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0">
+            <label>End Year</label>
+            <input type="number" id="assetsUiEndYear" min="2000" max="2100" />
+          </div>
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <button
+            type="button"
+            class="btn"
+            style="background: #475569; color: white"
+            onclick="resetAssetsUiPeriod()"
+          >
+            All Period
+          </button>
+          <div style="display: flex; gap: 8px">
+            <button
+              type="button"
+              class="btn"
+              style="background: #334155; color: white"
+              onclick="closeModal('assetsUiPeriodModal')"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-blue"
+              onclick="applyAssetsUiPeriod()"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Glassmorphism Screen Switcher & User Modal -->
+    <div
+      id="userNavigationModal"
+      class="glass-hub-overlay"
+      onclick="if (event.target === this) closeUserNavigationModal();"
+    >
+      <div class="glass-hub-modal">
+        <div class="glass-hub-header">
+          <div class="glass-hub-title-wrap">
+            <h3>Own Equipment Navigation Hub</h3>
+            <span id="hubLoggedInUserLabel">Select a screen to navigate</span>
+          </div>
+          <button
+            type="button"
+            class="glass-hub-close"
+            onclick="closeUserNavigationModal()"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="glass-hub-grid">
+          <a href="Dashboard.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🚛</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Own EQ Tracker Dashboard</h4>
+              <p>Track operational costs, expenses and fleet revenue.</p>
+            </div>
+          </a>
+
+          <a href="AKS.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🚜</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>AKS Report</h4>
+              <p>Equipment AKS tracking and operational analysis.</p>
+            </div>
+          </a>
+
+          <a href="AKS_Summary.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">📈</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>AKS Cost Summary</h4>
+              <p>Consolidated summary of AKS costs and expenses.</p>
+            </div>
+          </a>
+
+          <a href="../We1-own-EQ/" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🗄️</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Own Equipment Data Base</h4>
+              <p>Core own equipment master records database.</p>
+            </div>
+          </a>
+
+          <a href="summary.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">📅</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Annual Summary</h4>
+              <p>Annual profit &amp; loss statement across years.</p>
+            </div>
+          </a>
+
+          <a href="monthly_list_summary.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🗓️</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Monthly Summary</h4>
+              <p>Monthly income &amp; expenditure statement.</p>
+            </div>
+          </a>
+
+          <a href="list.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">📋</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Equipment List View</h4>
+              <p>Detailed history review of each equipment.</p>
+            </div>
+          </a>
+
+          <a href="../We1-own-EQ/EQ_Driver_payroll.html" class="hub-card">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">💵</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Own Driver Payroll</h4>
+              <p>Manage monthly own equipment operator payroll.</p>
+            </div>
+          </a>
+
+
+          <div class="hub-card hub-logout" onclick="logoutAssetsTracker()">
+            <div class="hub-card-top">
+              <div class="hub-card-icon">🚪</div>
+              <span class="hub-card-arrow">↗</span>
+            </div>
+            <div>
+              <h4>Logout</h4>
+              <p>End session and return to authentication screen.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script>
@@ -1069,6 +1586,100 @@
           });
       }
 
+      let assetsUiPeriodRange = null; // { startYear, startMonth, endYear, endMonth }
+
+      function getVisibleAssetsTimeline() {
+        if (!assetsUiPeriodRange) return currentTimeline;
+        const sKey =
+          assetsUiPeriodRange.startYear * 100 + assetsUiPeriodRange.startMonth;
+        const eKey =
+          assetsUiPeriodRange.endYear * 100 + assetsUiPeriodRange.endMonth;
+        return currentTimeline.filter((tm) => {
+          const k = tm.year * 100 + tm.month;
+          return k >= sKey && k <= eKey;
+        });
+      }
+
+      function updateAssetsPeriodButtonLabel() {
+        const btn = document.getElementById("btnAssetsUiPeriod");
+        if (!btn) return;
+        if (!assetsUiPeriodRange) {
+          btn.innerHTML = "📅 All Period";
+        } else {
+          const sLbl = `${monthNames[assetsUiPeriodRange.startMonth - 1]} ${String(assetsUiPeriodRange.startYear).slice(-2)}`;
+          const eLbl = `${monthNames[assetsUiPeriodRange.endMonth - 1]} ${String(assetsUiPeriodRange.endYear).slice(-2)}`;
+          btn.innerHTML = `📅 ${sLbl} - ${eLbl}`;
+        }
+      }
+
+      function openAssetsUiPeriodModal() {
+        const curY = new Date().getFullYear();
+        const first = assetsUiPeriodRange
+          ? {
+              year: assetsUiPeriodRange.startYear,
+              month: assetsUiPeriodRange.startMonth,
+            }
+          : currentTimeline[0] || { year: curY, month: 1 };
+        const last = assetsUiPeriodRange
+          ? {
+              year: assetsUiPeriodRange.endYear,
+              month: assetsUiPeriodRange.endMonth,
+            }
+          : currentTimeline[currentTimeline.length - 1] || {
+              year: curY,
+              month: 12,
+            };
+
+        document.getElementById("assetsUiStartYear").value = first.year;
+        document.getElementById("assetsUiStartMonth").value = first.month;
+        document.getElementById("assetsUiEndYear").value = last.year;
+        document.getElementById("assetsUiEndMonth").value = last.month;
+        openModal("assetsUiPeriodModal");
+      }
+
+      function applyAssetsUiPeriod() {
+        const sy = parseInt(
+          document.getElementById("assetsUiStartYear").value,
+          10,
+        );
+        const sm = parseInt(
+          document.getElementById("assetsUiStartMonth").value,
+          10,
+        );
+        const ey = parseInt(
+          document.getElementById("assetsUiEndYear").value,
+          10,
+        );
+        const em = parseInt(
+          document.getElementById("assetsUiEndMonth").value,
+          10,
+        );
+
+        if (!sy || !sm || !ey || !em || sy * 100 + sm > ey * 100 + em) {
+          showToast("Please select a valid Start and End period!", "error");
+          return;
+        }
+
+        assetsUiPeriodRange = {
+          startYear: sy,
+          startMonth: sm,
+          endYear: ey,
+          endMonth: em,
+        };
+        updateAssetsPeriodButtonLabel();
+        closeModal("assetsUiPeriodModal");
+        renderTableVirtual(rawAssets, getVisibleAssetsTimeline());
+        showToast("UI period updated!", "success");
+      }
+
+      function resetAssetsUiPeriod() {
+        assetsUiPeriodRange = null;
+        updateAssetsPeriodButtonLabel();
+        closeModal("assetsUiPeriodModal");
+        renderTableVirtual(rawAssets, getVisibleAssetsTimeline());
+        showToast("Showing all periods", "success");
+      }
+
       async function loadAssetsData() {
         try {
           const res = await fetch("/py/assets-tracker/data");
@@ -1077,7 +1688,8 @@
             rawAssets = data.assets || [];
             currentTimeline = data.timeline || [];
             updateRibbonTotals(rawAssets);
-            renderTableVirtual(rawAssets, currentTimeline);
+            updateAssetsPeriodButtonLabel();
+            renderTableVirtual(rawAssets, getVisibleAssetsTimeline());
           } else {
             showToast("Failed to fetch assets", "error");
           }
@@ -1093,26 +1705,38 @@
         const r1 = document.getElementById("headRow1");
         const r2 = document.getElementById("headRow2");
 
+        const dot = (k) =>
+          activeFilters[k]
+            ? ' <span style="color:#0284c7;font-size:10px;">●</span>'
+            : "";
+
         r1.innerHTML = `
-          <th rowspan="2" style="min-width: 50px; position: sticky; left: 0px; z-index: 20; background: #d9e1f2; border-right: 1px solid #c0c0c0;">SN <span class="filter-icon" onclick="openColumnFilter(event, 'sn', 'SN')">🔽</span></th>
-          <th rowspan="2" style="min-width: 110px; position: sticky; left: 50px; z-index: 20; background: #d9e1f2; border-right: 1px solid #c0c0c0;">Asset Type <span class="filter-icon" onclick="openColumnFilter(event, 'type_name', 'Asset Type')">🔽</span></th>
-          <th rowspan="2" style="min-width: 120px; position: sticky; left: 160px; z-index: 20; background: #d9e1f2; border-right: 2px solid #94a3b8;">Asset Code <span class="filter-icon" onclick="openColumnFilter(event, 'asset_code', 'Asset Code')">🔽</span></th>
-          <th rowspan="2" style="min-width: 110px">Date of Purchase <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_date', 'Date of Purchase')">🔽</span></th>
-          <th rowspan="2" style="min-width: 120px">Cost of Purchase <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_cost', 'Cost of Purchase')">🔽</span></th>
-          <th rowspan="2" style="min-width: 130px">Remaining Purchase Price <span class="filter-icon" onclick="openColumnFilter(event, 'remaining_purchase_price', 'Remaining Price')">🔽</span></th>
+          <th rowspan="2" oncontextmenu="openColumnFilter(event, 'sn', 'SN')" title="Right-click to filter" style="cursor:context-menu; min-width: 50px; position: sticky; left: 0px; z-index: 20; background: #d9e1f2; border-right: 1px solid #c0c0c0;">SN${dot("sn")}</th>
+          <th rowspan="2" oncontextmenu="openColumnFilter(event, 'type_name', 'Asset Type')" title="Right-click to filter" style="cursor:context-menu; min-width: 110px; position: sticky; left: 50px; z-index: 20; background: #d9e1f2; border-right: 1px solid #c0c0c0;">Asset Type${dot("type_name")}</th>
+          <th rowspan="2" oncontextmenu="openColumnFilter(event, 'asset_code', 'Asset Code')" title="Right-click to filter" style="cursor:context-menu; min-width: 120px; position: sticky; left: 160px; z-index: 20; background: #d9e1f2; border-right: 2px solid #94a3b8;">Asset Code${dot("asset_code")}</th>
+          <th rowspan="2" oncontextmenu="openColumnFilter(event, 'purchase_date', 'Date of Purchase')" title="Right-click to filter" style="cursor:context-menu; min-width: 110px">Date of Purchase${dot("purchase_date")}</th>
+          <th rowspan="2" oncontextmenu="openColumnFilter(event, 'purchase_cost', 'Cost of Purchase')" title="Right-click to filter" style="cursor:context-menu; min-width: 120px">Cost of Purchase${dot("purchase_cost")}</th>
+          <th rowspan="2" oncontextmenu="openColumnFilter(event, 'remaining_purchase_price', 'Remaining Price')" title="Right-click to filter" style="cursor:context-menu; min-width: 130px">Remaining Purchase Price${dot("remaining_purchase_price")}</th>
         `;
         r2.innerHTML = "";
 
         timeline.forEach((tm, tIdx) => {
           r1.innerHTML += `<th colspan="5" style="background: #c6d9f1; border-left: 2px solid #94a3b8;">${tm.label}</th>`;
           r2.innerHTML += `
-            <th style="min-width: 130px; background: #e9eef4; border-left: 2px solid #94a3b8;">Site <span class="filter-icon" onclick="openColumnFilter(event, 'm_site_${tIdx}', '${tm.label} Site')">🔽</span></th>
-            <th style="min-width: 100px; background: #e9eef4;">Plate No <span class="filter-icon" onclick="openColumnFilter(event, 'm_plate_${tIdx}', '${tm.label} Plate')">🔽</span></th>
-            <th style="min-width: 90px; background: #e9eef4;">Off Site Exp <span class="filter-icon" onclick="openColumnFilter(event, 'm_off_${tIdx}', '${tm.label} Off')">🔽</span></th>
-            <th style="min-width: 90px; background: #e9eef4;">On site <span class="filter-icon" onclick="openColumnFilter(event, 'm_on_${tIdx}', '${tm.label} On')">🔽</span></th>
-            <th style="min-width: 90px; background: #e2efda;">Revenue <span class="filter-icon" onclick="openColumnFilter(event, 'm_rev_${tIdx}', '${tm.label} Rev')">🔽</span></th>
+            <th oncontextmenu="openColumnFilter(event, 'm_site_${tIdx}', '${tm.label} Site')" title="Right-click to filter" style="cursor:context-menu; min-width: 130px; background: #e9eef4; border-left: 2px solid #94a3b8;">Site${dot(`m_site_${tIdx}`)}</th>
+            <th oncontextmenu="openColumnFilter(event, 'm_plate_${tIdx}', '${tm.label} Plate')" title="Right-click to filter" style="cursor:context-menu; min-width: 100px; background: #e9eef4;">Plate No${dot(`m_plate_${tIdx}`)}</th>
+            <th oncontextmenu="openColumnFilter(event, 'm_off_${tIdx}', '${tm.label} Off')" title="Right-click to filter" style="cursor:context-menu; min-width: 90px; background: #e9eef4;">Off Site Exp${dot(`m_off_${tIdx}`)}</th>
+            <th oncontextmenu="openColumnFilter(event, 'm_on_${tIdx}', '${tm.label} On')" title="Right-click to filter" style="cursor:context-menu; min-width: 90px; background: #e9eef4;">On site${dot(`m_on_${tIdx}`)}</th>
+            <th oncontextmenu="openColumnFilter(event, 'm_rev_${tIdx}', '${tm.label} Rev')" title="Right-click to filter" style="cursor:context-menu; min-width: 90px; background: #e2efda;">Revenue${dot(`m_rev_${tIdx}`)}</th>
           `;
         });
+        r1.innerHTML += `<th colspan="4" style="background: #b7c9e2; border-left: 2px solid #64748b;">Total</th>`;
+        r2.innerHTML += `
+          <th style="min-width: 105px; background: #e9eef4; border-left: 2px solid #64748b;">Total Purchase</th>
+          <th style="min-width: 105px; background: #e9eef4;">Total Off Site</th>
+          <th style="min-width: 105px; background: #e9eef4;">Total On Site</th>
+          <th style="min-width: 105px; background: #e2efda;">Total Revenue</th>
+        `;
 
         const tbody = document.getElementById("assetsTableBody");
         tbody.innerHTML = "";
@@ -1219,14 +1843,28 @@
             `;
 
             const mDataList = item.months_data || [];
-            timeline.forEach((_, tIdx) => {
-              const m = mDataList[tIdx] || {
-                site_name: "",
-                plate_no: "",
-                off_site_exp: 0,
-                on_site_exp: 0,
-                revenue: 0,
-              };
+            let sumOffSite = 0;
+            let sumOnSite = 0;
+            let sumRevenue = 0;
+
+            timeline.forEach((tm) => {
+              const origIdx = currentTimeline.findIndex(
+                (x) => x.year === tm.year && x.month === tm.month,
+              );
+              const m =
+                origIdx !== -1 && mDataList[origIdx]
+                  ? mDataList[origIdx]
+                  : {
+                      site_name: "",
+                      plate_no: "",
+                      off_site_exp: 0,
+                      on_site_exp: 0,
+                      revenue: 0,
+                    };
+              sumOffSite += Number(m.off_site_exp || 0);
+              sumOnSite += Number(m.on_site_exp || 0);
+              sumRevenue += Number(m.revenue || 0);
+
               rowHtml += `
                 <td style="text-align: left; border-left: 2px solid #cbd5e1;">${m.site_name || ""}</td>
                 <td>${m.plate_no || ""}</td>
@@ -1235,6 +1873,17 @@
                 <td style="background-color: #f0fdf4; font-weight: 500;">${fmtNumber(m.revenue)}</td>
               `;
             });
+
+            const totalPurchaseVal =
+              Number(item.purchase_cost || 0) +
+              Number(item.remaining_purchase_price || 0);
+
+            rowHtml += `
+              <td style="font-weight: 700; background-color: #eff6ff; color: #0f172a; border-left: 2px solid #94a3b8;">${fmtNumber(totalPurchaseVal)}</td>
+              <td style="font-weight: 700; background-color: #f8fafc; color: #0f172a;">${fmtNumber(sumOffSite)}</td>
+              <td style="font-weight: 700; background-color: #f8fafc; color: #0f172a;">${fmtNumber(sumOnSite)}</td>
+              <td style="font-weight: 700; background-color: #f0fdf4; color: #166534;">${fmtNumber(sumRevenue)}</td>
+            `;
 
             tr.innerHTML = rowHtml;
             fragment.appendChild(tr);
@@ -1252,6 +1901,7 @@
       }
 
       function openColumnFilter(e, colKey, colTitle) {
+        e.preventDefault();
         e.stopPropagation();
         currentFilterCol = colKey;
         const menu = document.getElementById("assetsFilterMenu");
@@ -1259,12 +1909,67 @@
           `Filter: ${colTitle}`;
         document.getElementById("filterSearchInput").value = "";
 
+        const contextAssets = rawAssets.filter((item, idx) => {
+          for (const [fCol, selectedVals] of Object.entries(activeFilters)) {
+            if (!selectedVals || fCol === colKey) continue;
+            if (fCol === "sn" && !selectedVals.includes(String(idx + 1)))
+              return false;
+            if (
+              ["type_name", "asset_code"].includes(fCol) &&
+              !selectedVals.includes(item[fCol] || "__BLANK__")
+            )
+              return false;
+            if (
+              fCol === "purchase_date" &&
+              !selectedVals.includes(
+                formatDate(item.purchase_date) || "__BLANK__",
+              )
+            )
+              return false;
+            if (
+              ["purchase_cost", "remaining_purchase_price"].includes(fCol) &&
+              !selectedVals.includes(fmtNumber(item[fCol]) || "__BLANK__")
+            )
+              return false;
+            if (fCol.startsWith("m_site_")) {
+              const tIdx = parseInt(fCol.replace("m_site_", ""));
+              const m = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(m.site_name || "__BLANK__"))
+                return false;
+            }
+            if (fCol.startsWith("m_plate_")) {
+              const tIdx = parseInt(fCol.replace("m_plate_", ""));
+              const m = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(m.plate_no || "__BLANK__"))
+                return false;
+            }
+            if (
+              fCol.startsWith("m_off_") ||
+              fCol.startsWith("m_on_") ||
+              fCol.startsWith("m_rev_")
+            ) {
+              const tIdx = parseInt(fCol.split("_")[2]);
+              const m = (item.months_data || [])[tIdx] || {};
+              const fieldMap = {
+                m_off: "off_site_exp",
+                m_on: "on_site_exp",
+                m_rev: "revenue",
+              };
+              const fKey = fieldMap[fCol.slice(0, 5)];
+              if (!selectedVals.includes(fmtNumber(m[fKey]) || "__BLANK__"))
+                return false;
+            }
+          }
+          return true;
+        });
+
         const valueSet = new Set();
         let hasBlank = false;
 
-        rawAssets.forEach((item, idx) => {
+        contextAssets.forEach((item) => {
+          const origIdx = rawAssets.indexOf(item);
           let val = "";
-          if (colKey === "sn") val = String(idx + 1);
+          if (colKey === "sn") val = String(origIdx + 1);
           else if (colKey === "type_name") val = item.type_name || "";
           else if (colKey === "asset_code") val = item.asset_code || "";
           else if (colKey === "purchase_date")
@@ -1555,7 +2260,11 @@
       window.addEventListener("click", (e) => {
         closeFilterMenu();
         const menu = document.getElementById("assetsActionMenu");
-        if (menu && !e.target.closest(".menu-btn") && !e.target.closest(".action-controls")) {
+        if (
+          menu &&
+          !e.target.closest(".menu-btn") &&
+          !e.target.closest(".action-controls")
+        ) {
           menu.classList.remove("show");
         }
       });
@@ -1948,6 +2657,37 @@
         showToast("Generating Excel file...", "success");
         window.location.href = url;
       }
+
+      function openUserNavigationModal() {
+        const modal = document.getElementById("userNavigationModal");
+        const userLbl = document.getElementById("hubLoggedInUserLabel");
+        if (userLbl) {
+          try {
+            const u = JSON.parse(localStorage.getItem("eq_user") || "null");
+            if (u && u.username) {
+              userLbl.innerText = `Signed in as ${u.username} • Select a module`;
+            }
+          } catch (e) {}
+        }
+        if (modal) modal.style.display = "flex";
+      }
+
+      function closeUserNavigationModal() {
+        const modal = document.getElementById("userNavigationModal");
+        if (modal) modal.style.display = "none";
+      }
+
+      function logoutAssetsTracker() {
+        localStorage.removeItem("eq_token");
+        localStorage.removeItem("eq_user");
+        window.location.replace("index.html");
+      }
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          closeUserNavigationModal();
+        }
+      });
 
       document.addEventListener("DOMContentLoaded", () => {
         loadTypes();

@@ -1,167 +1,243 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Own Equipment Tracker - Authentication</title>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+      * {
+        box-sizing: border-box;
+        font-family: "Segoe UI", sans-serif;
+      }
+      body {
+        position: relative;
+        isolation: isolate;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 24px;
+        overflow-x: hidden;
+        color: #f8fafc;
+        background:
+          radial-gradient(
+            ellipse at 15% 10%,
+            rgba(14, 116, 144, 0.28),
+            transparent 38%
+          ),
+          radial-gradient(
+            ellipse at 88% 85%,
+            rgba(79, 70, 229, 0.22),
+            transparent 36%
+          ),
+          linear-gradient(135deg, #070b14 0%, #101827 52%, #080d18 100%);
+      }
+      body::before,
+      body::after {
+        position: fixed;
+        z-index: 0;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        content: "";
+        filter: blur(90px);
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      body::before {
+        top: -130px;
+        left: -90px;
+        background: #06b6d4;
+      }
+      body::after {
+        right: -100px;
+        bottom: -150px;
+        background: #6366f1;
+      }
+      .auth-card {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 390px);
+        padding: 36px 34px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 20px;
+        background: linear-gradient(
+          145deg,
+          rgba(30, 41, 59, 0.76),
+          rgba(15, 23, 42, 0.62)
+        );
+        box-shadow:
+          0 24px 70px rgba(0, 0, 0, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        -webkit-backdrop-filter: blur(24px) saturate(150%);
+        backdrop-filter: blur(24px) saturate(150%);
+      }
+      .auth-card h2 {
+        margin: 0 0 26px;
+        color: #f8fafc;
+        font-size: 25px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        text-align: center;
+      }
+      .form-group {
+        margin-bottom: 18px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #dbeafe;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 12px 13px;
+        border: 1px solid rgba(203, 213, 225, 0.24);
+        border-radius: 9px;
+        outline: none;
+        color: #f8fafc;
+        background: rgba(2, 6, 23, 0.44);
+        font-size: 15px;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+      .form-group input:focus {
+        border-color: #22d3ee;
+        background: rgba(2, 6, 23, 0.62);
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.16);
+      }
+      .btn {
+        width: 100%;
+        margin-top: 8px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 9px;
+        color: white;
+        background: linear-gradient(100deg, #0f9f8f, #0e7490);
+        box-shadow: 0 8px 20px rgba(8, 145, 178, 0.2);
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 700;
+        transition:
+          transform 0.2s ease,
+          filter 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .btn:hover {
+        filter: brightness(1.12);
+        box-shadow: 0 10px 26px rgba(8, 145, 178, 0.3);
+        transform: translateY(-1px);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+      .toggle-link {
+        margin-top: 18px;
+        color: #67e8f9;
+        cursor: pointer;
+        font-size: 13px;
+        text-align: center;
+        transition: color 0.2s ease;
+      }
+      .toggle-link:hover {
+        color: #cffafe;
+        text-decoration: underline;
+      }
+      .alert {
+        display: none;
+        margin-bottom: 18px;
+        padding: 11px 13px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        font-size: 13px;
+      }
+      .alert-error {
+        border-color: rgba(248, 113, 113, 0.3);
+        color: #fecaca;
+        background: rgba(127, 29, 29, 0.42);
+      }
+      .alert-success {
+        border-color: rgba(74, 222, 128, 0.3);
+        color: #bbf7d0;
+        background: rgba(20, 83, 45, 0.42);
+      }
+      @media (max-width: 480px) {
         body {
-            position: relative;
-            isolation: isolate;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 24px;
-            overflow-x: hidden;
-            color: #f8fafc;
-            background:
-                radial-gradient(ellipse at 15% 10%, rgba(14, 116, 144, .28), transparent 38%),
-                radial-gradient(ellipse at 88% 85%, rgba(79, 70, 229, .22), transparent 36%),
-                linear-gradient(135deg, #070b14 0%, #101827 52%, #080d18 100%);
+          padding: 18px;
         }
-        body::before,
-        body::after {
-            position: fixed;
-            z-index: 0;
-            width: 280px;
-            height: 280px;
-            border-radius: 50%;
-            content: "";
-            filter: blur(90px);
-            opacity: .45;
-            pointer-events: none;
-        }
-        body::before { top: -130px; left: -90px; background: #06b6d4; }
-        body::after { right: -100px; bottom: -150px; background: #6366f1; }
         .auth-card {
-            position: relative;
-            z-index: 1;
-            width: min(100%, 390px);
-            padding: 36px 34px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, .18);
-            border-radius: 20px;
-            background: linear-gradient(145deg, rgba(30, 41, 59, .76), rgba(15, 23, 42, .62));
-            box-shadow: 0 24px 70px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .12);
-            -webkit-backdrop-filter: blur(24px) saturate(150%);
-            backdrop-filter: blur(24px) saturate(150%);
+          padding: 30px 24px;
+          border-radius: 17px;
         }
         .auth-card h2 {
-            margin: 0 0 26px;
-            color: #f8fafc;
-            font-size: 25px;
-            font-weight: 700;
-            letter-spacing: -.5px;
-            text-align: center;
+          font-size: 22px;
         }
-        .form-group { margin-bottom: 18px; }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #dbeafe;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 12px 13px;
-            border: 1px solid rgba(203, 213, 225, .24);
-            border-radius: 9px;
-            outline: none;
-            color: #f8fafc;
-            background: rgba(2, 6, 23, .44);
-            font-size: 15px;
-            transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
-        }
-        .form-group input:focus {
-            border-color: #22d3ee;
-            background: rgba(2, 6, 23, .62);
-            box-shadow: 0 0 0 3px rgba(34, 211, 238, .16);
-        }
-        .btn {
-            width: 100%;
-            margin-top: 8px;
-            padding: 12px;
-            border: 1px solid rgba(255, 255, 255, .16);
-            border-radius: 9px;
-            color: white;
-            background: linear-gradient(100deg, #0f9f8f, #0e7490);
-            box-shadow: 0 8px 20px rgba(8, 145, 178, .2);
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 700;
-            transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
-        }
-        .btn:hover { filter: brightness(1.12); box-shadow: 0 10px 26px rgba(8, 145, 178, .3); transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-        .toggle-link {
-            margin-top: 18px;
-            color: #67e8f9;
-            cursor: pointer;
-            font-size: 13px;
-            text-align: center;
-            transition: color .2s ease;
-        }
-        .toggle-link:hover { color: #cffafe; text-decoration: underline; }
-        .alert {
-            display: none;
-            margin-bottom: 18px;
-            padding: 11px 13px;
-            border: 1px solid transparent;
-            border-radius: 9px;
-            font-size: 13px;
-        }
-        .alert-error { border-color: rgba(248, 113, 113, .3); color: #fecaca; background: rgba(127, 29, 29, .42); }
-        .alert-success { border-color: rgba(74, 222, 128, .3); color: #bbf7d0; background: rgba(20, 83, 45, .42); }
-        @media (max-width: 480px) {
-            body { padding: 18px; }
-            .auth-card { padding: 30px 24px; border-radius: 17px; }
-            .auth-card h2 { font-size: 22px; }
-        }
+      }
     </style>
-</head>
-<body>
-
-<div class="auth-card">
-    <div id="alertBox" class="alert"></div>
-    <div id="loginForm">
+  </head>
+  <body>
+    <div class="auth-card">
+      <div id="alertBox" class="alert"></div>
+      <div id="loginForm">
         <h2>Equipment Tracker Login</h2>
         <div class="form-group">
-            <label>Username</label>
-            <!-- Added autocomplete="off" -->
-            <input type="text" id="loginUser" autocomplete="off" required>
+          <label>Username</label>
+          <!-- Added autocomplete="off" -->
+          <input type="text" id="loginUser" autocomplete="off" required />
         </div>
         <div class="form-group">
-            <label>Password</label>
-            <!-- Added autocomplete="new-password" -->
-            <input type="password" id="loginPass" autocomplete="new-password" required>
+          <label>Password</label>
+          <!-- Added autocomplete="new-password" -->
+          <input
+            type="password"
+            id="loginPass"
+            autocomplete="new-password"
+            required
+          />
         </div>
         <button class="btn" onclick="handleLogin()">Login</button>
-        <div class="toggle-link" onclick="toggleView('signup')">New User? Sign Up Here</div>
-    </div>
+        <div class="toggle-link" onclick="toggleView('signup')">
+          New User? Sign Up Here
+        </div>
+      </div>
 
-    <div id="signupForm" style="display: none;">
+      <div id="signupForm" style="display: none">
         <h2>User Signup</h2>
         <div class="form-group">
-            <label>Username</label>
-            <!-- Added autocomplete="off" -->
-            <input type="text" id="signupUser" autocomplete="off" required>
+          <label>Username</label>
+          <!-- Added autocomplete="off" -->
+          <input type="text" id="signupUser" autocomplete="off" required />
         </div>
         <div class="form-group">
-            <label>Password</label>
-            <!-- Added autocomplete="new-password" -->
-            <input type="password" id="signupPass" autocomplete="new-password" required>
+          <label>Password</label>
+          <!-- Added autocomplete="new-password" -->
+          <input
+            type="password"
+            id="signupPass"
+            autocomplete="new-password"
+            required
+          />
         </div>
-        <button class="btn" style="background: #2980b9;" onclick="handleSignup()">Request Access</button>
-        <div class="toggle-link" onclick="toggleView('login')">Already have an account? Login</div>
+        <button
+          class="btn"
+          style="background: #2980b9"
+          onclick="handleSignup()"
+        >
+          Request Access
+        </button>
+        <div class="toggle-link" onclick="toggleView('login')">
+          Already have an account? Login
+        </div>
+      </div>
     </div>
-</div>
 
-<!-- External JS Link -->
-<script src="js/eq-session.js"></script>
-<script src="js/auth.js"></script>
-</body>
+    <!-- External JS Link -->
+    <script src="js/eq-session.js"></script>
+    <script src="js/auth.js"></script>
+  </body>
 </html>

@@ -91,8 +91,8 @@ function initYearMonthDropdowns() {
     yearSelect.innerHTML += opt;
     inputYear.innerHTML += opt;
   }
-  let liHTML = `<li><label><input type="checkbox" id="chkAllMonths" checked onchange="toggleAllMonths(this)"> All Months</label></li>`;
-  monthNames.forEach((m, idx) => {
+  let liHTML = `<li><label><input type="checkbox" id="chkAllMonths" checked onchange="toggleAllMonths(this)"> <b>All Months</b></label></li>`;
+  fullMonthNames.forEach((m, idx) => {
     liHTML += `<li><label><input type="checkbox" class="month-chk" value="${idx + 1}" checked onchange="uncheckAll(this)"> ${m}</label></li>`;
   });
   document.getElementById("monthCheckboxes").innerHTML = liHTML;
@@ -104,11 +104,13 @@ function updateMonthSelectorLabel() {
     document.querySelectorAll(".month-chk:checked"),
   ).map((c) => parseInt(c.value));
   if (checked.length === 12 || checked.length === 0) {
-    lbl.innerText = "All Months";
+    lbl.innerText = "All Months ▼";
   } else if (checked.length === 1) {
-    lbl.innerText = `${monthNames[checked[0] - 1]}`;
+    lbl.innerText = `${fullMonthNames[checked[0] - 1]} ▼`;
+  } else if (checked.length <= 3) {
+    lbl.innerText = `${checked.map((m) => fullMonthNames[m - 1]).join(", ")} ▼`;
   } else {
-    lbl.innerText = `${checked.length} Months`;
+    lbl.innerText = `${checked.length} Months Selected ▼`;
   }
 }
 
@@ -274,8 +276,12 @@ function renderTable() {
         ? pA.localeCompare(pB, undefined, { numeric: true })
         : pB.localeCompare(pA, undefined, { numeric: true });
     }
-    const dateA = a.purchase_date ? new Date(a.purchase_date).getTime() : Infinity;
-    const dateB = b.purchase_date ? new Date(b.purchase_date).getTime() : Infinity;
+    const dateA = a.purchase_date
+      ? new Date(a.purchase_date).getTime()
+      : Infinity;
+    const dateB = b.purchase_date
+      ? new Date(b.purchase_date).getTime()
+      : Infinity;
     return dateA - dateB;
   });
 
@@ -513,10 +519,30 @@ function getEquipmentColumnValue(eq, colKey) {
       other_exp = Number(l.other_expense || 0);
 
     const netSal = basic + ot + allowance - penalty;
-    const pctVal =
-      l.kafil_pct !== null && l.kafil_pct !== undefined
-        ? Number(l.kafil_pct)
-        : 0;
+    const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
+    const compObj =
+      (companyMappingData[eqPlateClean] &&
+        companyMappingData[eqPlateClean][m]) ||
+      {};
+    const currentComp =
+      typeof compObj === "object"
+        ? compObj.company || "Not Work"
+        : compObj || "Not Work";
+    const currentSite = typeof compObj === "object" ? compObj.site || "" : "";
+
+    let pctVal = 0;
+    if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
+      pctVal = Number(l.kafil_pct);
+    } else if (Number(l.kafil_comm || 0) > 0) {
+      pctVal = 0;
+    } else {
+      const isSingleNonWe1 =
+        currentComp !== "Not Work" &&
+        currentComp !== "We1" &&
+        !currentComp.includes("&");
+      pctVal = isSingleNonWe1 ? 3 : 0;
+    }
+
     const kafil =
       pctVal > 0 && rev > 0 ? rev * (pctVal / 100) : Number(l.kafil_comm || 0);
     const owner = Number(l.owner_comm || 0);
@@ -672,10 +698,30 @@ function populateColumnFilterItems(columnKey) {
   const list = document.getElementById("plateFilterList");
   if (!list) return;
 
+  const searchTerm = (
+    document.getElementById("searchPlateNo")?.value || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const contextEquipments = rawEquipments.filter((eq) => {
+    const pNo = (eq.plate_no || "").toString().trim();
+    if (searchTerm && !pNo.toLowerCase().includes(searchTerm)) return false;
+
+    for (const [fCol, selectedVals] of Object.entries(activeColumnFilters)) {
+      if (selectedVals === null || selectedVals === undefined || fCol === columnKey)
+        continue;
+      const v = getEquipmentColumnValue(eq, fCol);
+      const strV = v === "" || v === null || v === undefined ? "__BLANK__" : String(v);
+      if (!selectedVals.includes(strV)) return false;
+    }
+    return true;
+  });
+
   const valueSet = new Set();
   let hasBlank = false;
 
-  rawEquipments.forEach((eq) => {
+  contextEquipments.forEach((eq) => {
     let val = getEquipmentColumnValue(eq, columnKey);
 
     if (val === "" || val === null || val === undefined) {
@@ -1120,7 +1166,9 @@ function populateEditCostFields() {
   const eqId = Number(document.getElementById("editCostEqId").value);
   const eq = rawEquipments.find((x) => x.id === eqId);
   if (eq) {
-    document.getElementById("editCostDate").value = eq.purchase_date ? String(eq.purchase_date).slice(0, 10) : "";
+    document.getElementById("editCostDate").value = eq.purchase_date
+      ? String(eq.purchase_date).slice(0, 10)
+      : "";
     document.getElementById("editCostPaid").value = eq.purchase_cost || 0;
     document.getElementById("editCostRemaining").value =
       eq.remaining_purchase_cost || 0;
@@ -1215,8 +1263,7 @@ async function postLogData() {
     .trim()
     .toUpperCase();
   const compObj =
-    (companyMappingData[eqPlateClean] &&
-      companyMappingData[eqPlateClean][m]) ||
+    (companyMappingData[eqPlateClean] && companyMappingData[eqPlateClean][m]) ||
     {};
   const compName =
     typeof compObj === "object"
@@ -1326,22 +1373,79 @@ function formatPurchaseDate(d) {
   return `${day}-${monthNames[x.getMonth()]}-${x.getFullYear().toString().slice(-2)}`;
 }
 function exportToExcel() {
+  const curY = Number(document.getElementById("filterYear").value) || new Date().getFullYear();
+  const sYearInp = document.getElementById("dashExpStartYear");
+  const eYearInp = document.getElementById("dashExpEndYear");
+  const sMonthSel = document.getElementById("dashExpStartMonth");
+  const eMonthSel = document.getElementById("dashExpEndMonth");
+  if (sYearInp) sYearInp.value = curY;
+  if (eYearInp) eYearInp.value = curY;
+  if (sMonthSel) sMonthSel.value = "1";
+  if (eMonthSel) eMonthSel.value = "12";
+
+  const curUiRadio = document.querySelector('input[name="dashExportOption"][value="current_ui"]');
+  if (curUiRadio) curUiRadio.checked = true;
+  toggleDashExportPeriod(false);
+
   document.getElementById("exportModal").style.display = "flex";
 }
 
-function executeExport(type) {
+function toggleDashExportPeriod(show) {
+  const box = document.getElementById("dashPeriodBox");
+  if (box) box.style.display = show ? "block" : "none";
+}
+
+function confirmDashboardExport() {
+  const type =
+    document.querySelector('input[name="dashExportOption"]:checked')?.value ||
+    "current_ui";
   const y = document.getElementById("filterYear").value;
-  closeModal("exportModal");
 
   if (type === "batch") {
+    closeModal("exportModal");
     window.location.href = `/api/own-equipment/tracker/export-excel?type=batch`;
-  } else {
-    let vM = Array.from(document.querySelectorAll(".month-chk:checked")).map(
-      (b) => parseInt(b.value),
-    );
-    if (vM.length === 0) vM = Array.from({ length: 12 }, (_, i) => i + 1);
-    window.location.href = `/api/own-equipment/tracker/export-excel?type=single&year=${y}&months=${vM.join(",")}`;
+    return;
   }
+
+  if (type === "period") {
+    const sy = Number(document.getElementById("dashExpStartYear").value);
+    const sm = Number(document.getElementById("dashExpStartMonth").value);
+    const ey = Number(document.getElementById("dashExpEndYear").value);
+    const em = Number(document.getElementById("dashExpEndMonth").value);
+
+    if (!sy || !sm || !ey || !em || sy * 100 + sm > ey * 100 + em) {
+      showToast("Please select a valid Start and End period!", "error");
+      return;
+    }
+    closeModal("exportModal");
+    window.location.href = `/api/own-equipment/tracker/export-excel?type=period&start_year=${sy}&start_month=${sm}&end_year=${ey}&end_month=${em}`;
+    return;
+  }
+
+  let vM = Array.from(document.querySelectorAll(".month-chk:checked")).map(
+    (b) => parseInt(b.value),
+  );
+  if (vM.length === 0) vM = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  if (type === "current_ui") {
+    const visiblePlates = Array.from(document.querySelectorAll("#tableBody tr"))
+      .map((tr) => tr.querySelector("td:nth-child(2)")?.innerText.trim())
+      .filter(Boolean);
+    const params = new URLSearchParams({
+      type: "single",
+      year: y,
+      months: vM.join(","),
+    });
+    if (visiblePlates.length > 0 && visiblePlates.length < rawEquipments.length) {
+      params.set("plates", visiblePlates.join(","));
+    }
+    closeModal("exportModal");
+    window.location.href = `/api/own-equipment/tracker/export-excel?${params.toString()}`;
+    return;
+  }
+
+  closeModal("exportModal");
+  window.location.href = `/api/own-equipment/tracker/export-excel?type=single&year=${y}&months=${vM.join(",")}`;
 }
 
 window.onclick = (e) => {
@@ -1571,10 +1675,14 @@ async function postRevenueData() {
       )
         .trim()
         .toUpperCase();
-      const compName =
+      const compObjRev =
         (companyMappingData[eqPlateClean] &&
           companyMappingData[eqPlateClean][monthNum]) ||
-        "Not Work";
+        {};
+      const compName =
+        typeof compObjRev === "object"
+          ? compObjRev.company || "Not Work"
+          : compObjRev || "Not Work";
 
       let kafilPctVal = 0;
       if (log.kafil_pct !== null && log.kafil_pct !== undefined) {

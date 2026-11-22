@@ -7,11 +7,42 @@
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <style>
       :root {
-        --bg: #ffffff;
-        --text-main: #000000;
-        --border: #d0d7de;
-        --ribbon-bg: #f6f8fa;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #475569;
+        --border: #cbd5e1;
+        --table-border: #94a3b8;
+        --ribbon-bg: #ffffff;
+        --th-bg: #f1f5f9;
+        --th-hover: #e2e8f0;
+        --row-hover: #f8fafc;
+        --calc-bg: #f1f5f9;
+        --payable-color: #0369a1;
+        --input-bg: #ffffff;
+        --edit-bg: #fef9c3;
+        --edit-focus: #fef08a;
         --btn-hover: #0969da;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+
+      [data-theme="dark"] {
+        --bg: #0b1120;
+        --surface: #1e293b;
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #334155;
+        --table-border: #334155;
+        --ribbon-bg: #0f172a;
+        --th-bg: #1e293b;
+        --th-hover: #334155;
+        --row-hover: #172033;
+        --calc-bg: #162032;
+        --payable-color: #38bdf8;
+        --input-bg: #1e293b;
+        --edit-bg: #422006;
+        --edit-focus: #713f12;
+        --shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
       }
 
       body {
@@ -25,34 +56,388 @@
         margin: 0;
         padding: 0;
         font-size: 13px;
+        transition: background-color 0.2s ease, color 0.2s ease;
       }
 
+      /* Compact Corporate Ribbon */
       .ribbon {
-        background-color: white;
-        padding: 12px 20px;
+        background-color: var(--ribbon-bg);
+        padding: 7px 16px;
         display: flex;
-        gap: 12px;
+        gap: 8px;
         align-items: center;
-        border-bottom: 2px solid black;
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow);
         position: sticky;
         top: 0;
         z-index: 100;
+        flex-wrap: wrap;
       }
 
       .ribbon-title {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 700;
+        letter-spacing: -0.01em;
         margin-right: auto;
-        color: #000000;
+        color: var(--text-main);
       }
 
-      .ribbon select,
-      .ribbon button {
-        padding: 6px 12px;
+      .ribbon input[type="text"],
+      .ribbon select {
+        padding: 4px 9px;
+        height: 28px;
+        box-sizing: border-box;
         border: 1px solid var(--border);
         border-radius: 4px;
         font-size: 12px;
+        background-color: var(--input-bg);
+        color: var(--text-main);
         outline: none;
+      }
+
+      .ribbon input[type="text"]:focus,
+      .ribbon select:focus {
+        border-color: #2563eb;
+      }
+
+      .ribbon button {
+        padding: 4px 10px;
+        height: 28px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        outline: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: opacity 0.15s ease, transform 0.1s ease;
+      }
+
+      .ribbon button:hover {
+        opacity: 0.9;
+      }
+
+      .btn-theme {
+        background: var(--surface);
+        color: var(--text-main);
+        border: 1px solid var(--border) !important;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: #1d4ed8;
+        color: white;
+        border: none !important;
+        cursor: pointer;
+      }
+      .btn-success {
+        background: #15803d;
+        color: white;
+        border: none !important;
+        cursor: pointer;
+      }
+      .btn-danger {
+        background: #b91c1c;
+        color: white;
+        border: none !important;
+        cursor: pointer;
+      }
+      .btn-edit-all {
+        background: #dc2626;
+        color: white;
+        border: none !important;
+        cursor: pointer;
+      }
+      .btn-save-all {
+        background: #16a34a;
+        color: white;
+        border: none !important;
+        cursor: pointer;
+      }
+      .btn-cancel {
+        background: #475569;
+        color: white;
+        border: none !important;
+        cursor: pointer;
+      }
+
+      .container {
+        padding: 16px 20px;
+        overflow-x: auto;
+        display: flex;
+        justify-content: center;
+      }
+      table {
+        width: 92vw;
+        border-collapse: collapse;
+        white-space: nowrap;
+        background-color: var(--surface);
+        box-shadow: var(--shadow);
+      }
+      
+      /* Fixed Width Column Styles */
+      .col-sn, .action-col {
+        width: 50px !important;
+        min-width: 50px !important;
+        max-width: 50px !important;
+        text-align: center;
+      }
+      th.col-plate, td.col-plate {
+        width: 100px !important; 
+        white-space: nowrap;
+        text-align: center;
+      }
+      .col-money {
+        width: 70px !important;
+        min-width: 70px;
+        max-width: fit-content !important;
+        text-align: center;
+      }
+      th,
+      td {
+        border: 1px solid var(--table-border);
+        padding: 6px 8px;
+      }
+      th {
+        background-color: var(--th-bg);
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--text-main);
+        text-align: center;
+        cursor: pointer;
+        position: relative;
+        user-select: none;
+      }
+      th:hover {
+        background-color: var(--th-hover);
+      }
+      tbody tr:hover {
+        background-color: var(--row-hover);
+      }
+
+      .fit-content {
+        white-space: nowrap;
+        text-align: center;
+      }
+      .text-center {
+        text-align: center !important;
+      }
+      .calc-field {
+        font-weight: 700;
+        background: var(--calc-bg);
+      }
+      .col-payable {
+        color: var(--payable-color) !important;
+      }
+
+      /* Edit Mode Styles */
+      .editable-td {
+        padding: 0 !important;
+      }
+
+      .editable {
+        cursor: text;
+        background: var(--edit-bg);
+        color: var(--text-main);
+        outline: none;
+        border: 1px solid transparent;
+        width: 100%;
+        height: 100%;
+        min-height: 29px;
+        box-sizing: border-box;
+        text-align: center;
+        font-family: inherit;
+        font-size: inherit;
+        margin: 0;
+        padding: 5px;
+      }
+      .editable:focus {
+        background: var(--edit-focus);
+        border: 1px solid #2563eb;
+      }
+
+      /* Remove default browser arrows for numbers */
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
+
+      #editControls {
+        display: none;
+        gap: 6px;
+        align-items: center;
+      }
+      #normalControls {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .status-paid {
+        color: #16a34a;
+        font-weight: bold;
+      }
+      .status-partially {
+        color: #d97706;
+        font-weight: bold;
+      }
+      .status-unpaid {
+        color: #dc2626;
+        font-weight: bold;
+      }
+      .status-advanced {
+        color: #a855f7;
+        font-weight: bold;
+      }
+
+      #toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .toast {
+        background-color: #1e293b;
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 4px;
+        font-size: 12.5px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        opacity: 0;
+        transform: translateY(100%);
+        transition: all 0.3s ease;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .toast.success {
+        background-color: #15803d;
+      }
+      .toast.error {
+        background-color: #b91c1c;
+      }
+
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+      .modal-content {
+        background: var(--surface);
+        color: var(--text-main);
+        border: 1px solid var(--border);
+        padding: 20px;
+        border-radius: 6px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        max-width: 95%;
+      }
+      .modal-content input[type="month"] {
+        background: var(--input-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+
+      /* Filter Popup Style */
+      #filterPopup {
+        position: absolute;
+        display: none;
+        background: var(--surface);
+        color: var(--text-main);
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        z-index: 1000;
+        padding: 10px;
+        width: 200px;
+        border-radius: 4px;
+      }
+      .filter-options {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
+      .filter-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        padding: 3px 0;
+      }
+
+      /* Pay Card (Preserved exact print colors) */
+      .pay-card {
+        background-color: #fae6df;
+        padding: 30px;
+        width: 500px;
+        box-sizing: border-box;
+        color: #000;
+        font-family: "Georgia", serif;
+        border: 1px solid #ccc;
+      }
+      .pay-card-title {
+        text-align: center;
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 25px;
+      }
+      .pay-card-sub {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 15px;
+        margin-bottom: 15px;
+      }
+      .pay-card-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: center;
+        font-size: 14px;
+        border: 1px solid #000;
+      }
+      .pay-card-table th,
+      .pay-card-table td {
+        border: 1px solid #000;
+        padding: 10px;
+        color: #000;
+      }
+      .pay-card-table th {
+        background-color: #f4b084;
+        font-weight: bold;
+      }
+      .row-green {
+        background-color: #c6e0b4;
+      }
+      .row-blue {
+        background-color: #ddebf7;
+        font-weight: bold;
+      }
+      .row-red {
+        background-color: #ff9999;
+      }
+      .row-dark-green {
+        background-color: #00b050;
+        font-weight: bold;
       }
 
       .btn-primary {
@@ -134,16 +519,19 @@
         padding: 6px 8px;
       }
       th {
-        background-color: #f6f8fa;
-        font-weight: bolder;
-        color: #000000;
+        background-color: var(--th-bg) !important;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--text-main) !important;
         text-align: center;
         cursor: pointer;
         position: relative;
         user-select: none;
       }
       th:hover {
-        background-color: #e5e7eb;
+        background-color: var(--th-hover) !important;
       }
 
       .fit-content {
@@ -154,8 +542,8 @@
         text-align: center !important;
       }
       .calc-field {
-        font-weight: bold;
-        background: #f8f9fa;
+        font-weight: 700;
+        background: var(--calc-bg) !important;
       }
 
       /* Edit Mode Styles */
@@ -371,23 +759,15 @@
     <div class="ribbon">
       <div class="ribbon-title" id="pageTitle">We1 Own EQ Driver Payroll</div>
 
-      <!-- Search Box Added Here -->
       <input
         type="text"
         id="driverSearch"
         placeholder="🔍 Search Driver..."
         onkeyup="searchDriver()"
-        style="
-          padding: 6px 12px;
-          border: 1px solid var(--border);
-          border-radius: 4px;
-          font-size: 12px;
-          outline: none;
-          margin-right: 15px;
-        "
+        style="width: 165px; margin-right: 4px"
       />
 
-      <label style="font-weight: 600">Month:</label>
+      <label style="font-weight: 600; font-size: 12px; color: var(--text-muted)">Month:</label>
       <select id="monthSelect">
         <option value="01">January</option>
         <option value="02">February</option>
@@ -404,21 +784,19 @@
       </select>
       <select id="yearSelect"></select>
 
-      <button class="btn-primary" onclick="loadPayrollData()">Load Data</button>
-      <button class="btn-success" onclick="exportScreen()">
-        📄 Screen Export
-      </button>
+      <button class="btn-primary" onclick="loadPayrollData()">Load</button>
+      <button class="btn-success" onclick="exportScreen()">📄 Export</button>
       <button
         class="btn-success"
         onclick="
           document.getElementById('batchExportModal').style.display = 'flex'
         "
       >
-        📁 Batch Export
+        📁 Batch
       </button>
 
       <div
-        style="margin-left: auto; display: flex; gap: 10px; align-items: center"
+        style="margin-left: auto; display: flex; gap: 6px; align-items: center"
       >
         <div id="normalControls">
           <button class="btn-edit-all" onclick="enableEditAll()">
@@ -429,6 +807,9 @@
           <button class="btn-save-all" onclick="saveAll()">Save All</button>
           <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
         </div>
+        <button class="btn-theme" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+          🌙 Dark
+        </button>
         <button class="btn-danger" onclick="logout()">🚪 Logout</button>
       </div>
     </div>
@@ -612,6 +993,28 @@
     <script>
       let editMode = false;
       let currentFilterCol = -1;
+
+      function applySavedTheme() {
+        const savedTheme = localStorage.getItem("we1_theme") || "light";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+        const btn = document.getElementById("themeToggleBtn");
+        if (btn) {
+          btn.innerHTML = savedTheme === "dark" ? "☀️ Light" : "🌙 Dark";
+        }
+      }
+
+      function toggleTheme() {
+        const current = document.documentElement.getAttribute("data-theme") || "light";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("we1_theme", next);
+        const btn = document.getElementById("themeToggleBtn");
+        if (btn) {
+          btn.innerHTML = next === "dark" ? "☀️ Light" : "🌙 Dark";
+        }
+      }
+
+      applySavedTheme();
 
       function showToast(message, isError = false) {
         const container = document.getElementById("toast-container");

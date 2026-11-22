@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>Monthly Income & Expenditure Statement</title>
     <script src="js/eq-session.js"></script>
+    <link rel="stylesheet" href="css/glass-theme.css" />
     <script src="/node_xlsx_scripts/html2pdf.bundle.min.js"></script>
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <style>
@@ -283,7 +284,9 @@
         background: #ffffff;
         border: 1px solid #cbd5e1;
         border-radius: 6px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        box-shadow:
+          0 10px 25px -5px rgba(0, 0, 0, 0.2),
+          0 8px 10px -6px rgba(0, 0, 0, 0.1);
         z-index: 10000;
         width: 250px;
         font-size: 13px;
@@ -508,26 +511,99 @@
     </div>
 
     <!-- Excel-Style Column Filter Menu -->
-    <div id="columnFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
+    <div
+      id="columnFilterMenu"
+      class="excel-filter-menu"
+      onclick="event.stopPropagation()"
+    >
       <div class="excel-filter-header">
         <span id="columnFilterTitle">Filter</span>
-        <span style="cursor: pointer; color: #64748b;" onclick="closeColumnFilterMenu()">✖</span>
+        <span
+          style="cursor: pointer; color: #64748b"
+          onclick="closeColumnFilterMenu()"
+          >✖</span
+        >
       </div>
-      <div id="columnSortSection" style="display: flex; gap: 4px; border-bottom: 1px solid #e2e8f0; padding: 6px 8px; justify-content: space-between;">
-        <button type="button" onclick="sortCurrentColumn('asc')" style="flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 4px; font-size: 11px; font-weight: 700; cursor: pointer; color: #1e293b; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+      <div
+        id="columnSortSection"
+        style="
+          display: flex;
+          gap: 4px;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 6px 8px;
+          justify-content: space-between;
+        "
+      >
+        <button
+          type="button"
+          onclick="sortCurrentColumn('asc')"
+          style="
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 6px 4px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
+          "
+        >
           <span>🔤</span> A-Z (Asc)
         </button>
-        <button type="button" onclick="sortCurrentColumn('desc')" style="flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 4px; font-size: 11px; font-weight: 700; cursor: pointer; color: #1e293b; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+        <button
+          type="button"
+          onclick="sortCurrentColumn('desc')"
+          style="
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 6px 4px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
+          "
+        >
           <span>🔤</span> Z-A (Desc)
         </button>
       </div>
       <div class="excel-filter-search">
-        <input type="text" id="columnFilterSearch" placeholder="Search..." oninput="searchColumnFilterItems()" />
+        <input
+          type="text"
+          id="columnFilterSearch"
+          placeholder="Search..."
+          oninput="searchColumnFilterItems()"
+        />
       </div>
       <ul class="excel-filter-list" id="columnFilterList"></ul>
       <div class="excel-filter-actions">
-        <button type="button" style="background:#e2e8f0; color:#334155;" onclick="clearColumnFilter()">Clear</button>
-        <button type="button" class="btn btn-blue" style="color:white; padding:5px 12px;" onclick="applyColumnFilter()">Apply</button>
+        <button
+          type="button"
+          style="background: #e2e8f0; color: #334155"
+          onclick="clearColumnFilter()"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          class="btn btn-blue"
+          style="color: white; padding: 5px 12px"
+          onclick="applyColumnFilter()"
+        >
+          Apply
+        </button>
       </div>
     </div>
 

@@ -20,7 +20,7 @@
         --table-header-text: #ffffff;
       }
 
-      body { 
+      body {
         margin: 0;
         padding: 20px;
         background: #1e293b;
@@ -591,10 +591,18 @@
         margin-top: 4px !important;
         margin-bottom: 10px !important;
       }
-      
-      [lang="ar"], [dir="rtl"], .comp-ar, .arabic-summary-table, .inv-title, .digital-auth-line, .theme-masar * {
+
+      [lang="ar"],
+      [dir="rtl"],
+      .comp-ar,
+      .arabic-summary-table,
+      .inv-title,
+      .digital-auth-line,
+      .theme-masar * {
         letter-spacing: normal !important;
-        font-feature-settings: "liga" 1, "calt" 1;
+        font-feature-settings:
+          "liga" 1,
+          "calt" 1;
         text-rendering: geometricPrecision;
       }
 
@@ -951,14 +959,18 @@
         padding-top: 14px;
       }
 
-      /* ================= SECURITY LOCK ================= */
+      /* ================= SECURITY LOCK (GLASSMORPHISM) ================= */
       #securityLockOverlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        background: #0f172a;
+        background: radial-gradient(circle at 20% 25%, rgba(2, 132, 199, 0.35), transparent 45%),
+                    radial-gradient(circle at 80% 75%, rgba(139, 92, 246, 0.3), transparent 45%),
+                    rgba(15, 23, 42, 0.78);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         z-index: 99999;
         display: flex;
         flex-direction: column;
@@ -966,48 +978,77 @@
         justify-content: center;
       }
       .security-box {
-        background: #1e293b;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 34px 30px;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.25);
         text-align: center;
-        border: 1px solid #334155;
-        width: 320px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        width: 330px;
       }
       .security-box h2 {
-        color: #f8fafc;
+        color: #ffffff;
         margin-top: 0;
         font-size: 18px;
-        margin-bottom: 20px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        margin-bottom: 22px;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
       }
       .security-box input {
         width: 100%;
-        padding: 12px;
-        margin-bottom: 15px;
-        border-radius: 5px;
-        border: 1px solid #475569;
-        background: #0f172a;
-        color: #fff;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(15, 23, 42, 0.45);
+        color: #ffffff;
         text-align: center;
         font-size: 16px;
-        letter-spacing: 2px;
+        letter-spacing: 3px;
         box-sizing: border-box;
+        outline: none;
+        transition: all 0.2s ease;
+      }
+      .security-box input::placeholder {
+        color: rgba(255, 255, 255, 0.45);
+        letter-spacing: 1px;
+        font-size: 13px;
+      }
+      .security-box input:focus {
+        border-color: #38bdf8;
+        background: rgba(15, 23, 42, 0.65);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
       }
       .security-box button {
         width: 100%;
-        background: #0284c7;
+        background: linear-gradient(135deg, #0284c7, #2563eb);
         color: white;
-        border: none;
+        border: 1px solid rgba(255, 255, 255, 0.2);
         padding: 12px;
-        border-radius: 5px;
+        border-radius: 10px;
         font-weight: 700;
         cursor: pointer;
         font-size: 14px;
+        letter-spacing: 0.4px;
+        box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .security-box button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(2, 132, 199, 0.5);
       }
       .sec-err {
-        color: #ef4444;
+        color: #fca5a5;
+        background: rgba(239, 68, 68, 0.18);
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        padding: 6px 10px;
+        border-radius: 6px;
         font-size: 12px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
         display: none;
         font-weight: 600;
       }
@@ -1040,7 +1081,9 @@
         animation: spin 0.8s linear infinite;
       }
       @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       /* ================= LANDSCAPE TIMESHEET PAGE ================= */
@@ -1314,7 +1357,15 @@
                 <span id="invNoDisplay" class="meta-tag">------</span>
               </div>
               <div class="meta-row">
-                <span class="meta-label" id="lblMetaSupply" style="line-height: 1.3; text-align: right;">Supply Month:<br><span style="font-size: 10px; font-weight: 700;">شهر التوريد :</span></span>
+                <span
+                  class="meta-label"
+                  id="lblMetaSupply"
+                  style="line-height: 1.3; text-align: right"
+                  >Supply Month:<br /><span
+                    style="font-size: 10px; font-weight: 700"
+                    >شهر التوريد :</span
+                  ></span
+                >
                 <span id="supplyDateDisplay" class="meta-tag">------</span>
               </div>
             </div>
@@ -1818,14 +1869,33 @@
       <div class="modal-card small-modal">
         <div class="modal-header">
           <h2>⚠️ Confirm Deletion</h2>
-          <button class="modal-close-btn" onclick="closeDeleteCustModal()">&times;</button>
+          <button class="modal-close-btn" onclick="closeDeleteCustModal()">
+            &times;
+          </button>
         </div>
-        <p style="font-size: 13.5px; color: #334155; line-height: 1.5; margin-bottom: 20px;">
-          Are you sure you want to remove <b id="delCustTargetName">this customer</b>? Data won't be lost permanently and past bills remain intact.
+        <p
+          style="
+            font-size: 13.5px;
+            color: #334155;
+            line-height: 1.5;
+            margin-bottom: 20px;
+          "
+        >
+          Are you sure you want to remove
+          <b id="delCustTargetName">this customer</b>? Data won't be lost
+          permanently and past bills remain intact.
         </p>
         <div class="modal-footer">
-          <button class="btn-ribbon btn-dash" onclick="closeDeleteCustModal()">Cancel</button>
-          <button class="btn-ribbon btn-pdf" style="background:#ef4444;" onclick="executeDeleteSupplier()">Delete</button>
+          <button class="btn-ribbon btn-dash" onclick="closeDeleteCustModal()">
+            Cancel
+          </button>
+          <button
+            class="btn-ribbon btn-pdf"
+            style="background: #ef4444"
+            onclick="executeDeleteSupplier()"
+          >
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -1835,14 +1905,33 @@
       <div class="modal-card small-modal">
         <div class="modal-header">
           <h2>⚠️ Confirm Deletion</h2>
-          <button class="modal-close-btn" onclick="closeDeleteItemModal()">&times;</button>
+          <button class="modal-close-btn" onclick="closeDeleteItemModal()">
+            &times;
+          </button>
         </div>
-        <p style="font-size: 13.5px; color: #334155; line-height: 1.5; margin-bottom: 20px;">
-          Are you sure you want to remove <b id="delItemTargetName">this item</b>? Past bills will not be affected.
+        <p
+          style="
+            font-size: 13.5px;
+            color: #334155;
+            line-height: 1.5;
+            margin-bottom: 20px;
+          "
+        >
+          Are you sure you want to remove
+          <b id="delItemTargetName">this item</b>? Past bills will not be
+          affected.
         </p>
         <div class="modal-footer">
-          <button class="btn-ribbon btn-dash" onclick="closeDeleteItemModal()">Cancel</button>
-          <button class="btn-ribbon btn-pdf" style="background:#ef4444;" onclick="executeDeleteItem()">Delete</button>
+          <button class="btn-ribbon btn-dash" onclick="closeDeleteItemModal()">
+            Cancel
+          </button>
+          <button
+            class="btn-ribbon btn-pdf"
+            style="background: #ef4444"
+            onclick="executeDeleteItem()"
+          >
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -1852,7 +1941,9 @@
       <div class="modal-card small-modal">
         <div class="modal-header">
           <h2>📄 Create New Bill</h2>
-          <button class="modal-close-btn" onclick="closeNewBillModal()">&times;</button>
+          <button class="modal-close-btn" onclick="closeNewBillModal()">
+            &times;
+          </button>
         </div>
         <p
           style="
@@ -1899,7 +1990,20 @@
       let customerToDeleteId = null;
       let itemToDeleteId = null;
 
-      const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const SHORT_MONTHS = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
 
       function toggleEnglishDesc() {
         const chk = document.getElementById("showEnglishDescCheckbox");
@@ -1924,7 +2028,10 @@
         if (raw) {
           try {
             restoredData = JSON.parse(raw);
-            restoredCompanyId = restoredData.company_id || restoredData.selected_company?.id || null;
+            restoredCompanyId =
+              restoredData.company_id ||
+              restoredData.selected_company?.id ||
+              null;
             prevInvoiceNo = restoredData.invoice_no || null;
           } catch (e) {
             restoredData = null;
@@ -1938,8 +2045,12 @@
         isExistingBillEditing = Boolean(restoredData);
         if (restoredData) activeMode = "editbill";
 
-        if (restoredCompanyId && companiesList.some((c) => String(c.id) === String(restoredCompanyId))) {
-          document.getElementById("companySelect").value = String(restoredCompanyId);
+        if (
+          restoredCompanyId &&
+          companiesList.some((c) => String(c.id) === String(restoredCompanyId))
+        ) {
+          document.getElementById("companySelect").value =
+            String(restoredCompanyId);
           await applyCompanyDetailsToView(restoredCompanyId, prevInvoiceNo);
         } else {
           await fetchNextNumber(null);
@@ -1953,14 +2064,34 @@
 
           if (restoredData.vendor_name) {
             const bName = restoredData.vendor_name;
-            setElementTexts(["buyerNameDisplay", "buyerNameDisplayStand", "wefaqBuyerNameVal", "hakaBuyerNameVal", "aljodaBuyerNameVal"], bName);
+            setElementTexts(
+              [
+                "buyerNameDisplay",
+                "buyerNameDisplayStand",
+                "wefaqBuyerNameVal",
+                "hakaBuyerNameVal",
+                "aljodaBuyerNameVal",
+              ],
+              bName,
+            );
             const mBuyer = document.getElementById("modalBuyerName");
             if (mBuyer) mBuyer.value = bName;
 
-            const matchedBuyer = savedSuppliers.find((s) => s.customer_name.toLowerCase() === bName.toLowerCase());
+            const matchedBuyer = savedSuppliers.find(
+              (s) => s.customer_name.toLowerCase() === bName.toLowerCase(),
+            );
             if (matchedBuyer) {
               const bVat = matchedBuyer.vat_number || "";
-              setElementTexts(["buyerVatDisplay", "buyerVatDisplayStand", "wefaqBuyerVatVal", "hakaBuyerVatVal", "aljodaBuyerVatVal"], bVat);
+              setElementTexts(
+                [
+                  "buyerVatDisplay",
+                  "buyerVatDisplayStand",
+                  "wefaqBuyerVatVal",
+                  "hakaBuyerVatVal",
+                  "aljodaBuyerVatVal",
+                ],
+                bVat,
+              );
               const mVat = document.getElementById("modalBuyerVat");
               if (mVat) mVat.value = bVat;
             }
@@ -1973,24 +2104,40 @@
             document.getElementById("modalDate").value = standardDate;
           }
 
-          if (Array.isArray(payload.selected_supply_months) && payload.selected_supply_months.length > 0) {
+          if (
+            Array.isArray(payload.selected_supply_months) &&
+            payload.selected_supply_months.length > 0
+          ) {
             selectedSupplyMonths = payload.selected_supply_months;
-          } else if (restoredData.billing_month && restoredData.billing_month !== "------") {
-            const rawParts = restoredData.billing_month.split("|").map(s => s.trim());
+          } else if (
+            restoredData.billing_month &&
+            restoredData.billing_month !== "------"
+          ) {
+            const rawParts = restoredData.billing_month
+              .split("|")
+              .map((s) => s.trim());
             selectedSupplyMonths = [];
 
-            rawParts.forEach(part => {
+            rawParts.forEach((part) => {
               const subMatches = part.split(",");
               let yearVal = "2026";
               const yrMatch = part.match(/[-/](\d{2,4})$/);
               if (yrMatch) {
-                yearVal = yrMatch[1].length === 2 ? "20" + yrMatch[1] : yrMatch[1];
+                yearVal =
+                  yrMatch[1].length === 2 ? "20" + yrMatch[1] : yrMatch[1];
               }
-              subMatches.forEach(sm => {
-                const cleanSm = sm.replace(/[-/]\d{2,4}$/, "").trim().toLowerCase();
-                const mIdx = SHORT_MONTHS.map(m => m.toLowerCase()).indexOf(cleanSm);
+              subMatches.forEach((sm) => {
+                const cleanSm = sm
+                  .replace(/[-/]\d{2,4}$/, "")
+                  .trim()
+                  .toLowerCase();
+                const mIdx = SHORT_MONTHS.map((m) => m.toLowerCase()).indexOf(
+                  cleanSm,
+                );
                 if (mIdx !== -1) {
-                  selectedSupplyMonths.push(`${yearVal}-${String(mIdx + 1).padStart(2, "0")}`);
+                  selectedSupplyMonths.push(
+                    `${yearVal}-${String(mIdx + 1).padStart(2, "0")}`,
+                  );
                 }
               });
             });
@@ -1999,9 +2146,15 @@
           updateSupplyDateDisplay();
           renderSelectedMonthsPills();
 
-          if (Array.isArray(restoredData.manual_items) && restoredData.manual_items.length > 0) {
+          if (
+            Array.isArray(restoredData.manual_items) &&
+            restoredData.manual_items.length > 0
+          ) {
             manualItems = restoredData.manual_items;
-          } else if (Array.isArray(payload.manual_items) && payload.manual_items.length > 0) {
+          } else if (
+            Array.isArray(payload.manual_items) &&
+            payload.manual_items.length > 0
+          ) {
             manualItems = payload.manual_items;
           }
 
@@ -2019,19 +2172,25 @@
         renderInvoiceViewTable();
 
         const urlParams = new URLSearchParams(window.location.search);
-        const isDirect = urlParams.get("directDownload") === "true" || sessionStorage.getItem("autoDownloadPdfTrigger") === "true";
+        const isDirect =
+          urlParams.get("directDownload") === "true" ||
+          sessionStorage.getItem("autoDownloadPdfTrigger") === "true";
         const withTsParam = urlParams.get("withTs") !== "false";
         if (isDirect) {
           sessionStorage.removeItem("autoDownloadPdfTrigger");
           if (window.history.replaceState) {
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname,
+            );
           }
           setTimeout(() => downloadAndSaveInvoice(withTsParam), 500);
         }
       }
 
       function setElementTexts(ids, text) {
-        ids.forEach(id => {
+        ids.forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.innerText = text;
         });
@@ -2043,9 +2202,22 @@
         const sel = document.getElementById("companySelect");
         sel.innerHTML = '<option value="">-- Choose Company --</option>';
         if (data.success && data.companies.length > 0) {
-          companiesList = data.companies;
+          const getCompanyMeta = (c) => {
+            const raw = `${c.short_code || ""} ${c.company_name_en || ""}`.toUpperCase();
+            if (raw.includes("HAK")) return { rank: 1, label: "Haka" };
+            if (raw.includes("JOD") || raw.includes("AJC")) return { rank: 2, label: "Al Joda" };
+            if (raw.includes("MW") || raw.includes("MASAR")) return { rank: 3, label: "Masar Wheels" };
+            if (raw.includes("WE1") || raw.includes("WEFAQ") || raw.includes("TRACK")) return { rank: 4, label: "We1 Track Co" };
+            return { rank: 99, label: c.short_code || c.company_name_en };
+          };
+
+          companiesList = [...data.companies].sort(
+            (a, b) => getCompanyMeta(a).rank - getCompanyMeta(b).rank
+          );
+
           companiesList.forEach((c) => {
-            sel.innerHTML += `<option value="${c.id}">${c.company_name_en} (${c.company_name_ar || ""})</option>`;
+            const shortLabel = getCompanyMeta(c).label;
+            sel.innerHTML += `<option value="${c.id}">${shortLabel}</option>`;
           });
         }
       }
@@ -2107,9 +2279,12 @@
           }
           btmCont.style.display = "flex";
 
-          const currentSupply = document.getElementById("supplyDateDisplay")?.innerHTML || "------";
-          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
-          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentSupply =
+            document.getElementById("supplyDateDisplay")?.innerHTML || "------";
+          const currentDate =
+            document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv =
+            document.getElementById("invNoDisplay")?.innerText || "------";
           const currentBuyer = getActiveBuyerName();
           const currentVat = getActiveBuyerVat();
 
@@ -2142,21 +2317,22 @@
             <span id="hakaInvNoVal" class="haka-clean-tag">${currentInv}</span>
           `;
 
-          authLine.innerText = "فاتورة ضريبية مُعتمدة إلكترونياً – تم التحقق والاعتماد رقمياً";
+          authLine.innerText =
+            "فاتورة ضريبية مُعتمدة إلكترونياً – تم التحقق والاعتماد رقمياً";
           if (remTitle) remTitle.innerText = "ملاحظات :";
-        }
-        else if (themeKey === "masar") {
+        } else if (themeKey === "masar") {
           leftWrap.style.display = "none";
           rightWrap.style.display = "flex";
           document.getElementById("lblMetaDate").innerText = "تاريخ الفاتورة :";
-          document.getElementById("lblMetaInv").innerText = "رقم ملخص الفاتورة :";
+          document.getElementById("lblMetaInv").innerText =
+            "رقم ملخص الفاتورة :";
           document.getElementById("lblMetaSupply").innerHTML = "شهر التوريد :";
           titleEl.innerText = "ملخص الفاتورة";
-          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          authLine.innerText =
+            "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
           buyerTitle.innerText = "العميل";
           if (remTitle) remTitle.innerText = "ملاحظات :";
-        }
-        else if (themeKey === "wefaq") {
+        } else if (themeKey === "wefaq") {
           leftWrap.style.display = "none";
           rightWrap.style.display = "none";
           if (mainGrid) mainGrid.style.display = "none";
@@ -2173,9 +2349,12 @@
           }
           wefaqContainer.style.display = "flex";
 
-          const currentSupply = document.getElementById("supplyDateDisplay")?.innerHTML || "------";
-          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
-          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentSupply =
+            document.getElementById("supplyDateDisplay")?.innerHTML || "------";
+          const currentDate =
+            document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv =
+            document.getElementById("invNoDisplay")?.innerText || "------";
           const currentBuyer = getActiveBuyerName();
           const currentVat = getActiveBuyerVat();
 
@@ -2207,17 +2386,19 @@
             </div>
           `;
 
-          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          authLine.innerText =
+            "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
           if (remTitle) remTitle.innerText = "Note ::";
-        }
-        else {
+        } else {
           leftWrap.style.display = "none";
           rightWrap.style.display = "none";
           if (mainGrid) mainGrid.style.display = "none";
           const oldBuyerBar = document.getElementById("buyerDetailsBar");
           if (oldBuyerBar) oldBuyerBar.style.display = "none";
 
-          let aljodaContainer = document.getElementById("aljodaLayoutContainer");
+          let aljodaContainer = document.getElementById(
+            "aljodaLayoutContainer",
+          );
           if (!aljodaContainer) {
             aljodaContainer = document.createElement("div");
             aljodaContainer.id = "aljodaLayoutContainer";
@@ -2228,11 +2409,17 @@
           aljodaContainer.style.display = "flex";
 
           const selCompId = document.getElementById("companySelect")?.value;
-          const compData = compObj || companiesList.find((c) => String(c.id) === String(selCompId)) || {};
+          const compData =
+            compObj ||
+            companiesList.find((c) => String(c.id) === String(selCompId)) ||
+            {};
 
-          const currentSupply = document.getElementById("supplyDateDisplay")?.innerHTML || "------";
-          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
-          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentSupply =
+            document.getElementById("supplyDateDisplay")?.innerHTML || "------";
+          const currentDate =
+            document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv =
+            document.getElementById("invNoDisplay")?.innerText || "------";
           const currentBuyer = getActiveBuyerName();
           const currentVat = getActiveBuyerVat();
 
@@ -2249,13 +2436,13 @@
                 </div>
               </div>
               <div style="display:flex; flex-direction:column; align-items:flex-end; text-align:right; max-width:50%;">
-                ${compData.logo_url ? `<img src="${compData.logo_url}" style="max-height:85px; max-width:200px; object-fit:contain; margin-bottom:6px;" alt="Logo" />` : ''}
-                <b style="font-family:'Tajawal',sans-serif; font-size:16px; font-weight:800; color:var(--primary-dark);">${compData.company_name_ar || ''}</b>
+                ${compData.logo_url ? `<img src="${compData.logo_url}" style="max-height:85px; max-width:200px; object-fit:contain; margin-bottom:6px;" alt="Logo" />` : ""}
+                <b style="font-family:'Tajawal',sans-serif; font-size:16px; font-weight:800; color:var(--primary-dark);">${compData.company_name_ar || ""}</b>
                 <div style="font-size:12.5px; color:#334155; margin-top:3px; font-weight:700; font-family:'Tajawal',sans-serif;">
-                  س ت : <span style="font-family:monospace;">${compData.cr_number || '-'}</span>
+                  س ت : <span style="font-family:monospace;">${compData.cr_number || "-"}</span>
                 </div>
                 <div style="font-size:12.5px; color:#334155; margin-top:2px; font-weight:700; font-family:'Tajawal',sans-serif;">
-                  الرقم الضريبي : <span style="font-family:monospace;">${compData.vat_number || '-'}</span>
+                  الرقم الضريبي : <span style="font-family:monospace;">${compData.vat_number || "-"}</span>
                 </div>
               </div>
             </div>
@@ -2266,7 +2453,8 @@
             </div>
           `;
 
-          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          authLine.innerText =
+            "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
           if (remTitle) remTitle.innerText = "Note ::";
         }
 
@@ -2293,7 +2481,11 @@
 
       function detectThemeByCompany(comp) {
         if (!comp) return "default";
-        const code = (comp.short_code || comp.company_name_en || "").toUpperCase();
+        const code = (
+          comp.short_code ||
+          comp.company_name_en ||
+          ""
+        ).toUpperCase();
         if (code.includes("HAK") || code.includes("HAKA")) return "haka";
         if (code.includes("MW") || code.includes("MASAR")) return "masar";
         if (code.includes("WE") || code.includes("WEFAQ")) return "wefaq";
@@ -2302,19 +2494,44 @@
 
       function syncDateDisplays(dateStr) {
         const formatted = formatToYyyyMmmDd(dateStr);
-        setElementTexts(["dateDisplay", "dateDisplayLeft", "wefaqDateVal", "hakaDateVal", "aljodaDateVal"], formatted);
+        setElementTexts(
+          [
+            "dateDisplay",
+            "dateDisplayLeft",
+            "wefaqDateVal",
+            "hakaDateVal",
+            "aljodaDateVal",
+          ],
+          formatted,
+        );
       }
 
       function syncInvNoDisplays(invNo) {
         const val = invNo || "------";
-        setElementTexts(["invNoDisplay", "invNoDisplayLeft", "wefaqInvNoVal", "hakaInvNoVal", "aljodaInvNoVal"], val);
+        setElementTexts(
+          [
+            "invNoDisplay",
+            "invNoDisplayLeft",
+            "wefaqInvNoVal",
+            "hakaInvNoVal",
+            "aljodaInvNoVal",
+          ],
+          val,
+        );
         const mInv = document.getElementById("modalInvNo");
         if (mInv) mInv.value = val;
       }
 
       function syncSupplyDateDisplays(htmlContent) {
-        const ids = ["supplyDateDisplay", "supplyDateDisplayLeft", "wefaqSupplyVal", "hakaSupplyVal", "hakaSupplyValBtm", "aljodaSupplyVal"];
-        ids.forEach(id => {
+        const ids = [
+          "supplyDateDisplay",
+          "supplyDateDisplayLeft",
+          "wefaqSupplyVal",
+          "hakaSupplyVal",
+          "hakaSupplyValBtm",
+          "aljodaSupplyVal",
+        ];
+        ids.forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.innerHTML = htmlContent;
         });
@@ -2325,7 +2542,7 @@
         const remarksText = document.getElementById("remarksDisplayText");
         const remarksTitle = document.getElementById("remarksDisplayTitle");
         const remarksModalInp = document.getElementById("modalRemarksInput");
-        
+
         if (currentRemarks && currentRemarks.trim() !== "") {
           const val = currentRemarks.trim();
           if (remarksText) remarksText.innerText = val;
@@ -2372,7 +2589,9 @@
           const y = parts[0];
           const mPart = parts[1];
           const d = String(parts[2]).padStart(2, "0");
-          const idx = SHORT_MONTHS.map(m => m.toLowerCase()).indexOf(mPart.toLowerCase());
+          const idx = SHORT_MONTHS.map((m) => m.toLowerCase()).indexOf(
+            mPart.toLowerCase(),
+          );
           if (idx !== -1) {
             return `${y}-${String(idx + 1).padStart(2, "0")}-${d}`;
           }
@@ -2405,7 +2624,9 @@
         const [yy, mm] = yyyyMm.split("-");
         const monthIndex = parseInt(mm, 10) - 1;
         const shortYear = yy ? yy.slice(-2) : "";
-        return SHORT_MONTHS[monthIndex] ? `${SHORT_MONTHS[monthIndex]}-${shortYear}` : yyyyMm;
+        return SHORT_MONTHS[monthIndex]
+          ? `${SHORT_MONTHS[monthIndex]}-${shortYear}`
+          : yyyyMm;
       }
 
       function updateSupplyDateDisplay() {
@@ -2436,7 +2657,9 @@
       }
 
       function renderSelectedMonthsPills() {
-        const container = document.getElementById("modalSelectedMonthsContainer");
+        const container = document.getElementById(
+          "modalSelectedMonthsContainer",
+        );
         if (!container) return;
         container.innerHTML = "";
         selectedSupplyMonths.forEach((m, idx) => {
@@ -2480,7 +2703,8 @@
         const tbody = document.getElementById("invoiceItemsBody");
         tbody.innerHTML = "";
 
-        const isArabicTheme = currentCompanyTheme === "haka" || currentCompanyTheme === "masar";
+        const isArabicTheme =
+          currentCompanyTheme === "haka" || currentCompanyTheme === "masar";
 
         if (isArabicTheme) {
           thead.innerHTML = `
@@ -2510,7 +2734,9 @@
           `;
         }
 
-        let subtotal = 0, totalVat = 0, grandTotal = 0;
+        let subtotal = 0,
+          totalVat = 0,
+          grandTotal = 0;
 
         if (manualItems.length === 0) {
           document.getElementById("sumBeforeVat").innerText = "0.00";
@@ -2522,7 +2748,8 @@
         manualItems.forEach((row, idx) => {
           const qty = parseFloat(row.qty) || 0;
           const rate = parseFloat(row.rate) || 0;
-          const vatPct = row.vatPercent !== undefined ? parseFloat(row.vatPercent) : 15;
+          const vatPct =
+            row.vatPercent !== undefined ? parseFloat(row.vatPercent) : 15;
           const rowSub = qty * rate;
           const rowVat = rowSub * (vatPct / 100);
           const rowTot = rowSub + rowVat;
@@ -2531,8 +2758,12 @@
           totalVat += rowVat;
           grandTotal += rowTot;
 
-          const seqTd = hideSeqColumn ? "" : `<td style="font-family:monospace;">${row.seq || idx + 1}</td>`;
-          const alignStyle = isArabicTheme ? "text-align:right; padding-right:10px;" : "text-align:left; padding-left:10px;";
+          const seqTd = hideSeqColumn
+            ? ""
+            : `<td style="font-family:monospace;">${row.seq || idx + 1}</td>`;
+          const alignStyle = isArabicTheme
+            ? "text-align:right; padding-right:10px;"
+            : "text-align:left; padding-left:10px;";
 
           const enName = (row.vtype || "").trim();
           const arName = (row.vtype_ar || "").trim();
@@ -2562,21 +2793,27 @@
 
         document.getElementById("sumBeforeVat").innerText = subtotal.toFixed(2);
         document.getElementById("sumVatAmount").innerText = totalVat.toFixed(2);
-        document.getElementById("sumGrandTotal").innerText = grandTotal.toFixed(2);
+        document.getElementById("sumGrandTotal").innerText =
+          grandTotal.toFixed(2);
         renderTimesheetTable();
       }
 
       /* ================= TIMESHEET RENDER LOGIC ================= */
       function renderTimesheetTable() {
         const selCompId = document.getElementById("companySelect")?.value;
-        const selComp = companiesList.find((c) => String(c.id) === String(selCompId));
-        const compNameDisplay = selComp ? selComp.company_name_en : "COMPANY NAME";
+        const selComp = companiesList.find(
+          (c) => String(c.id) === String(selCompId),
+        );
+        const compNameDisplay = selComp
+          ? selComp.company_name_en
+          : "COMPANY NAME";
         const tsCompEl = document.getElementById("tsCompNameDisplay");
         if (tsCompEl) tsCompEl.innerText = compNameDisplay;
 
         const invNo = document.getElementById("invNoDisplay")?.innerText.trim();
         const tsInvEl = document.getElementById("tsInvNoDisplay");
-        if (tsInvEl) tsInvEl.innerText = `Bill No: ${invNo && invNo !== "------" ? invNo : "------"}`;
+        if (tsInvEl)
+          tsInvEl.innerText = `Bill No: ${invNo && invNo !== "------" ? invNo : "------"}`;
 
         let targetYear = 2026;
         let targetMonth = 10;
@@ -2595,7 +2832,9 @@
         }
 
         if (!resolvedFromSupply) {
-          const supplyText = (document.getElementById("supplyDateDisplay")?.innerText || "").trim();
+          const supplyText = (
+            document.getElementById("supplyDateDisplay")?.innerText || ""
+          ).trim();
           if (supplyText && supplyText !== "------") {
             const lowerText = supplyText.toLowerCase();
             for (let i = 0; i < SHORT_MONTHS.length; i++) {
@@ -2616,7 +2855,11 @@
         }
 
         if (!resolvedFromSupply) {
-          const dateStr = currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay")?.innerText.trim());
+          const dateStr =
+            currentInvoiceDate ||
+            parseToYyyyMmDd(
+              document.getElementById("dateDisplay")?.innerText.trim(),
+            );
           if (dateStr && dateStr.includes("-")) {
             const parts = dateStr.split("-");
             targetYear = parseInt(parts[0], 10) || 2026;
@@ -2682,8 +2925,14 @@
           const vtype = (row.vtype || "").trim();
           if (!vtype && !row.qty) return;
           const cleanV = vtype.toLowerCase();
-          const isOT = cleanV.includes("overtime") || cleanV.includes("over time") || /\bot\b/i.test(cleanV);
-          const seq = row.seq !== undefined && row.seq !== "" ? String(row.seq).trim() : String(idx + 1);
+          const isOT =
+            cleanV.includes("overtime") ||
+            cleanV.includes("over time") ||
+            /\bot\b/i.test(cleanV);
+          const seq =
+            row.seq !== undefined && row.seq !== ""
+              ? String(row.seq).trim()
+              : String(idx + 1);
           const qty = parseFloat(row.qty) || 0;
 
           if (isOT) {
@@ -2712,34 +2961,54 @@
 
           const fullDays = Math.floor(normalQty / 10);
           const partialHours = normalQty % 10;
-          let workedDaysCount = Math.min(fullDays + (partialHours > 0 ? 1 : 0), workingDaysList.length);
+          let workedDaysCount = Math.min(
+            fullDays + (partialHours > 0 ? 1 : 0),
+            workingDaysList.length,
+          );
 
           const dailyHours = {};
           for (let d = 1; d <= daysInMonth; d++) {
             dailyHours[d] = fridaysList.includes(d) ? "" : "B";
           }
 
-          const shuffledWorkingDays = [...workingDaysList].sort(() => Math.random() - 0.5);
-          const chosenWorkedDays = shuffledWorkingDays.slice(0, workedDaysCount);
+          const shuffledWorkingDays = [...workingDaysList].sort(
+            () => Math.random() - 0.5,
+          );
+          const chosenWorkedDays = shuffledWorkingDays.slice(
+            0,
+            workedDaysCount,
+          );
 
           for (let i = 0; i < chosenWorkedDays.length; i++) {
             dailyHours[chosenWorkedDays[i]] = 10;
           }
 
           if (partialHours > 0 && chosenWorkedDays.length > 0) {
-            const partialDayIndex = Math.floor(Math.random() * chosenWorkedDays.length);
+            const partialDayIndex = Math.floor(
+              Math.random() * chosenWorkedDays.length,
+            );
             dailyHours[chosenWorkedDays[partialDayIndex]] = partialHours;
           }
 
           if (otQty > 0) {
             let remainingOT = otQty;
-            const availableFridays = [...fridaysList].sort(() => Math.random() - 0.5);
+            const availableFridays = [...fridaysList].sort(
+              () => Math.random() - 0.5,
+            );
 
             if (remainingOT >= 20 && availableFridays.length > 0) {
-              const fridaysToUse = remainingOT >= 35 ? Math.min(2, availableFridays.length) : 1;
+              const fridaysToUse =
+                remainingOT >= 35 ? Math.min(2, availableFridays.length) : 1;
               for (let f = 0; f < fridaysToUse; f++) {
                 const friDay = availableFridays[f];
-                const friChunk = remainingOT >= 10 ? (Math.random() > 0.4 ? 10 : 6) : (remainingOT >= 6 ? 6 : remainingOT);
+                const friChunk =
+                  remainingOT >= 10
+                    ? Math.random() > 0.4
+                      ? 10
+                      : 6
+                    : remainingOT >= 6
+                      ? 6
+                      : remainingOT;
                 dailyHours[friDay] = friChunk;
                 remainingOT -= friChunk;
                 if (remainingOT <= 0) break;
@@ -2749,12 +3018,18 @@
             let safetyLoop = 0;
             while (remainingOT >= 1 && safetyLoop < 500) {
               safetyLoop++;
-              const validDays = chosenWorkedDays.filter((d) => typeof dailyHours[d] === "number" && dailyHours[d] < 14);
+              const validDays = chosenWorkedDays.filter(
+                (d) => typeof dailyHours[d] === "number" && dailyHours[d] < 14,
+              );
               if (validDays.length === 0) break;
 
-              const targetDay = validDays[Math.floor(Math.random() * validDays.length)];
+              const targetDay =
+                validDays[Math.floor(Math.random() * validDays.length)];
               const room = 14 - dailyHours[targetDay];
-              const addChunk = Math.min(remainingOT >= 2 && Math.random() > 0.4 ? 2 : 1, room);
+              const addChunk = Math.min(
+                remainingOT >= 2 && Math.random() > 0.4 ? 2 : 1,
+                room,
+              );
 
               dailyHours[targetDay] += addChunk;
               remainingOT -= addChunk;
@@ -2772,9 +3047,15 @@
             }
 
             if (remainingOT > 0) {
-              const validDays = chosenWorkedDays.filter((d) => typeof dailyHours[d] === "number" && dailyHours[d] + remainingOT <= 14);
-              const targetDay = validDays.length > 0 ? validDays[0] : chosenWorkedDays[0];
-              dailyHours[targetDay] = Math.round((dailyHours[targetDay] + remainingOT) * 100) / 100;
+              const validDays = chosenWorkedDays.filter(
+                (d) =>
+                  typeof dailyHours[d] === "number" &&
+                  dailyHours[d] + remainingOT <= 14,
+              );
+              const targetDay =
+                validDays.length > 0 ? validDays[0] : chosenWorkedDays[0];
+              dailyHours[targetDay] =
+                Math.round((dailyHours[targetDay] + remainingOT) * 100) / 100;
               remainingOT = 0;
             }
           }
@@ -2811,24 +3092,35 @@
 
       /* ================= EDIT BILL POPUP LOGIC ================= */
       function openEditBillModal() {
-        document.getElementById("modalInvNo").value = document.getElementById("invNoDisplay").innerText.trim();
-        const activeDate = currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay").innerText.trim());
-        document.getElementById("modalDate").value = activeDate && activeDate !== "------" ? activeDate : "";
+        document.getElementById("modalInvNo").value = document
+          .getElementById("invNoDisplay")
+          .innerText.trim();
+        const activeDate =
+          currentInvoiceDate ||
+          parseToYyyyMmDd(
+            document.getElementById("dateDisplay").innerText.trim(),
+          );
+        document.getElementById("modalDate").value =
+          activeDate && activeDate !== "------" ? activeDate : "";
 
         const chk = document.getElementById("hideSeqCheckbox");
         if (chk) chk.checked = hideSeqColumn;
 
         const currentBuyer = getActiveBuyerName();
-        document.getElementById("modalBuyerName").value = currentBuyer === "-" ? "" : currentBuyer;
+        document.getElementById("modalBuyerName").value =
+          currentBuyer === "-" ? "" : currentBuyer;
 
         const currentVat = getActiveBuyerVat();
-        document.getElementById("modalBuyerVat").value = currentVat === "-" ? "" : currentVat;
+        document.getElementById("modalBuyerVat").value =
+          currentVat === "-" ? "" : currentVat;
 
         document.getElementById("modalRemarksInput").value = currentRemarks;
         renderSelectedMonthsPills();
 
         if (manualItems.length === 0) {
-          manualItems = [{ vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 }];
+          manualItems = [
+            { vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 },
+          ];
         }
         renderPopupTable();
         document.getElementById("editBillModal").style.display = "flex";
@@ -2848,7 +3140,8 @@
         manualItems.forEach((row, idx) => {
           const qty = parseFloat(row.qty) || 0;
           const rate = parseFloat(row.rate) || 0;
-          const vatPct = row.vatPercent !== undefined ? parseFloat(row.vatPercent) : 15;
+          const vatPct =
+            row.vatPercent !== undefined ? parseFloat(row.vatPercent) : 15;
           const sub = qty * rate;
           const vat = sub * (vatPct / 100);
           const tot = sub + vat;
@@ -2891,7 +3184,7 @@
           (i) =>
             i.item_name.toLowerCase() === cleanVal ||
             (i.item_name_ar && i.item_name_ar.toLowerCase() === cleanVal) ||
-            `${i.item_name} | ${i.item_name_ar}`.toLowerCase() === cleanVal
+            `${i.item_name} | ${i.item_name_ar}`.toLowerCase() === cleanVal,
         );
         if (existing) {
           manualItems[index].vtype = existing.item_name;
@@ -2903,7 +3196,8 @@
           cancelItemEdit();
           document.getElementById("addItemNameInput").value = val.trim();
           if (manualItems[index].rate) {
-            document.getElementById("addItemRateInput").value = manualItems[index].rate;
+            document.getElementById("addItemRateInput").value =
+              manualItems[index].rate;
           }
           openItemsModal();
           document.getElementById("addItemNameArInput").focus();
@@ -2928,7 +3222,9 @@
 
       function removePopupRow(index) {
         if (manualItems.length <= 1) {
-          manualItems = [{ vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 }];
+          manualItems = [
+            { vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 },
+          ];
           renderPopupTable();
           return;
         }
@@ -2941,24 +3237,30 @@
         if (!cleanVal) return;
 
         const found = savedSuppliers.find((s) => {
-          const matchName = s.customer_name && s.customer_name.toLowerCase() === cleanVal;
+          const matchName =
+            s.customer_name && s.customer_name.toLowerCase() === cleanVal;
           const matchNick = s.nickname && s.nickname.toLowerCase() === cleanVal;
-          const matchCombined = `${s.customer_name} (${s.nickname})`.toLowerCase() === cleanVal;
+          const matchCombined =
+            `${s.customer_name} (${s.nickname})`.toLowerCase() === cleanVal;
           return matchName || matchNick || matchCombined;
         });
 
         if (found) {
           document.getElementById("modalBuyerName").value = found.customer_name;
-          document.getElementById("modalBuyerVat").value = found.vat_number || "";
+          document.getElementById("modalBuyerVat").value =
+            found.vat_number || "";
         }
       }
 
       async function saveAndApplyBillChanges() {
         const buyer = document.getElementById("modalBuyerName").value.trim();
         const vat = document.getElementById("modalBuyerVat").value.trim();
-        currentRemarks = document.getElementById("modalRemarksInput").value.trim();
+        currentRemarks = document
+          .getElementById("modalRemarksInput")
+          .value.trim();
 
-        const monthInputVal = document.getElementById("modalSupplyMonthInput")?.value || "";
+        const monthInputVal =
+          document.getElementById("modalSupplyMonthInput")?.value || "";
         if (monthInputVal) {
           if (!selectedSupplyMonths.includes(monthInputVal)) {
             selectedSupplyMonths.push(monthInputVal);
@@ -2980,7 +3282,21 @@
         updateSupplyDateDisplay();
         const bName = buyer || "";
         const bVat = vat || "";
-        setElementTexts(["buyerNameDisplay", "buyerVatDisplay", "buyerNameDisplayStand", "buyerVatDisplayStand", "wefaqBuyerNameVal", "wefaqBuyerVatVal", "hakaBuyerNameVal", "hakaBuyerVatVal", "aljodaBuyerNameVal", "aljodaBuyerVatVal"], bName);
+        setElementTexts(
+          [
+            "buyerNameDisplay",
+            "buyerVatDisplay",
+            "buyerNameDisplayStand",
+            "buyerVatDisplayStand",
+            "wefaqBuyerNameVal",
+            "wefaqBuyerVatVal",
+            "hakaBuyerNameVal",
+            "hakaBuyerVatVal",
+            "aljodaBuyerNameVal",
+            "aljodaBuyerVatVal",
+          ],
+          bName,
+        );
 
         updateRemarksDisplay();
 
@@ -2992,9 +3308,13 @@
           const cleanBuyerName = buyer.trim();
           const matchedSupplier = savedSuppliers.find(
             (s) =>
-              (s.customer_name && s.customer_name.toLowerCase() === cleanBuyerName.toLowerCase()) ||
-              (s.nickname && s.nickname.toLowerCase() === cleanBuyerName.toLowerCase()) ||
-              `${s.customer_name} (${s.nickname})`.toLowerCase() === cleanBuyerName.toLowerCase()
+              (s.customer_name &&
+                s.customer_name.toLowerCase() ===
+                  cleanBuyerName.toLowerCase()) ||
+              (s.nickname &&
+                s.nickname.toLowerCase() === cleanBuyerName.toLowerCase()) ||
+              `${s.customer_name} (${s.nickname})`.toLowerCase() ===
+                cleanBuyerName.toLowerCase(),
           );
 
           if (!matchedSupplier) {
@@ -3014,8 +3334,12 @@
               console.error("Auto customer save failed:", err);
             }
           } else {
-            document.getElementById("modalBuyerName").value = matchedSupplier.customer_name;
-            setElementTexts(["buyerNameDisplay", "buyerNameDisplayStand"], matchedSupplier.customer_name);
+            document.getElementById("modalBuyerName").value =
+              matchedSupplier.customer_name;
+            setElementTexts(
+              ["buyerNameDisplay", "buyerNameDisplayStand"],
+              matchedSupplier.customer_name,
+            );
           }
         }
 
@@ -3038,7 +3362,9 @@
         const dl = document.getElementById("suppliersDataList");
         dl.innerHTML = "";
         savedSuppliers.forEach((s) => {
-          const displayLabel = s.nickname ? `${s.customer_name} (${s.nickname})` : s.customer_name;
+          const displayLabel = s.nickname
+            ? `${s.customer_name} (${s.nickname})`
+            : s.customer_name;
           dl.innerHTML += `<option value="${displayLabel}">${s.customer_code ? "[" + s.customer_code + "] " : ""}${s.vat_number ? "VAT: " + s.vat_number : ""}</option>`;
         });
       }
@@ -3086,12 +3412,14 @@
       function promptDeleteCustomer(id, name) {
         customerToDeleteId = id;
         document.getElementById("delCustTargetName").innerText = name;
-        document.getElementById("deleteCustConfirmModal").style.display = "flex";
+        document.getElementById("deleteCustConfirmModal").style.display =
+          "flex";
       }
 
       function closeDeleteCustModal() {
         customerToDeleteId = null;
-        document.getElementById("deleteCustConfirmModal").style.display = "none";
+        document.getElementById("deleteCustConfirmModal").style.display =
+          "none";
       }
 
       async function executeDeleteSupplier() {
@@ -3117,12 +3445,14 @@
       function promptDeleteItem(id, name) {
         itemToDeleteId = id;
         document.getElementById("delItemTargetName").innerText = name;
-        document.getElementById("deleteItemConfirmModal").style.display = "flex";
+        document.getElementById("deleteItemConfirmModal").style.display =
+          "flex";
       }
 
       function closeDeleteItemModal() {
         itemToDeleteId = null;
-        document.getElementById("deleteItemConfirmModal").style.display = "none";
+        document.getElementById("deleteItemConfirmModal").style.display =
+          "none";
       }
 
       async function executeDeleteItem() {
@@ -3160,13 +3490,18 @@
         if (!cust) return;
 
         document.getElementById("editCustIdInput").value = cust.id;
-        document.getElementById("addCustNameInput").value = cust.customer_name || "";
+        document.getElementById("addCustNameInput").value =
+          cust.customer_name || "";
         document.getElementById("addCustNickInput").value = cust.nickname || "";
-        document.getElementById("addCustVatInput").value = cust.vat_number || "";
+        document.getElementById("addCustVatInput").value =
+          cust.vat_number || "";
 
-        document.getElementById("custModalHeaderTitle").innerText = `✏️ Edit Customer (${cust.customer_code || "ID:" + cust.id})`;
-        document.getElementById("saveCustSubmitBtn").innerText = "Update Customer";
-        document.getElementById("cancelCustEditBtn").style.display = "inline-flex";
+        document.getElementById("custModalHeaderTitle").innerText =
+          `✏️ Edit Customer (${cust.customer_code || "ID:" + cust.id})`;
+        document.getElementById("saveCustSubmitBtn").innerText =
+          "Update Customer";
+        document.getElementById("cancelCustEditBtn").style.display =
+          "inline-flex";
       }
 
       function cancelCustomerEdit() {
@@ -3175,8 +3510,10 @@
         document.getElementById("addCustNickInput").value = "";
         document.getElementById("addCustVatInput").value = "";
 
-        document.getElementById("custModalHeaderTitle").innerText = "🏢 Customers Directory";
-        document.getElementById("saveCustSubmitBtn").innerText = "Save Customer";
+        document.getElementById("custModalHeaderTitle").innerText =
+          "🏢 Customers Directory";
+        document.getElementById("saveCustSubmitBtn").innerText =
+          "Save Customer";
         document.getElementById("cancelCustEditBtn").style.display = "none";
       }
 
@@ -3196,7 +3533,7 @@
               id: id || null,
               customer_name: name,
               nickname: nick,
-              vat_number: vat
+              vat_number: vat,
             }),
           });
           const data = await res.json();
@@ -3221,7 +3558,7 @@
           if (dl) {
             dl.innerHTML = "";
             savedItems.forEach((i) => {
-              dl.innerHTML += `<option value="${i.item_name}">${i.item_name_ar ? i.item_name_ar + ' - ' : ''}Rate: ${parseFloat(i.rate || 0).toFixed(2)}</option>`;
+              dl.innerHTML += `<option value="${i.item_name}">${i.item_name_ar ? i.item_name_ar + " - " : ""}Rate: ${parseFloat(i.rate || 0).toFixed(2)}</option>`;
             });
           }
           renderFilteredItemsTable("");
@@ -3280,12 +3617,15 @@
 
         document.getElementById("editItemIdInput").value = item.id;
         document.getElementById("addItemNameInput").value = item.item_name;
-        document.getElementById("addItemNameArInput").value = item.item_name_ar || "";
+        document.getElementById("addItemNameArInput").value =
+          item.item_name_ar || "";
         document.getElementById("addItemRateInput").value = item.rate;
 
-        document.getElementById("itemsModalHeaderTitle").innerText = `✏️ Edit Item (${item.item_code || "ID:" + item.id})`;
+        document.getElementById("itemsModalHeaderTitle").innerText =
+          `✏️ Edit Item (${item.item_code || "ID:" + item.id})`;
         document.getElementById("saveItemSubmitBtn").innerText = "Update Item";
-        document.getElementById("cancelItemEditBtn").style.display = "inline-flex";
+        document.getElementById("cancelItemEditBtn").style.display =
+          "inline-flex";
       }
 
       function cancelItemEdit() {
@@ -3294,7 +3634,8 @@
         document.getElementById("addItemNameArInput").value = "";
         document.getElementById("addItemRateInput").value = "";
 
-        document.getElementById("itemsModalHeaderTitle").innerText = "📦 Items / Vehicles Directory";
+        document.getElementById("itemsModalHeaderTitle").innerText =
+          "📦 Items / Vehicles Directory";
         document.getElementById("saveItemSubmitBtn").innerText = "Save Item";
         document.getElementById("cancelItemEditBtn").style.display = "none";
       }
@@ -3302,7 +3643,9 @@
       async function saveNewItemManual() {
         const id = document.getElementById("editItemIdInput").value;
         const name = document.getElementById("addItemNameInput").value.trim();
-        const nameAr = document.getElementById("addItemNameArInput").value.trim();
+        const nameAr = document
+          .getElementById("addItemNameArInput")
+          .value.trim();
         const rate = document.getElementById("addItemRateInput").value.trim();
 
         if (!name) return alert("Please enter Item Name (English)");
@@ -3311,14 +3654,22 @@
           const res = await fetch("/e-invoice/api/save-item", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: id || null, item_name: name, item_name_ar: nameAr, rate: rate }),
+            body: JSON.stringify({
+              id: id || null,
+              item_name: name,
+              item_name_ar: nameAr,
+              rate: rate,
+            }),
           });
           const data = await res.json();
           if (data.success) {
             cancelItemEdit();
             await loadSavedItems();
 
-            if (pendingPopupItemRowIndex !== null && manualItems[pendingPopupItemRowIndex]) {
+            if (
+              pendingPopupItemRowIndex !== null &&
+              manualItems[pendingPopupItemRowIndex]
+            ) {
               manualItems[pendingPopupItemRowIndex].vtype = name;
               manualItems[pendingPopupItemRowIndex].vtype_ar = nameAr || "";
               if (rate) manualItems[pendingPopupItemRowIndex].rate = rate;
@@ -3339,7 +3690,9 @@
         const dateToUse =
           targetDate ||
           currentInvoiceDate ||
-          parseToYyyyMmDd(document.getElementById("dateDisplay")?.innerText.trim()) ||
+          parseToYyyyMmDd(
+            document.getElementById("dateDisplay")?.innerText.trim(),
+          ) ||
           new Date().toISOString().split("T")[0];
         let url = `/e-invoice/api/next-invoice-no?invoice_date=${encodeURIComponent(dateToUse)}`;
         if (compId) url += `&company_id=${compId}`;
@@ -3401,13 +3754,22 @@
 
         const ftParts = [];
         if (comp.address_line_ar)
-          ftParts.push(`<span dir="rtl" style="unicode-bidi:isolate;">${comp.address_line_ar.trim()}</span>`);
+          ftParts.push(
+            `<span dir="rtl" style="unicode-bidi:isolate;">${comp.address_line_ar.trim()}</span>`,
+          );
         if (comp.address_line_en)
-          ftParts.push(`<span dir="ltr" style="unicode-bidi:isolate;">${comp.address_line_en.trim()}</span>`);
+          ftParts.push(
+            `<span dir="ltr" style="unicode-bidi:isolate;">${comp.address_line_en.trim()}</span>`,
+          );
         if (comp.email)
-          ftParts.push(`<span dir="ltr" style="unicode-bidi:isolate;">${comp.email.trim()}</span>`);
+          ftParts.push(
+            `<span dir="ltr" style="unicode-bidi:isolate;">${comp.email.trim()}</span>`,
+          );
         document.getElementById("footerAddrContainer").innerHTML = ftParts
-          .map((p, i) => `<span style="white-space:nowrap;">${p}${i < ftParts.length - 1 ? " |" : ""}</span>`)
+          .map(
+            (p, i) =>
+              `<span style="white-space:nowrap;">${p}${i < ftParts.length - 1 ? " |" : ""}</span>`,
+          )
           .join(" ");
         document.getElementById("footerEmail").innerText = "";
 
@@ -3468,7 +3830,10 @@
       async function onlySaveInvoiceData() {
         const selId = document.getElementById("companySelect").value;
         if (!selId) {
-          showPdfToast("⚠️ ദയവായി ഒരു കമ്പനി തിരഞ്ഞെടുക്കുക! (Please select a Company)", false);
+          showPdfToast(
+            "⚠️ ദയവായി ഒരു കമ്പനി തിരഞ്ഞെടുക്കുക! (Please select a Company)",
+            false,
+          );
           document.getElementById("companySelect").focus();
           return;
         }
@@ -3486,13 +3851,26 @@
           invoice_no: invNo,
           company_id: selId || null,
           company_name: comp ? comp.company_name_en : "",
-          vendor_name: (document.getElementById("buyerNameDisplay")?.innerText || document.getElementById("buyerNameDisplayStand")?.innerText || "").trim(),
-          billing_month: document.getElementById("supplyDateDisplay").innerText.trim(),
-          invoice_date: currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay").innerText.trim()),
+          vendor_name: (
+            document.getElementById("buyerNameDisplay")?.innerText ||
+            document.getElementById("buyerNameDisplayStand")?.innerText ||
+            ""
+          ).trim(),
+          billing_month: document
+            .getElementById("supplyDateDisplay")
+            .innerText.trim(),
+          invoice_date:
+            currentInvoiceDate ||
+            parseToYyyyMmDd(
+              document.getElementById("dateDisplay").innerText.trim(),
+            ),
           invoice_time: new Date().toLocaleTimeString(),
-          subtotal: parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
-          vat_amount: parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
-          grand_total: parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
+          subtotal:
+            parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
+          vat_amount:
+            parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
+          grand_total:
+            parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
           has_seal: isSealEngaged,
           mode: activeMode,
           manual_items: manualItems,
@@ -3544,7 +3922,8 @@
         event.stopPropagation();
         const menu = document.getElementById("pdfDropdownMenu");
         if (menu) {
-          menu.style.display = menu.style.display === "block" ? "none" : "block";
+          menu.style.display =
+            menu.style.display === "block" ? "none" : "block";
         }
       }
 
@@ -3595,7 +3974,9 @@
               const allElements = clonedDoc.querySelectorAll("*");
               allElements.forEach((el) => {
                 const computed = window.getComputedStyle(el);
-                const isArabic = computed.direction === "rtl" || /[\u0600-\u06FF]/.test(el.innerText || "");
+                const isArabic =
+                  computed.direction === "rtl" ||
+                  /[\u0600-\u06FF]/.test(el.innerText || "");
                 if (isArabic) {
                   el.style.letterSpacing = "0px !important";
                   el.style.wordSpacing = "normal !important";
@@ -3603,7 +3984,7 @@
                   el.style.textRendering = "optimizeLegibility";
                 }
               });
-            }
+            },
           };
 
           const canvas = await html2canvas(invoiceEl, html2canvasOptions);
@@ -3620,7 +4001,10 @@
             const timesheetEl = document.getElementById("printableTimesheet");
             if (timesheetEl) {
               showPdfToast("Processing Timesheet (Landscape)...", true);
-              const tsCanvas = await html2canvas(timesheetEl, html2canvasOptions);
+              const tsCanvas = await html2canvas(
+                timesheetEl,
+                html2canvasOptions,
+              );
               const tsImgData = tsCanvas.toDataURL("image/jpeg", 0.98);
               pdf.addPage("a4", "landscape");
               const a4LandWidth = pdf.internal.pageSize.getWidth();
@@ -3647,13 +4031,26 @@
           invoice_no: invNo,
           company_id: selId || null,
           company_name: comp ? comp.company_name_en : "",
-          vendor_name: (document.getElementById("buyerNameDisplay")?.innerText || document.getElementById("buyerNameDisplayStand")?.innerText || "").trim(),
-          billing_month: document.getElementById("supplyDateDisplay").innerText.trim(),
-          invoice_date: currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay").innerText.trim()),
+          vendor_name: (
+            document.getElementById("buyerNameDisplay")?.innerText ||
+            document.getElementById("buyerNameDisplayStand")?.innerText ||
+            ""
+          ).trim(),
+          billing_month: document
+            .getElementById("supplyDateDisplay")
+            .innerText.trim(),
+          invoice_date:
+            currentInvoiceDate ||
+            parseToYyyyMmDd(
+              document.getElementById("dateDisplay").innerText.trim(),
+            ),
           invoice_time: new Date().toLocaleTimeString(),
-          subtotal: parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
-          vat_amount: parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
-          grand_total: parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
+          subtotal:
+            parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
+          vat_amount:
+            parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
+          grand_total:
+            parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
           has_seal: isSealEngaged,
           mode: activeMode,
           manual_items: manualItems,
@@ -3687,15 +4084,27 @@
         isExistingBillEditing = false;
         activeMode = "newbill";
 
-        manualItems = [{ vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 }];
+        manualItems = [
+          { vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 },
+        ];
         setupInitialDates();
 
         currentRemarks = "";
         updateRemarksDisplay();
 
-        setElementTexts(["buyerNameDisplay", "buyerVatDisplay", "buyerNameDisplayStand", "buyerVatDisplayStand"], "");
-        if (document.getElementById("modalBuyerName")) document.getElementById("modalBuyerName").value = "";
-        if (document.getElementById("modalBuyerVat")) document.getElementById("modalBuyerVat").value = "";
+        setElementTexts(
+          [
+            "buyerNameDisplay",
+            "buyerVatDisplay",
+            "buyerNameDisplayStand",
+            "buyerVatDisplayStand",
+          ],
+          "",
+        );
+        if (document.getElementById("modalBuyerName"))
+          document.getElementById("modalBuyerName").value = "";
+        if (document.getElementById("modalBuyerVat"))
+          document.getElementById("modalBuyerVat").value = "";
 
         const selId = document.getElementById("companySelect").value;
         if (selId) {
@@ -3730,7 +4139,8 @@
 
           if (data.success) {
             sessionStorage.setItem("einv_system_unlocked", "true");
-            document.getElementById("securityLockOverlay").style.display = "none";
+            document.getElementById("securityLockOverlay").style.display =
+              "none";
             initEInvoice();
           } else {
             const errEl = document.getElementById("secError");

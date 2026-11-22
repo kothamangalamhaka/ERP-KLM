@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>Equipment Wise Details</title>
     <script src="js/eq-session.js"></script>
+    <link rel="stylesheet" href="css/glass-theme.css" />
     <!-- 🟢 Include Libraries for PDF, ZIP & High Quality Image Copy -->
     <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
     <script src="/node_xlsx_scripts/html2pdf.bundle.min.js"></script>
@@ -139,7 +140,9 @@
         background: #ffffff;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        box-shadow:
+          0 10px 25px -5px rgba(0, 0, 0, 0.25),
+          0 8px 10px -6px rgba(0, 0, 0, 0.1);
         z-index: 10000;
         width: 200px;
         font-size: 13px;
@@ -197,7 +200,7 @@
         cursor: pointer;
       }
 
-      /* Details Table Box */
+      /* Details Table Box & Year Cards */
       .details-box {
         background: white;
         padding: 20px;
@@ -208,12 +211,80 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 2px solid #eee;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.16);
         padding-bottom: 10px;
+        margin-bottom: 14px;
       }
       .details-box h3 {
         margin: 0;
         color: #2c3e50;
+      }
+      .year-tables-container {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .year-card-box {
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .year-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      }
+      .year-card-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #38bdf8;
+      }
+
+      /* Active Export Dropdown in Top Ribbon */
+      .active-export-wrap {
+        position: relative;
+        display: inline-block;
+      }
+      .active-export-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 0;
+        min-width: 175px;
+        background: rgba(15, 23, 42, 0.96);
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+        z-index: 3000;
+        overflow: hidden;
+      }
+      .active-export-menu.show {
+        display: block;
+      }
+      .active-export-menu button {
+        width: 100%;
+        background: none;
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        color: #f8fafc;
+        padding: 10px 14px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .active-export-menu button:last-child {
+        border-bottom: none;
+      }
+      .active-export-menu button:hover {
+        background: rgba(56, 189, 248, 0.22);
       }
       table {
         width: 100%;
@@ -258,46 +329,30 @@
         color: white;
       }
 
-      /* 🟢 Convert Dropdown Styles */
-      .convert-dropdown {
-        position: relative;
-        display: inline-block;
+      /* 🟢 Direct Emoji Action Buttons Above Each Year Table */
+      .table-export-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
-      .convert-btn {
-        background: #8e44ad;
-        color: white;
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        font-weight: bold;
-        font-size: 13px;
+      .emoji-action-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        color: #f8fafc;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        font-size: 17px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
+        transition: all 0.18s ease;
       }
-      .convert-content {
-        display: none;
-        position: absolute;
-        right: 0;
-        background-color: white;
-        min-width: 130px;
-        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
-        z-index: 10;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-      }
-      .convert-content a {
-        color: #333;
-        padding: 10px 14px;
-        text-decoration: none;
-        display: block;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .convert-content a:hover {
-        background-color: #f1f1f1;
-      }
-      .convert-dropdown:hover .convert-content {
-        display: block;
+      .emoji-action-btn:hover {
+        transform: translateY(-2px);
+        border-color: #38bdf8;
+        background: rgba(56, 189, 248, 0.2);
       }
 
       /* ==========================================
@@ -350,14 +405,45 @@
         Detailed Review of Each Equipment
       </h2>
       <!-- Mobile Hamburger Toggle Button -->
-      <button class="mobile-menu-btn" onclick="toggleActionMenu(event)">☰</button>
+      <button class="mobile-menu-btn" onclick="toggleActionMenu(event)">
+        ☰
+      </button>
 
       <div id="actionMenu" class="action-menu-collapse">
-        <!-- 🟢 Export All as Excel, PDF & PNG Buttons -->
-        <button class="btn btn-excel" onclick="exportAllEquipmentsExcel()">
+        <!-- 🟢 Active Equipment Export Dropdown (Excel / PDF / PNG) -->
+        <div class="active-export-wrap">
+          <button
+            type="button"
+            class="btn"
+            style="background: #0d9488; color: white"
+            onclick="toggleActiveExportMenu(event)"
+          >
+            ⚡ Active Export ▼
+          </button>
+          <div id="activeExportMenu" class="active-export-menu">
+            <button type="button" onclick="exportActiveEquipmentExcelTabs()">
+              📊 Excel (Year Tabs)
+            </button>
+            <button type="button" onclick="exportActiveEquipmentPDFPages()">
+              📄 PDF (Year Pages)
+            </button>
+            <button type="button" onclick="exportActiveEquipmentPNGZip()">
+              🖼️ PNG (ZIP)
+            </button>
+          </div>
+        </div>
+
+        <!-- 🟢 Export All with Period Selection Modal -->
+        <button
+          class="btn btn-excel"
+          onclick="openAllPeriodExportModal('excel')"
+        >
           Export All as Excel
         </button>
-        <button class="btn btn-pdf" onclick="exportAllEquipmentsPDF()">
+        <button
+          class="btn btn-pdf"
+          onclick="openAllPeriodExportModal('pdf')"
+        >
           Export All as PDF
         </button>
         <button class="btn btn-png" onclick="exportAllEquipmentsPNGZip()">
@@ -383,53 +469,137 @@
       <p>Loading equipments...</p>
     </div>
 
-    <!-- Selected Equipment History Table -->
+    <!-- Selected Equipment Year-Wise History Cards -->
     <div class="details-box" id="detailsWrapper" style="display: none">
       <div class="title-row">
         <h3 id="selectedPlateTitle">Equipment Details</h3>
-        <!-- 🟢 Convert Dropdown Button -->
-        <div class="convert-dropdown" data-html2canvas-ignore="true">
-          <button class="convert-btn">Convert ▼</button>
-          <div class="convert-content">
-            <a onclick="exportSinglePDF()">1. PDF</a>
-            <a onclick="exportSingleExcel()">2. Excel</a>
-            <a onclick="copyAsImage()">3. Copy (Image Card)</a>
+      </div>
+      <div id="yearTablesContainer" class="year-tables-container"></div>
+    </div>
+
+    <!-- Export All Period Selection Modal (Current Year / Entire Period / Custom Year Gap) -->
+    <div
+      id="allPeriodExportModal"
+      class="modal-overlay"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10015;
+        justify-content: center;
+        align-items: center;
+      "
+      onclick="if (event.target === this) closeAllPeriodExportModal();"
+    >
+      <div class="modal-box" style="width: 400px; max-width: calc(100vw - 24px); padding: 22px">
+        <h4 id="allPeriodModalTitle" style="margin: 0 0 14px 0; font-size: 16px">
+          📊 Export All Equipments
+        </h4>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer">
+            <input
+              type="radio"
+              name="allExportScope"
+              value="current"
+              checked
+              onchange="toggleCustomYearGapBox(false)"
+            />
+            <span><b>Current Year</b> (<span id="lblCurrentYearScope">2026</span>)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer">
+            <input
+              type="radio"
+              name="allExportScope"
+              value="entire"
+              onchange="toggleCustomYearGapBox(false)"
+            />
+            <span><b>Entire Period</b> (All Available Years)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer">
+            <input
+              type="radio"
+              name="allExportScope"
+              value="custom"
+              onchange="toggleCustomYearGapBox(true)"
+            />
+            <span><b>Custom Year Gap</b> (e.g., 2024 - 2026)</span>
+          </label>
+        </div>
+
+        <div
+          id="customYearGapBox"
+          style="
+            display: none;
+            background: rgba(2, 6, 23, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+          "
+        >
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+            <div>
+              <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px">Start Year</label>
+              <input type="number" id="expGapStartYear" min="2000" max="2100" style="width: 100%; padding: 6px" />
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px">End Year</label>
+              <input type="number" id="expGapEndYear" min="2000" max="2100" style="width: 100%; padding: 6px" />
+            </div>
           </div>
         </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            type="button"
+            class="btn"
+            style="background: #475569; color: white"
+            onclick="closeAllPeriodExportModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-blue"
+            onclick="confirmAllPeriodExport()"
+          >
+            Export Now
+          </button>
+        </div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Year</th>
-            <th>Month</th>
-            <th>Maintenance Cost</th>
-            <th>Driver (Basic + OT + Allowance)</th>
-            <th>Penalty</th>
-            <th>Santook Rent</th>
-            <th>Kafil Commission</th>
-            <th>Owner Commission</th>
-            <th>Investor Commission</th>
-            <th>Debit Note</th>
-            <th>PWAS</th>
-            <th>Other Expenses</th>
-            <th>Operational Revenue</th>
-            <th>Gain / Loss</th>
-          </tr>
-        </thead>
-        <tbody id="equipmentBody"></tbody>
-      </table>
     </div>
 
     <!-- Year Filter Context Menu Popup -->
-    <div id="yearContextMenu" class="year-context-menu" onclick="event.stopPropagation()">
+    <div
+      id="yearContextMenu"
+      class="year-context-menu"
+      onclick="event.stopPropagation()"
+    >
       <div class="year-context-header">
         <span>📅 Filter Years</span>
-        <span style="cursor: pointer; color: #64748b; font-size: 14px;" onclick="closeYearContextMenu()">✖</span>
+        <span
+          style="cursor: pointer; color: #64748b; font-size: 14px"
+          onclick="closeYearContextMenu()"
+          >✖</span
+        >
       </div>
       <ul class="year-context-list" id="yearContextList"></ul>
       <div class="year-context-actions">
-        <button type="button" style="background:#e2e8f0; color:#334155;" onclick="closeYearContextMenu()">Close</button>
-        <button type="button" class="btn-blue" style="color:white;" onclick="applyYearFilter()">Apply</button>
+        <button
+          type="button"
+          style="background: #e2e8f0; color: #334155"
+          onclick="closeYearContextMenu()"
+        >
+          Close
+        </button>
+        <button
+          type="button"
+          class="btn-blue"
+          style="color: white"
+          onclick="applyYearFilter()"
+        >
+          Apply
+        </button>
       </div>
     </div>
 
@@ -455,17 +625,24 @@
           let logsArray = [];
           for (let y = currentYear - 2; y <= currentYear + 2; y++) {
             const [res, compRes] = await Promise.all([
-              fetch(`/api/own-equipment/tracker/data?year=${y}`).then((r) => r.json()),
-              fetch(`/api/own-equipment/company-helper/monthly-companies?year=${y}`)
+              fetch(`/api/own-equipment/tracker/data?year=${y}`).then((r) =>
+                r.json(),
+              ),
+              fetch(
+                `/api/own-equipment/company-helper/monthly-companies?year=${y}`,
+              )
                 .then((r) => r.json())
-                .catch(() => ({ companies: {} }))
+                .catch(() => ({ companies: {} })),
             ]);
             if (res.equipments) {
               allEquipments = res.equipments;
               allEquipments.sort((a, b) => {
                 const pA = (a.plate_no || "").toString().trim();
                 const pB = (b.plate_no || "").toString().trim();
-                return pA.localeCompare(pB, undefined, { numeric: true, sensitivity: "base" });
+                return pA.localeCompare(pB, undefined, {
+                  numeric: true,
+                  sensitivity: "base",
+                });
               });
             }
             if (res.logs) {
@@ -481,8 +658,17 @@
           allLogs = logsArray;
 
           // Distinct years set cheyyunnu (Default aayi ellaam selected aayirikkum)
-          const distinctYears = [...new Set(allLogs.map((l) => Number(l.year)).filter((y) => !isNaN(y) && y > 0))].sort((a, b) => a - b);
-          availableYears = distinctYears.length > 0 ? distinctYears : [new Date().getFullYear()];
+          const distinctYears = [
+            ...new Set(
+              allLogs
+                .map((l) => Number(l.year))
+                .filter((y) => !isNaN(y) && y > 0),
+            ),
+          ].sort((a, b) => a - b);
+          availableYears =
+            distinctYears.length > 0
+              ? distinctYears
+              : [new Date().getFullYear()];
           selectedYears = [...availableYears];
 
           renderPlateButtons();
@@ -503,7 +689,10 @@
         allEquipments.sort((a, b) => {
           const pA = (a.plate_no || "").toString().trim();
           const pB = (b.plate_no || "").toString().trim();
-          return pA.localeCompare(pB, undefined, { numeric: true, sensitivity: "base" });
+          return pA.localeCompare(pB, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
         });
 
         allEquipments.forEach((eq) => {
@@ -549,10 +738,86 @@
         return `${shortMonths[date.getMonth()]} ${date.getFullYear().toString().slice(-2)}`;
       }
 
+      let activeRenderToken = 0;
+      let pendingAllExportFormat = "excel";
+
+      function toggleActiveExportMenu(e) {
+        if (e) e.stopPropagation();
+        const menu = document.getElementById("activeExportMenu");
+        if (menu) menu.classList.toggle("show");
+      }
+
+      function computeEquipmentLogRow(eq, l) {
+        const maint = Number(l.maintenance_cost || 0);
+        const basicOt =
+          Number(l.basic_salary || 0) +
+          Number(l.overtime || 0) +
+          Number(l.allowance || 0);
+        const penalty = Number(l.penalty || 0);
+        const rent = Number(l.santook_rent || 0);
+        const rev = Number(l.op_revenue || 0);
+        const debit = Number(l.debit || 0);
+        const pwas = Number(l.pwas || 0);
+        const other = Number(l.other_expense || 0);
+
+        const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
+        const compObj =
+          (companyMappingData[eqPlateClean] &&
+            companyMappingData[eqPlateClean][l.year] &&
+            companyMappingData[eqPlateClean][l.year][l.month]) ||
+          {};
+        const compName =
+          typeof compObj === "object"
+            ? compObj.company || "Not Work"
+            : compObj || "Not Work";
+
+        let kafilPctVal = 0;
+        if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
+          kafilPctVal = Number(l.kafil_pct);
+        } else if (Number(l.kafil_comm || 0) > 0) {
+          kafilPctVal = 0;
+        } else {
+          const isSingleNonWe1 =
+            compName !== "Not Work" &&
+            compName !== "We1" &&
+            !compName.includes("&");
+          kafilPctVal = isSingleNonWe1 ? 3 : 0;
+        }
+
+        let kafil = 0;
+        if (kafilPctVal > 0 && rev > 0) {
+          kafil = Number(((rev * kafilPctVal) / 100).toFixed(1));
+        } else {
+          kafil = Number(l.kafil_comm || 0);
+        }
+
+        const owner = Number(l.owner_comm || 0);
+        const inv = Number(l.investor_comm || 0);
+        const netSal = basicOt - penalty;
+        const totalCost =
+          maint + netSal + rent + kafil + owner + inv + debit + pwas + other;
+        const gl = rev - totalCost;
+
+        return {
+          maint,
+          basicOt,
+          penalty,
+          rent,
+          kafil,
+          owner,
+          inv,
+          debit,
+          pwas,
+          other,
+          rev,
+          gl,
+        };
+      }
+
       function toggleEquipmentLogs(eq) {
         const detailsBox = document.getElementById("detailsWrapper");
         const title = document.getElementById("selectedPlateTitle");
-        const tbody = document.getElementById("equipmentBody");
+        const container = document.getElementById("yearTablesContainer");
 
         if (activeEquipmentId === eq.id) {
           detailsBox.style.display = "none";
@@ -577,7 +842,6 @@
           { minimumFractionDigits: 2, maximumFractionDigits: 2 },
         );
 
-        // 🟢 Remaining Purchase Cost Logic (Only show if > 0)
         let remCostVal = parseFloat(eq.remaining_purchase_cost || 0);
         let remText = "";
         if (remCostVal > 0) {
@@ -585,23 +849,27 @@
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           });
-          remText = ` | <span style="color: #c0392b;">Remaining Cost: ${formattedRem} SAR</span>`;
+          remText = ` | <span style="color: #f87171;">Remaining Cost: ${formattedRem} SAR</span>`;
         }
 
         title.innerHTML = `Plate No: ${eq.plate_no} | Purchase Date: ${formattedDate} | Purchase Cost: ${formattedCost} SAR${remText}`;
+        container.innerHTML = "";
 
-        tbody.innerHTML = "";
-        // Selected years mathram filter cheyyunnu
         const eqLogs = allLogs.filter(
-          (l) => l.equipment_id === eq.id && selectedYears.includes(Number(l.year))
+          (l) =>
+            l.equipment_id === eq.id && selectedYears.includes(Number(l.year)),
         );
 
         if (eqLogs.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="14" style="color:gray;">No monthly records found for the selected year(s).</td></tr>`;
+          container.innerHTML = `<p style="color:#94a3b8; text-align:center; padding:16px;">No monthly records found for the selected year(s).</p>`;
           return;
         }
 
         eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
+        const yearsSet = [...new Set(eqLogs.map((l) => Number(l.year)))].sort(
+          (a, b) => a - b,
+        );
+
         const shortMonths = [
           "Jan",
           "Feb",
@@ -617,148 +885,156 @@
           "Dec",
         ];
 
-        let totMaint = 0,
-          totBasicOt = 0,
-          totPenalty = 0,
-          totRent = 0;
-        let totKafil = 0,
-          totOwner = 0,
-          totInv = 0,
-          totDebit = 0,
-          totPwas = 0,
-          totOther = 0;
-        let totRev = 0,
-          totGl = 0;
+        // Parallel / Non-blocking batch rendering of each year's table card
+        const renderToken = ++activeRenderToken;
+        let yCursor = 0;
 
-        // Filter cheytha logs-le years edukkunnu
-        const yearsSet = [...new Set(eqLogs.map((l) => Number(l.year)))].sort((a, b) => a - b);
+        function renderNextYearBatch() {
+          if (renderToken !== activeRenderToken || yCursor >= yearsSet.length)
+            return;
 
-        yearsSet.forEach((yr) => {
-          const yrLogs = eqLogs.filter((l) => l.year === yr);
-          let yrMaint = 0, yrBasicOt = 0, yrPenalty = 0, yrRent = 0, yrKafil = 0;
-          let yrOwner = 0, yrInv = 0, yrDebit = 0, yrPwas = 0, yrOther = 0, yrRev = 0, yrGl = 0;
+          const yr = yearsSet[yCursor++];
+          const yrLogs = eqLogs.filter((l) => Number(l.year) === yr);
 
+          let yrMaint = 0,
+            yrBasicOt = 0,
+            yrPenalty = 0,
+            yrRent = 0,
+            yrKafil = 0;
+          let yrOwner = 0,
+            yrInv = 0,
+            yrDebit = 0,
+            yrPwas = 0,
+            yrOther = 0,
+            yrRev = 0,
+            yrGl = 0;
+
+          let rowsHtml = "";
           yrLogs.forEach((l) => {
-            const maint = Number(l.maintenance_cost || 0);
-            const basicOt = Number(l.basic_salary || 0) + Number(l.overtime || 0) + Number(l.allowance || 0);
-            const penalty = Number(l.penalty || 0);
-            const rent = Number(l.santook_rent || 0);
-            const rev = Number(l.op_revenue || 0);
-            const debit = Number(l.debit || 0);
-            const pwas = Number(l.pwas || 0);
-            const other = Number(l.other_expense || 0);
+            const c = computeEquipmentLogRow(eq, l);
+            const monthName = shortMonths[l.month - 1] || l.month;
 
-          const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
-          const compObj =
-            (companyMappingData[eqPlateClean] &&
-              companyMappingData[eqPlateClean][l.year] &&
-              companyMappingData[eqPlateClean][l.year][l.month]) ||
-            {};
-          const compName =
-            typeof compObj === "object"
-              ? compObj.company || "Not Work"
-              : compObj || "Not Work";
+            yrMaint += c.maint;
+            yrBasicOt += c.basicOt;
+            yrPenalty += c.penalty;
+            yrRent += c.rent;
+            yrKafil += c.kafil;
+            yrOwner += c.owner;
+            yrInv += c.inv;
+            yrDebit += c.debit;
+            yrPwas += c.pwas;
+            yrOther += c.other;
+            yrRev += c.rev;
+            yrGl += c.gl;
 
-          let kafilPctVal = 0;
-          if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
-            kafilPctVal = Number(l.kafil_pct);
-          } else if (Number(l.kafil_comm || 0) > 0) {
-            kafilPctVal = 0;
-          } else {
-            const isSingleNonWe1 =
-              compName !== "Not Work" &&
-              compName !== "We1" &&
-              !compName.includes("&");
-            kafilPctVal = isSingleNonWe1 ? 3 : 0;
-          }
-
-          let kafil = 0;
-          if (kafilPctVal > 0 && rev > 0) {
-            kafil = Number(((rev * kafilPctVal) / 100).toFixed(1));
-          } else {
-            kafil = Number(l.kafil_comm || 0);
-          }
-
-          const owner = Number(l.owner_comm || 0);
-          const inv = Number(l.investor_comm || 0);
-
-          const netSal = basicOt - penalty;
-          const totalCost =
-            maint + netSal + rent + kafil + owner + inv + debit + pwas + other;
-          const gl = rev - totalCost;
-          const monthName = shortMonths[l.month - 1] || l.month;
-
-          totMaint += maint; totBasicOt += basicOt; totPenalty += penalty; totRent += rent;
-            totKafil += kafil; totOwner += owner; totInv += inv; totDebit += debit;
-            totPwas += pwas; totOther += other; totRev += rev; totGl += gl;
-
-            yrMaint += maint; yrBasicOt += basicOt; yrPenalty += penalty; yrRent += rent;
-            yrKafil += kafil; yrOwner += owner; yrInv += inv; yrDebit += debit;
-            yrPwas += pwas; yrOther += other; yrRev += rev; yrGl += gl;
-
-            tbody.innerHTML += `
-                  <tr style="height: 38px;">
-                      <td><b>${l.year}</b></td>
-                      <td><b>${monthName}</b></td>
-                      <td>${fmtList(maint)}</td>
-                      <td>${fmtList(basicOt)}</td>
-                      <td style="color:red;">${fmtList(penalty)}</td>
-                      <td>${fmtList(rent)}</td>
-                      <td>${fmtList(kafil)}</td>
-                      <td>${fmtList(owner)}</td>
-                      <td>${fmtList(inv)}</td>
-                      <td>${fmtList(debit)}</td>
-                      <td>${fmtList(pwas)}</td>
-                      <td>${fmtList(other)}</td>
-                      <td>${fmtList(rev)}</td>
-                      <td style="color:${gl < 0 ? "red" : gl > 0 ? "green" : "#64748b"}; font-weight:bold;">${gl.toFixed(2)}</td>
-                  </tr>
-              `;
-          });
-
-          // Year sub-total (multiple years undenkil year-wise clear aayi kaanan)
-          if (yearsSet.length > 1) {
-            tbody.innerHTML += `
-              <tr style="background-color: #f1f5f9; font-weight: bold; border-top: 1.5px solid #64748b; height: 38px;" class="year-subtotal-row">
-                  <td colspan="2">TOTAL ${yr}</td>
-                  <td>${fmtList(yrMaint)}</td>
-                  <td>${fmtList(yrBasicOt)}</td>
-                  <td style="color:red;">${fmtList(yrPenalty)}</td>
-                  <td>${fmtList(yrRent)}</td>
-                  <td>${fmtList(yrKafil)}</td>
-                  <td>${fmtList(yrOwner)}</td>
-                  <td>${fmtList(yrInv)}</td>
-                  <td>${fmtList(yrDebit)}</td>
-                  <td>${fmtList(yrPwas)}</td>
-                  <td>${fmtList(yrOther)}</td>
-                  <td>${fmtList(yrRev)}</td>
-                  <td style="color:${yrGl < 0 ? "red" : yrGl > 0 ? "green" : "#64748b"}; font-weight:bold;">${yrGl.toFixed(2)}</td>
+            rowsHtml += `
+              <tr style="height: 38px;">
+                <td><b>${l.year}</b></td>
+                <td><b>${monthName}</b></td>
+                <td>${fmtList(c.maint)}</td>
+                <td>${fmtList(c.basicOt)}</td>
+                <td style="color:red;">${fmtList(c.penalty)}</td>
+                <td>${fmtList(c.rent)}</td>
+                <td>${fmtList(c.kafil)}</td>
+                <td>${fmtList(c.owner)}</td>
+                <td>${fmtList(c.inv)}</td>
+                <td>${fmtList(c.debit)}</td>
+                <td>${fmtList(c.pwas)}</td>
+                <td>${fmtList(c.other)}</td>
+                <td>${fmtList(c.rev)}</td>
+                <td style="color:${c.gl < 0 ? "red" : c.gl > 0 ? "green" : "#64748b"}; font-weight:bold;">${c.gl.toFixed(2)}</td>
               </tr>
             `;
-          }
-        });
+          });
 
-        tbody.innerHTML += `
+          rowsHtml += `
             <tr style="background-color: #eaeff8; font-weight: bold; border-top: 2px solid #333; height: 42px;">
-                <td colspan="2">OVERALL TOTAL</td>
-                <td>${fmtList(totMaint)}</td>
-                <td>${fmtList(totBasicOt)}</td>
-                <td style="color:red;">${fmtList(totPenalty)}</td>
-                <td>${fmtList(totRent)}</td>
-                <td>${fmtList(totKafil)}</td>
-                <td>${fmtList(totOwner)}</td>
-                <td>${fmtList(totInv)}</td>
-                <td>${fmtList(totDebit)}</td>
-                <td>${fmtList(totPwas)}</td>
-                <td>${fmtList(totOther)}</td>
-                <td>${fmtList(totRev)}</td>
-                <td style="color:${totGl < 0 ? "red" : totGl > 0 ? "green" : "#64748b"}; font-weight:bold;">${totGl.toFixed(2)}</td>
+              <td colspan="2">TOTAL ${yr}</td>
+              <td>${fmtList(yrMaint)}</td>
+              <td>${fmtList(yrBasicOt)}</td>
+              <td style="color:red;">${fmtList(yrPenalty)}</td>
+              <td>${fmtList(yrRent)}</td>
+              <td>${fmtList(yrKafil)}</td>
+              <td>${fmtList(yrOwner)}</td>
+              <td>${fmtList(yrInv)}</td>
+              <td>${fmtList(yrDebit)}</td>
+              <td>${fmtList(yrPwas)}</td>
+              <td>${fmtList(yrOther)}</td>
+              <td>${fmtList(yrRev)}</td>
+              <td style="color:${yrGl < 0 ? "red" : yrGl > 0 ? "green" : "#64748b"}; font-weight:bold;">${yrGl.toFixed(2)}</td>
             </tr>
-        `;
+          `;
+
+          const card = document.createElement("div");
+          card.className = "year-card-box";
+          card.id = `year-card-${eq.id}-${yr}`;
+          card.innerHTML = `
+            <div class="year-card-header">
+              <span class="year-card-title">📅 Year ${yr} — ${eq.plate_no}</span>
+              <div class="table-export-actions" data-html2canvas-ignore="true">
+                <button
+                  type="button"
+                  class="emoji-action-btn"
+                  onclick="exportSingleYearPDF(${eq.id}, ${yr})"
+                  title="Export ${yr} as PDF"
+                >
+                  📄
+                </button>
+                <button
+                  type="button"
+                  class="emoji-action-btn"
+                  onclick="exportSingleYearExcel(${eq.id}, ${yr})"
+                  title="Export ${yr} as Excel"
+                >
+                  📊
+                </button>
+                <button
+                  type="button"
+                  class="emoji-action-btn"
+                  onclick="copySingleYearAsImage(${eq.id}, ${yr})"
+                  title="Copy ${yr} Table as Image"
+                >
+                  📋
+                </button>
+              </div>
+            </div>
+            <div style="overflow-x: auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Year</th>
+                    <th>Month</th>
+                    <th>Maintenance Cost</th>
+                    <th>Driver (Basic + OT + Allowance)</th>
+                    <th>Penalty</th>
+                    <th>Santook Rent</th>
+                    <th>Kafil Commission</th>
+                    <th>Owner Commission</th>
+                    <th>Investor Commission</th>
+                    <th>Debit Note</th>
+                    <th>PWAS</th>
+                    <th>Other Expenses</th>
+                    <th>Operational Revenue</th>
+                    <th>Gain / Loss</th>
+                  </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>
+          `;
+
+          container.appendChild(card);
+
+          if (yCursor < yearsSet.length) {
+            requestAnimationFrame(renderNextYearBatch);
+          }
+        }
+
+        requestAnimationFrame(renderNextYearBatch);
       }
 
-      // 🟢 HELPER: Prepare structured data of an equipment for Python Export
-      function prepareEquipmentExportData(eq) {
+      // 🟢 HELPER: Prepare structured data of an equipment (optionally filtered by yearsArray)
+      function prepareEquipmentExportData(eq, yearsArray = null, customSheetLabel = null) {
         const shortMonths = [
           "Jan",
           "Feb",
@@ -773,7 +1049,11 @@
           "Nov",
           "Dec",
         ];
-        const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
+        const eqLogs = allLogs.filter(
+          (l) =>
+            l.equipment_id === eq.id &&
+            (!yearsArray || yearsArray.includes(Number(l.year))),
+        );
         eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
 
         let totMaint = 0,
@@ -790,90 +1070,42 @@
           totGl = 0;
         let rows = [];
 
+        const vClean = (n) => (Number(n || 0) === 0 ? "" : round2(n));
+
         eqLogs.forEach((l) => {
-          const maint = Number(l.maintenance_cost || 0);
-          const basicOt = Number(l.basic_salary || 0) + Number(l.overtime || 0) + Number(l.allowance || 0);
-          const penalty = Number(l.penalty || 0);
-          const rent = Number(l.santook_rent || 0);
-          const rev = Number(l.op_revenue || 0);
-          const debit = Number(l.debit || 0);
-          const pwas = Number(l.pwas || 0);
-          const other = Number(l.other_expense || 0);
-
-          const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
-          const compObj =
-            (companyMappingData[eqPlateClean] &&
-              companyMappingData[eqPlateClean][l.year] &&
-              companyMappingData[eqPlateClean][l.year][l.month]) ||
-            {};
-          const compName =
-            typeof compObj === "object"
-              ? compObj.company || "Not Work"
-              : compObj || "Not Work";
-
-          let kafilPctVal = 0;
-          if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
-            kafilPctVal = Number(l.kafil_pct);
-          } else if (Number(l.kafil_comm || 0) > 0) {
-            kafilPctVal = 0;
-          } else {
-            const isSingleNonWe1 =
-              compName !== "Not Work" &&
-              compName !== "We1" &&
-              !compName.includes("&");
-            kafilPctVal = isSingleNonWe1 ? 3 : 0;
-          }
-
-          let kafil = 0;
-          if (kafilPctVal > 0 && rev > 0) {
-            kafil = Number(((rev * kafilPctVal) / 100).toFixed(1));
-          } else {
-            kafil = Number(l.kafil_comm || 0);
-          }
-
-          const owner = Number(l.owner_comm || 0);
-          const inv = Number(l.investor_comm || 0);
-
-          const netSal = basicOt - penalty;
-          const totalCost =
-            maint + netSal + rent + kafil + owner + inv + debit + pwas + other;
-          const gl = rev - totalCost;
+          const c = computeEquipmentLogRow(eq, l);
           const monthName = shortMonths[l.month - 1] || l.month;
 
-          totMaint += maint;
-          totBasicOt += basicOt;
-          totPenalty += penalty;
-          totRent += rent;
-          totKafil += kafil;
-          totOwner += owner;
-          totInv += inv;
-          totDebit += debit;
-          totPwas += pwas;
-          totOther += other;
-          totRev += rev;
-          totGl += gl;
-
-          const vClean = (n) => (Number(n || 0) === 0 ? "" : round2(n));
+          totMaint += c.maint;
+          totBasicOt += c.basicOt;
+          totPenalty += c.penalty;
+          totRent += c.rent;
+          totKafil += c.kafil;
+          totOwner += c.owner;
+          totInv += c.inv;
+          totDebit += c.debit;
+          totPwas += c.pwas;
+          totOther += c.other;
+          totRev += c.rev;
+          totGl += c.gl;
 
           rows.push([
             l.year,
             monthName,
-            vClean(maint),
-            vClean(basicOt),
-            vClean(penalty),
-            vClean(rent),
-            vClean(kafil),
-            vClean(owner),
-            vClean(inv),
-            vClean(debit),
-            vClean(pwas),
-            vClean(other),
-            vClean(rev),
-            round2(gl),
+            vClean(c.maint),
+            vClean(c.basicOt),
+            vClean(c.penalty),
+            vClean(c.rent),
+            vClean(c.kafil),
+            vClean(c.owner),
+            vClean(c.inv),
+            vClean(c.debit),
+            vClean(c.pwas),
+            vClean(c.other),
+            vClean(c.rev),
+            round2(c.gl),
           ]);
         });
-
-        const vClean = (n) => (Number(n || 0) === 0 ? "" : round2(n));
 
         let totals =
           rows.length > 0
@@ -896,7 +1128,7 @@
             : [];
 
         return {
-          plate_no: eq.plate_no,
+          plate_no: customSheetLabel || eq.plate_no,
           purchase_date: formatPurchaseDate(eq.purchase_date),
           purchase_cost: Number(eq.purchase_cost || 0),
           remaining_purchase_cost: Number(eq.remaining_purchase_cost || 0),
@@ -914,7 +1146,6 @@
         return n === 0 ? "" : n.toFixed(2);
       }
 
-      // 🟢 TOAST NOTIFICATION HELPER FUNCTION
       function showToast(message, type = "success") {
         const container = document.getElementById("toast-container");
         if (!container) return;
@@ -924,24 +1155,212 @@
         toast.innerHTML = `<span>${type === "success" ? "✅ " : "❌ "} ${message}</span>`;
 
         container.appendChild(toast);
-
         setTimeout(() => toast.classList.add("show"), 10);
-
         setTimeout(() => {
           toast.classList.remove("show");
           setTimeout(() => toast.remove(), 300);
         }, 3000);
       }
 
-      // 🟢 1. EXPORT ALL EQUIPMENTS AS EXCEL (TABS/SHEETS) VIA PYTHON
-      async function exportAllEquipmentsExcel() {
-        if (allEquipments.length === 0) {
-          showToast("No equipments to export.", "error");
+      // =========================================================
+      // 🟢 INDIVIDUAL YEAR CARD ACTIONS (📄 PDF / 📊 Excel / 📋 Copy)
+      // =========================================================
+      async function exportSingleYearPDF(eqId, yr) {
+        const eq = allEquipments.find((e) => e.id === eqId);
+        if (!eq) return;
+
+        showToast(`Generating ${eq.plate_no} (${yr}) PDF...`, "success");
+        const jsPdfClass =
+          window.jspdf && window.jspdf.jsPDF
+            ? window.jspdf.jsPDF
+            : window.jsPDF;
+        if (!jsPdfClass) {
+          showToast("jsPDF library not available.", "error");
           return;
         }
 
-        let equipmentsPayload = allEquipments.map((eq) =>
-          prepareEquipmentExportData(eq),
+        const yrLogs = allLogs
+          .filter((l) => l.equipment_id === eq.id && Number(l.year) === yr)
+          .sort((a, b) => a.month - b.month);
+
+        const offscreenHolder = document.createElement("div");
+        offscreenHolder.style.cssText =
+          "position: absolute; left: -9999px; top: 0;";
+        document.body.appendChild(offscreenHolder);
+
+        try {
+          const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
+          offscreenHolder.appendChild(cardEl);
+          await new Promise((r) => setTimeout(r, 40));
+
+          const canvas = await html2canvas(cardEl, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+          });
+          const imgData = canvas.toDataURL("image/jpeg", 0.95);
+          const w = canvas.width / 2;
+          const h = canvas.height / 2;
+
+          const pdf = new jsPdfClass({
+            orientation: "landscape",
+            unit: "mm",
+            format: "a4",
+          });
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 8;
+          const printableWidth = pageWidth - margin * 2;
+          const printableHeight = pageHeight - margin * 2;
+
+          const imgRatio = w / h;
+          let renderWidth = printableWidth;
+          let renderHeight = renderWidth / imgRatio;
+          if (renderHeight > printableHeight) {
+            renderHeight = printableHeight;
+            renderWidth = renderHeight * imgRatio;
+          }
+          const posX = margin + (printableWidth - renderWidth) / 2;
+          pdf.addImage(
+            imgData,
+            "JPEG",
+            posX,
+            margin,
+            renderWidth,
+            renderHeight,
+            undefined,
+            "FAST",
+          );
+          pdf.save(`Equipment_${eq.plate_no}_${yr}.pdf`);
+          showToast(`${eq.plate_no} (${yr}) PDF Downloaded!`, "success");
+        } catch (err) {
+          console.error(err);
+          showToast("Failed to generate PDF.", "error");
+        } finally {
+          offscreenHolder.remove();
+        }
+      }
+
+      async function exportSingleYearExcel(eqId, yr) {
+        const eq = allEquipments.find((e) => e.id === eqId);
+        if (!eq) return;
+
+        const payload = [
+          prepareEquipmentExportData(eq, [yr], `${eq.plate_no}_${yr}`),
+        ];
+
+        try {
+          const res = await fetch(
+            "/py/own-equipment/export-multi-sheet-excel",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                file_name: `Equipment_${eq.plate_no}_${yr}.xlsx`,
+                equipments: payload,
+              }),
+            },
+          );
+          if (!res.ok) throw new Error("Export failed");
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Equipment_${eq.plate_no}_${yr}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          showToast(`${eq.plate_no} (${yr}) Excel exported!`, "success");
+        } catch (err) {
+          console.error(err);
+          showToast("Error exporting excel.", "error");
+        }
+      }
+
+      async function copySingleYearAsImage(eqId, yr) {
+        const eq = allEquipments.find((e) => e.id === eqId);
+        if (!eq) return;
+
+        const yrLogs = allLogs
+          .filter((l) => l.equipment_id === eq.id && Number(l.year) === yr)
+          .sort((a, b) => a.month - b.month);
+
+        const offscreenHolder = document.createElement("div");
+        offscreenHolder.style.cssText =
+          "position: absolute; left: -9999px; top: 0;";
+        document.body.appendChild(offscreenHolder);
+
+        try {
+          const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
+          offscreenHolder.appendChild(cardEl);
+          await new Promise((r) => setTimeout(r, 40));
+
+          const canvas = await html2canvas(cardEl, {
+            scale: 3,
+            backgroundColor: "#ffffff",
+            useCORS: true,
+          });
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              showToast("Failed to generate image.", "error");
+              return;
+            }
+            try {
+              const item = new ClipboardItem({ "image/png": blob });
+              navigator.clipboard
+                .write([item])
+                .then(() => {
+                  showToast(
+                    `${eq.plate_no} (${yr}) Image copied to clipboard!`,
+                    "success",
+                  );
+                })
+                .catch(() => {
+                  downloadCanvasImage(
+                    canvas,
+                    `Equipment_${eq.plate_no}_${yr}.png`,
+                  );
+                });
+            } catch (e) {
+              downloadCanvasImage(canvas, `Equipment_${eq.plate_no}_${yr}.png`);
+            }
+          }, "image/png");
+        } finally {
+          offscreenHolder.remove();
+        }
+      }
+
+      // =========================================================
+      // ⚡ ACTIVE EXPORT (For Currently Opened Equipment: Excel Tabs / PDF Pages / PNG ZIP)
+      // =========================================================
+      function getActiveEquipmentOrWarn() {
+        if (!activeEquipmentId) {
+          showToast("Please select an equipment plate first!", "error");
+          return null;
+        }
+        return allEquipments.find((e) => e.id === activeEquipmentId) || null;
+      }
+
+      async function exportActiveEquipmentExcelTabs() {
+        document.getElementById("activeExportMenu")?.classList.remove("show");
+        const eq = getActiveEquipmentOrWarn();
+        if (!eq) return;
+
+        const eqLogs = allLogs.filter(
+          (l) =>
+            l.equipment_id === eq.id && selectedYears.includes(Number(l.year)),
+        );
+        const years = [...new Set(eqLogs.map((l) => Number(l.year)))].sort(
+          (a, b) => a - b,
+        );
+        if (years.length === 0) {
+          showToast("No records found for this equipment.", "error");
+          return;
+        }
+
+        // Each year becomes a separate tab in Excel
+        const payload = years.map((yr) =>
+          prepareEquipmentExportData(eq, [yr], String(yr)),
         );
 
         try {
@@ -951,73 +1370,87 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                file_name: "All_Equipment_Wise_Details.xlsx",
-                equipments: equipmentsPayload,
+                file_name: `${eq.plate_no}_Year_Tabs.xlsx`,
+                equipments: payload,
               }),
             },
           );
-
           if (!res.ok) throw new Error("Export failed");
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = "All_Equipment_Wise_Details.xlsx";
+          a.download = `${eq.plate_no}_Year_Tabs.xlsx`;
           document.body.appendChild(a);
           a.click();
           a.remove();
-          showToast("All equipments exported successfully!", "success");
+          showToast(`${eq.plate_no} exported (Year-wise Tabs)!`, "success");
         } catch (err) {
-          console.error("Export Error:", err);
-          showToast("Error exporting excel via Python Engine.", "error");
+          console.error(err);
+          showToast("Error exporting active Excel.", "error");
         }
       }
 
-      // 🟢 1.1 EXPORT SINGLE EQUIPMENT PDF (Year-wise A4 Landscape Multi-page)
-      async function exportSinglePDF() {
-        if (!activeEquipmentId) return;
-        const eq = allEquipments.find((e) => e.id === activeEquipmentId);
+      async function exportActiveEquipmentPDFPages() {
+        document.getElementById("activeExportMenu")?.classList.remove("show");
+        const eq = getActiveEquipmentOrWarn();
         if (!eq) return;
 
-        showToast("Generating Year-wise A4 PDF...", "success");
-        const jsPdfClass = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
-        if (!jsPdfClass) {
-          showToast("jsPDF library not available.", "error");
+        const eqLogs = allLogs
+          .filter(
+            (l) =>
+              l.equipment_id === eq.id &&
+              selectedYears.includes(Number(l.year)),
+          )
+          .sort((a, b) => a.year - b.year || a.month - b.month);
+        const years = [...new Set(eqLogs.map((l) => Number(l.year)))].sort(
+          (a, b) => a - b,
+        );
+        if (years.length === 0) {
+          showToast("No records found for this equipment.", "error");
           return;
         }
 
-        const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
-        eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
-        const years = [...new Set(eqLogs.map((l) => l.year))].sort();
-
+        showToast(`Generating ${eq.plate_no} PDF (1 Year = 1 Page)...`, "success");
+        const jsPdfClass =
+          window.jspdf && window.jspdf.jsPDF
+            ? window.jspdf.jsPDF
+            : window.jsPDF;
         const offscreenHolder = document.createElement("div");
-        offscreenHolder.style.cssText = "position: absolute; left: -9999px; top: 0;";
+        offscreenHolder.style.cssText =
+          "position: absolute; left: -9999px; top: 0;";
         document.body.appendChild(offscreenHolder);
 
         try {
-          const pdf = new jsPdfClass({ orientation: "landscape", unit: "mm", format: "a4" });
+          const pdf = new jsPdfClass({
+            orientation: "landscape",
+            unit: "mm",
+            format: "a4",
+          });
           const pageWidth = pdf.internal.pageSize.getWidth();
           const pageHeight = pdf.internal.pageSize.getHeight();
           const margin = 8;
-          const printableWidth = pageWidth - (margin * 2);
-          const printableHeight = pageHeight - (margin * 2);
+          const printableWidth = pageWidth - margin * 2;
+          const printableHeight = pageHeight - margin * 2;
 
-          for (let yIdx = 0; yIdx < years.length; yIdx++) {
-            const yr = years[yIdx];
-            const yrLogs = eqLogs.filter((l) => l.year === yr);
+          for (let i = 0; i < years.length; i++) {
+            const yr = years[i];
+            const yrLogs = eqLogs.filter((l) => Number(l.year) === yr);
             const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
             offscreenHolder.innerHTML = "";
             offscreenHolder.appendChild(cardEl);
-
             await new Promise((r) => setTimeout(r, 40));
 
-            const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+            const canvas = await html2canvas(cardEl, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+            });
             const imgData = canvas.toDataURL("image/jpeg", 0.95);
             const w = canvas.width / 2;
             const h = canvas.height / 2;
 
-            if (yIdx > 0) pdf.addPage("a4", "landscape");
-
+            if (i > 0) pdf.addPage("a4", "landscape");
             const imgRatio = w / h;
             let renderWidth = printableWidth;
             let renderHeight = renderWidth / imgRatio;
@@ -1025,80 +1458,360 @@
               renderHeight = printableHeight;
               renderWidth = renderHeight * imgRatio;
             }
-
-            const posX = margin + ((printableWidth - renderWidth) / 2);
-            const posY = margin;
-
-            pdf.addImage(imgData, "JPEG", posX, posY, renderWidth, renderHeight, undefined, "FAST");
+            const posX = margin + (printableWidth - renderWidth) / 2;
+            pdf.addImage(
+              imgData,
+              "JPEG",
+              posX,
+              margin,
+              renderWidth,
+              renderHeight,
+              undefined,
+              "FAST",
+            );
           }
-
-          pdf.save(`Equipment_${eq.plate_no}.pdf`);
-          showToast("Single Equipment A4 PDF Downloaded!", "success");
-        } catch (err) {
-          console.error("Single PDF Error:", err);
-          showToast("Failed to generate PDF.", "error");
+          pdf.save(`${eq.plate_no}_Year_Pages.pdf`);
+          showToast(`${eq.plate_no} PDF Downloaded!`, "success");
         } finally {
           offscreenHolder.remove();
         }
       }
 
-      // 🟢 2. EXPORT SINGLE EQUIPMENT EXCEL
-      async function exportSingleExcel() {
-        if (!activeEquipmentId) return;
-        const eq = allEquipments.find((e) => e.id === activeEquipmentId);
+      async function exportActiveEquipmentPNGZip() {
+        document.getElementById("activeExportMenu")?.classList.remove("show");
+        const eq = getActiveEquipmentOrWarn();
         if (!eq) return;
 
-        let payload = [prepareEquipmentExportData(eq)];
+        const eqLogs = allLogs
+          .filter(
+            (l) =>
+              l.equipment_id === eq.id &&
+              selectedYears.includes(Number(l.year)),
+          )
+          .sort((a, b) => a.year - b.year || a.month - b.month);
+        const years = [...new Set(eqLogs.map((l) => Number(l.year)))].sort(
+          (a, b) => a - b,
+        );
+        if (years.length === 0) {
+          showToast("No records found for this equipment.", "error");
+          return;
+        }
+
+        const zip = new JSZip();
+        const safePlate = (eq.plate_no || "Equipment").replace(
+          /[\/\\?%*:|"<>]/g,
+          "-",
+        );
+        const folder = zip.folder(safePlate);
+        const offscreenHolder = document.createElement("div");
+        offscreenHolder.style.cssText =
+          "position: absolute; left: -9999px; top: 0;";
+        document.body.appendChild(offscreenHolder);
 
         try {
+          for (const yr of years) {
+            const yrLogs = eqLogs.filter((l) => Number(l.year) === yr);
+            const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
+            offscreenHolder.innerHTML = "";
+            offscreenHolder.appendChild(cardEl);
+            await new Promise((r) => setTimeout(r, 40));
+
+            const canvas = await html2canvas(cardEl, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+            });
+            const base64Data = canvas.toDataURL("image/png").split(",")[1];
+            folder.file(`${safePlate}_${yr}.png`, base64Data, { base64: true });
+          }
+          const zipContent = await zip.generateAsync({ type: "blob" });
+          const url = window.URL.createObjectURL(zipContent);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${safePlate}_PNGs.zip`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+          showToast(`${eq.plate_no} PNG ZIP Downloaded!`, "success");
+        } finally {
+          offscreenHolder.remove();
+        }
+      }
+
+      // =========================================================
+      // 📊 EXPORT ALL (Period Selection Modal: Current Year / Entire / Custom Year Gap)
+      // =========================================================
+      function openAllPeriodExportModal(formatType) {
+        pendingAllExportFormat = formatType;
+        const curY = new Date().getFullYear();
+        document.getElementById("lblCurrentYearScope").innerText = curY;
+        document.getElementById("allPeriodModalTitle").innerText =
+          formatType === "excel"
+            ? "📊 Export All Equipments as Excel"
+            : "📄 Export All Equipments as PDF";
+
+        const minY = availableYears.length ? availableYears[0] : curY;
+        const maxY = availableYears.length
+          ? availableYears[availableYears.length - 1]
+          : curY;
+        document.getElementById("expGapStartYear").value = minY;
+        document.getElementById("expGapEndYear").value = maxY;
+
+        const curRadio = document.querySelector(
+          'input[name="allExportScope"][value="current"]',
+        );
+        if (curRadio) curRadio.checked = true;
+        toggleCustomYearGapBox(false);
+
+        document.getElementById("allPeriodExportModal").style.display = "flex";
+      }
+
+      function closeAllPeriodExportModal() {
+        document.getElementById("allPeriodExportModal").style.display = "none";
+      }
+
+      function toggleCustomYearGapBox(show) {
+        const box = document.getElementById("customYearGapBox");
+        if (box) box.style.display = show ? "block" : "none";
+      }
+
+      function getChosenExportYears() {
+        const scope =
+          document.querySelector('input[name="allExportScope"]:checked')
+            ?.value || "current";
+        const curY = new Date().getFullYear();
+
+        if (scope === "current") {
+          return [curY];
+        }
+        if (scope === "entire") {
+          return [...availableYears];
+        }
+        const sy = parseInt(
+          document.getElementById("expGapStartYear").value,
+          10,
+        );
+        const ey = parseInt(
+          document.getElementById("expGapEndYear").value,
+          10,
+        );
+        if (!sy || !ey || sy > ey) {
+          showToast("Please enter a valid Start Year and End Year!", "error");
+          return null;
+        }
+        const yrs = [];
+        for (let y = sy; y <= ey; y++) {
+          yrs.push(y);
+        }
+        return yrs;
+      }
+
+      async function confirmAllPeriodExport() {
+        const targetYears = getChosenExportYears();
+        if (!targetYears || targetYears.length === 0) return;
+
+        closeAllPeriodExportModal();
+
+        if (pendingAllExportFormat === "excel") {
+          await executeAllEquipmentsExcelByYears(targetYears);
+        } else {
+          await executeAllEquipmentsPDFByYears(targetYears);
+        }
+      }
+
+      // Excel: 1 Equipment = 1 Tab (Single consolidated table containing all chosen years)
+      async function executeAllEquipmentsExcelByYears(targetYears) {
+        if (allEquipments.length === 0) {
+          showToast("No equipments to export.", "error");
+          return;
+        }
+
+        const equipmentsPayload = allEquipments.map((eq) =>
+          prepareEquipmentExportData(eq, targetYears, eq.plate_no),
+        );
+
+        const labelSuffix =
+          targetYears.length === 1
+            ? String(targetYears[0])
+            : `${targetYears[0]}_to_${targetYears[targetYears.length - 1]}`;
+
+        try {
+          showToast("Generating Excel...", "success");
           const res = await fetch(
             "/py/own-equipment/export-multi-sheet-excel",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                file_name: `Equipment_${eq.plate_no}.xlsx`,
-                equipments: payload,
+                file_name: `All_Equipments_${labelSuffix}.xlsx`,
+                equipments: equipmentsPayload,
               }),
             },
           );
-
           if (!res.ok) throw new Error("Export failed");
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `Equipment_${eq.plate_no}.xlsx`;
+          a.download = `All_Equipments_${labelSuffix}.xlsx`;
           document.body.appendChild(a);
           a.click();
           a.remove();
-          showToast(
-            `Equipment ${eq.plate_no} exported successfully!`,
-            "success",
-          );
+          showToast("All equipments exported successfully!", "success");
         } catch (err) {
           console.error("Export Error:", err);
           showToast("Error exporting excel.", "error");
         }
       }
 
-      // 🟢 Helper to generate temporary offscreen Card DOM (Year-wise page/card)
+      // PDF: 1 Equipment's each year = 1 separate page, strictly grouped equipment by equipment
+      async function executeAllEquipmentsPDFByYears(targetYears) {
+        if (!allEquipments || allEquipments.length === 0) {
+          showToast("No equipments found to export.", "error");
+          return;
+        }
+
+        showToast(
+          `Preparing PDF for ${allEquipments.length} equipments...`,
+          "success",
+        );
+
+        const offscreenHolder = document.createElement("div");
+        offscreenHolder.style.cssText =
+          "position: absolute; left: -9999px; top: 0;";
+        document.body.appendChild(offscreenHolder);
+
+        const jsPdfClass =
+          window.jspdf && window.jspdf.jsPDF
+            ? window.jspdf.jsPDF
+            : window.jsPDF;
+        let pdf = null;
+
+        try {
+          let pageCount = 0;
+
+          for (let i = 0; i < allEquipments.length; i++) {
+            const eq = allEquipments[i];
+            const eqLogs = allLogs
+              .filter(
+                (l) =>
+                  l.equipment_id === eq.id &&
+                  targetYears.includes(Number(l.year)),
+              )
+              .sort((a, b) => a.year - b.year || a.month - b.month);
+
+            const eqYears = [
+              ...new Set(eqLogs.map((l) => Number(l.year))),
+            ].sort((a, b) => a - b);
+
+            if (eqYears.length === 0) continue;
+
+            for (let yIdx = 0; yIdx < eqYears.length; yIdx++) {
+              const yr = eqYears[yIdx];
+              const yrLogs = eqLogs.filter((l) => Number(l.year) === yr);
+              const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
+              offscreenHolder.innerHTML = "";
+              offscreenHolder.appendChild(cardEl);
+
+              await new Promise((r) => setTimeout(r, 40));
+
+              const canvas = await html2canvas(cardEl, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: "#ffffff",
+              });
+              const imgData = canvas.toDataURL("image/jpeg", 0.95);
+              const w = canvas.width / 2;
+              const h = canvas.height / 2;
+
+              if (pageCount === 0) {
+                pdf = new jsPdfClass({
+                  orientation: "landscape",
+                  unit: "mm",
+                  format: "a4",
+                });
+              } else {
+                pdf.addPage("a4", "landscape");
+              }
+              pageCount++;
+
+              const pageWidth = pdf.internal.pageSize.getWidth();
+              const pageHeight = pdf.internal.pageSize.getHeight();
+              const margin = 8;
+              const printableWidth = pageWidth - margin * 2;
+              const printableHeight = pageHeight - margin * 2;
+
+              const imgRatio = w / h;
+              let renderWidth = printableWidth;
+              let renderHeight = renderWidth / imgRatio;
+
+              if (renderHeight > printableHeight) {
+                renderHeight = printableHeight;
+                renderWidth = renderHeight * imgRatio;
+              }
+
+              const posX = margin + (printableWidth - renderWidth) / 2;
+              pdf.addImage(
+                imgData,
+                "JPEG",
+                posX,
+                margin,
+                renderWidth,
+                renderHeight,
+                undefined,
+                "FAST",
+              );
+              showToast(
+                `Rendered ${eq.plate_no} (${yr})...`,
+                "success",
+              );
+            }
+          }
+
+          if (pdf) {
+            const labelSuffix =
+              targetYears.length === 1
+                ? String(targetYears[0])
+                : `${targetYears[0]}_to_${targetYears[targetYears.length - 1]}`;
+            pdf.save(`All_Equipments_${labelSuffix}.pdf`);
+            showToast("All Equipments PDF Downloaded!", "success");
+          } else {
+            showToast("No records found for selected years.", "error");
+          }
+        } catch (err) {
+          console.error("Batch PDF Export Error:", err);
+          showToast("Error during PDF batch export.", "error");
+        } finally {
+          offscreenHolder.remove();
+        }
+      }
+
       function buildOffscreenEquipmentYearCard(eq, yr, yrLogs) {
         const formattedDate = formatPurchaseDate(eq.purchase_date);
-        const formattedCost = Number(eq.purchase_cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const formattedCost = Number(eq.purchase_cost || 0).toLocaleString(
+          "en-US",
+          { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+        );
         let remCostVal = parseFloat(eq.remaining_purchase_cost || 0);
-        let remText = remCostVal > 0 ? ` | <span style="color: #c0392b;">Remaining Cost: ${remCostVal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR</span>` : "";
+        let remText =
+          remCostVal > 0
+            ? ` | <span style="color: #c0392b;">Remaining Cost: ${remCostVal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR</span>`
+            : "";
 
         const card = document.createElement("div");
-        card.style.cssText = "background: #ffffff; padding: 24px; border-radius: 8px; width: 1350px; box-sizing: border-box; font-family: 'Segoe UI', sans-serif;";
+        card.style.cssText =
+          "background: #ffffff; padding: 24px; border-radius: 8px; width: 1350px; box-sizing: border-box; font-family: 'Segoe UI', sans-serif;";
 
         const titleRow = document.createElement("div");
-        titleRow.style.cssText = "border-bottom: 2px solid #cbd5e1; padding-bottom: 12px; margin-bottom: 14px;";
+        titleRow.style.cssText =
+          "border-bottom: 2px solid #cbd5e1; padding-bottom: 12px; margin-bottom: 14px;";
         titleRow.innerHTML = `<h3 style="margin: 0; color: #1e3a8a; font-size: 20px; font-weight: 800;">Plate No: ${eq.plate_no} | Year: ${yr} | Purchase Date: ${formattedDate} | Purchase Cost: ${formattedCost} SAR${remText}</h3>`;
         card.appendChild(titleRow);
 
         const tbl = document.createElement("table");
-        tbl.style.cssText = "width: 100%; border-collapse: collapse; font-size: 13.5px;";
+        tbl.style.cssText =
+          "width: 100%; border-collapse: collapse; font-size: 13.5px;";
         tbl.innerHTML = `
           <thead>
             <tr style="height: 48px;">
@@ -1122,79 +1835,68 @@
         `;
 
         const tb = tbl.querySelector("tbody");
-        const shortM = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        let tMaint = 0, tBasicOt = 0, tPenalty = 0, tRent = 0, tKafil = 0, tOwner = 0, tInv = 0, tDebit = 0, tPwas = 0, tOther = 0, tRev = 0, tGl = 0;
+        const shortM = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        let tMaint = 0,
+          tBasicOt = 0,
+          tPenalty = 0,
+          tRent = 0,
+          tKafil = 0,
+          tOwner = 0,
+          tInv = 0,
+          tDebit = 0,
+          tPwas = 0,
+          tOther = 0,
+          tRev = 0,
+          tGl = 0;
 
         if (!yrLogs || yrLogs.length === 0) {
           tb.innerHTML = `<tr><td colspan="14" style="border: 1px solid #94a3b8; padding: 12px; text-align: center; color: gray;">No records found.</td></tr>`;
         } else {
           yrLogs.forEach((l) => {
-            const maint = Number(l.maintenance_cost || 0);
-            const basicOt = Number(l.basic_salary || 0) + Number(l.overtime || 0) + Number(l.allowance || 0);
-            const penalty = Number(l.penalty || 0);
-            const rent = Number(l.santook_rent || 0);
-            const rev = Number(l.op_revenue || 0);
-            const debit = Number(l.debit || 0);
-            const pwas = Number(l.pwas || 0);
-            const other = Number(l.other_expense || 0);
+            const c = computeEquipmentLogRow(eq, l);
 
-            const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
-            const compObj =
-              (companyMappingData[eqPlateClean] &&
-                companyMappingData[eqPlateClean][l.year] &&
-                companyMappingData[eqPlateClean][l.year][l.month]) ||
-              {};
-            const compName =
-              typeof compObj === "object"
-                ? compObj.company || "Not Work"
-                : compObj || "Not Work";
+            tMaint += c.maint;
+            tBasicOt += c.basicOt;
+            tPenalty += c.penalty;
+            tRent += c.rent;
+            tKafil += c.kafil;
+            tOwner += c.owner;
+            tInv += c.inv;
+            tDebit += c.debit;
+            tPwas += c.pwas;
+            tOther += c.other;
+            tRev += c.rev;
+            tGl += c.gl;
 
-            let kafilPctVal = 0;
-            if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
-              kafilPctVal = Number(l.kafil_pct);
-            } else if (Number(l.kafil_comm || 0) > 0) {
-              kafilPctVal = 0;
-            } else {
-              const isSingleNonWe1 =
-                compName !== "Not Work" &&
-                compName !== "We1" &&
-                !compName.includes("&");
-              kafilPctVal = isSingleNonWe1 ? 3 : 0;
-            }
-
-            let kafil = 0;
-            if (kafilPctVal > 0 && rev > 0) {
-              kafil = Number(((rev * kafilPctVal) / 100).toFixed(1));
-            } else {
-              kafil = Number(l.kafil_comm || 0);
-            }
-
-            const owner = Number(l.owner_comm || 0);
-            const inv = Number(l.investor_comm || 0);
-            const netSal = basicOt - penalty;
-            const gl = rev - (maint + netSal + rent + kafil + owner + inv + debit + pwas + other);
-
-            tMaint += maint; tBasicOt += basicOt; tPenalty += penalty; tRent += rent;
-            tKafil += kafil; tOwner += owner; tInv += inv; tDebit += debit; tPwas += pwas;
-            tOther += other; tRev += rev; tGl += gl;
-
-            // 🟢 Row height 10% kootti 42px aakki (paddings 9px 6px)
             tb.innerHTML += `
               <tr style="height: 42px;">
                 <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;"><b>${l.year}</b></td>
                 <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;"><b>${shortM[l.month - 1] || l.month}</b></td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(maint)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(basicOt)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center; color: red;">${fmtList(penalty)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(rent)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(kafil)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(owner)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(inv)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(debit)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(pwas)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(other)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(rev)}</td>
-                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center; font-weight: bold; color: ${gl < 0 ? "red" : gl > 0 ? "green" : "#64748b"};">${gl.toFixed(2)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.maint)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.basicOt)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center; color: red;">${fmtList(c.penalty)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.rent)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.kafil)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.owner)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.inv)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.debit)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.pwas)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.other)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(c.rev)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center; font-weight: bold; color: ${c.gl < 0 ? "red" : c.gl > 0 ? "green" : "#64748b"};">${c.gl.toFixed(2)}</td>
               </tr>
             `;
           });
@@ -1222,128 +1924,71 @@
         return card;
       }
 
-      // 🟢 3. EXPORT ALL AS MULTI-PAGE PDF (BATCH-WISE NON-BLOCKING)
-      async function exportAllEquipmentsPDF() {
-        if (!allEquipments || allEquipments.length === 0) {
-          showToast("No equipments found to export.", "error");
-          return;
-        }
-
-        showToast(`Preparing PDF for ${allEquipments.length} equipments...`, "success");
-
-        const offscreenHolder = document.createElement("div");
-        offscreenHolder.style.cssText = "position: absolute; left: -9999px; top: 0;";
-        document.body.appendChild(offscreenHolder);
-
-        const jsPdfClass = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
-        if (!jsPdfClass) {
-          showToast("jsPDF library not available.", "error");
-          offscreenHolder.remove();
-          return;
-        }
-        let pdf = null;
-
-        try {
-          let pageCount = 0;
-
-          for (let i = 0; i < allEquipments.length; i++) {
-            const eq = allEquipments[i];
-            const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
-            eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
-            const years = [...new Set(eqLogs.map((l) => l.year))].sort();
-            if (years.length === 0) years.push(new Date().getFullYear());
-
-            for (let yIdx = 0; yIdx < years.length; yIdx++) {
-              const yr = years[yIdx];
-              const yrLogs = eqLogs.filter((l) => l.year === yr);
-              const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
-              offscreenHolder.innerHTML = "";
-              offscreenHolder.appendChild(cardEl);
-
-              await new Promise((r) => setTimeout(r, 40));
-
-              const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-              const imgData = canvas.toDataURL("image/jpeg", 0.95);
-              const w = canvas.width / 2;
-              const h = canvas.height / 2;
-
-              if (pageCount === 0) {
-                pdf = new jsPdfClass({ orientation: "landscape", unit: "mm", format: "a4" });
-              } else {
-                pdf.addPage("a4", "landscape");
-              }
-              pageCount++;
-
-              const pageWidth = pdf.internal.pageSize.getWidth();
-              const pageHeight = pdf.internal.pageSize.getHeight();
-              const margin = 8;
-              const printableWidth = pageWidth - (margin * 2);
-              const printableHeight = pageHeight - (margin * 2);
-
-              const imgRatio = w / h;
-              let renderWidth = printableWidth;
-              let renderHeight = renderWidth / imgRatio;
-
-              if (renderHeight > printableHeight) {
-                renderHeight = printableHeight;
-                renderWidth = renderHeight * imgRatio;
-              }
-
-              const posX = margin + ((printableWidth - renderWidth) / 2);
-              const posY = margin;
-
-              pdf.addImage(imgData, "JPEG", posX, posY, renderWidth, renderHeight, undefined, "FAST");
-              showToast(`Rendered Equipment ${eq.plate_no} (${yr})...`, "success");
-            }
-          }
-
-          if (pdf) {
-            pdf.save("All_Equipments_Report.pdf");
-            showToast("All Equipments PDF Downloaded!", "success");
-          }
-        } catch (err) {
-          console.error("Batch PDF Export Error:", err);
-          showToast("Error during PDF batch export.", "error");
-        } finally {
-          offscreenHolder.remove();
-        }
-      }
-
-      // 🟢 4. EXPORT ALL AS HIGH-QUALITY PNG ZIP (PARALLEL/BATCH-SAFE)
       async function exportAllEquipmentsPNGZip() {
         if (!allEquipments || allEquipments.length === 0) {
           showToast("No equipments found to export.", "error");
           return;
         }
         if (typeof JSZip === "undefined") {
-          showToast("JSZip library not loaded. Check internet connection.", "error");
+          showToast(
+            "JSZip library not loaded. Check internet connection.",
+            "error",
+          );
           return;
         }
 
-        showToast(`Packaging ${allEquipments.length} images into ZIP...`, "success");
+        showToast(
+          `Packaging ${allEquipments.length} equipments into ZIP...`,
+          "success",
+        );
 
         const zip = new JSZip();
         const folder = zip.folder("Equipment_PNGs");
         const offscreenHolder = document.createElement("div");
-        offscreenHolder.style.cssText = "position: absolute; left: -9999px; top: 0;";
+        offscreenHolder.style.cssText =
+          "position: absolute; left: -9999px; top: 0;";
         document.body.appendChild(offscreenHolder);
 
         try {
           for (let i = 0; i < allEquipments.length; i++) {
             const eq = allEquipments[i];
-            const cardEl = buildOffscreenEquipmentCard(eq);
-            offscreenHolder.innerHTML = "";
-            offscreenHolder.appendChild(cardEl);
+            const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
+            eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
+            const years = [...new Set(eqLogs.map((l) => Number(l.year)))].sort(
+              (a, b) => a - b,
+            );
+            if (years.length === 0) years.push(new Date().getFullYear());
 
-            await new Promise((r) => setTimeout(r, 40));
+            for (const yr of years) {
+              const yrLogs = eqLogs.filter((l) => Number(l.year) === yr);
+              const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
+              offscreenHolder.innerHTML = "";
+              offscreenHolder.appendChild(cardEl);
 
-            const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-            const dataUrl = canvas.toDataURL("image/png");
-            const base64Data = dataUrl.split(",")[1];
-            const safePlate = (eq.plate_no || `EQ_${i + 1}`).replace(/[\/\\?%*:|"<>]/g, "-");
+              await new Promise((r) => setTimeout(r, 40));
 
-            folder.file(`${String(i + 1).padStart(2, "0")}_${safePlate}.png`, base64Data, { base64: true });
-            showToast(`Processed ${i + 1}/${allEquipments.length} images...`, "success");
+              const canvas = await html2canvas(cardEl, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: "#ffffff",
+              });
+              const dataUrl = canvas.toDataURL("image/png");
+              const base64Data = dataUrl.split(",")[1];
+              const safePlate = (eq.plate_no || `EQ_${i + 1}`).replace(
+                /[\/\\?%*:|"<>]/g,
+                "-",
+              );
+
+              folder.file(
+                `${String(i + 1).padStart(2, "0")}_${safePlate}_${yr}.png`,
+                base64Data,
+                { base64: true },
+              );
+            }
+            showToast(
+              `Processed ${i + 1}/${allEquipments.length} equipments...`,
+              "success",
+            );
           }
 
           showToast("Compressing ZIP file...", "success");
@@ -1365,46 +2010,6 @@
         }
       }
 
-      // 🟢 5. COPY OPENED DATA AS HIGH QUALITY IMAGE CARD
-      function copyAsImage() {
-        const element = document.getElementById("detailsWrapper");
-        if (!element || element.style.display === "none") return;
-
-        html2canvas(element, {
-          scale: 3,
-          backgroundColor: "#ffffff",
-          useCORS: true,
-        }).then((canvas) => {
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              showToast("Failed to generate image.", "error");
-              return;
-            }
-            try {
-              const item = new ClipboardItem({ "image/png": blob });
-              navigator.clipboard
-                .write([item])
-                .then(() => {
-                  showToast(
-                    "Image copied to clipboard! You can paste it anywhere.",
-                    "success",
-                  );
-                })
-                .catch((err) => {
-                  console.error("Clipboard Error:", err);
-                  showToast(
-                    "Clipboard not permitted. Downloading image instead...",
-                    "error",
-                  );
-                  downloadCanvasImage(canvas, "Equipment_Card.png");
-                });
-            } catch (e) {
-              downloadCanvasImage(canvas, "Equipment_Card.png");
-            }
-          }, "image/png");
-        });
-      }
-
       function downloadCanvasImage(canvas, fileName) {
         const a = document.createElement("a");
         a.href = canvas.toDataURL("image/png");
@@ -1413,21 +2018,14 @@
       }
 
       function toggleActionMenu(e) {
-        if (e) {
-          e.stopPropagation();
-        }
+        if (e) e.stopPropagation();
         const menu = document.getElementById("actionMenu");
-        if (menu) {
-          menu.classList.toggle("show");
-        }
+        if (menu) menu.classList.toggle("show");
       }
 
-      /* ==========================================================
-         🟢 RIGHT CLICK YEAR FILTER POPUP (CONTEXT MENU)
-         ========================================================== */
       window.addEventListener("contextmenu", (e) => {
-        // Form inputs/links ozhikeyulla edathu right click cheythaal year filter popup kaanikkunnu
-        if (["INPUT", "TEXTAREA", "SELECT", "A"].includes(e.target.tagName)) return;
+        if (["INPUT", "TEXTAREA", "SELECT", "A"].includes(e.target.tagName))
+          return;
         e.preventDefault();
         openYearContextMenu(e.clientX, e.clientY);
       });
@@ -1437,7 +2035,9 @@
         const list = document.getElementById("yearContextList");
         if (!menu || !list) return;
 
-        const isAllSelected = availableYears.length > 0 && availableYears.every((yr) => selectedYears.includes(yr));
+        const isAllSelected =
+          availableYears.length > 0 &&
+          availableYears.every((yr) => selectedYears.includes(yr));
 
         let html = `
           <li>
@@ -1462,8 +2062,10 @@
         menu.style.display = "block";
         const menuW = 200;
         const menuH = 260;
-        const posX = x + menuW > window.innerWidth ? window.innerWidth - menuW - 10 : x;
-        const posY = y + menuH > window.innerHeight ? window.innerHeight - menuH - 10 : y;
+        const posX =
+          x + menuW > window.innerWidth ? window.innerWidth - menuW - 10 : x;
+        const posY =
+          y + menuH > window.innerHeight ? window.innerHeight - menuH - 10 : y;
 
         menu.style.left = `${posX}px`;
         menu.style.top = `${posY}px`;
@@ -1489,7 +2091,9 @@
       }
 
       function applyYearFilter() {
-        const checked = Array.from(document.querySelectorAll(".year-item-chk:checked")).map((c) => Number(c.value));
+        const checked = Array.from(
+          document.querySelectorAll(".year-item-chk:checked"),
+        ).map((c) => Number(c.value));
         if (checked.length === 0) {
           showToast("Please select at least one year!", "error");
           return;
@@ -1497,13 +2101,15 @@
 
         selectedYears = checked;
         closeYearContextMenu();
-        showToast(`Filter applied: ${selectedYears.length} Year(s) selected`, "success");
+        showToast(
+          `Filter applied: ${selectedYears.length} Year(s) selected`,
+          "success",
+        );
 
-        // Currently selected equipment-nte table refresh cheyyunnu
         if (activeEquipmentId) {
           const eq = allEquipments.find((e) => e.id === activeEquipmentId);
           if (eq) {
-            activeEquipmentId = null; // Re-toggle cheyyan
+            activeEquipmentId = null;
             toggleEquipmentLogs(eq);
           }
         }
@@ -1511,6 +2117,9 @@
 
       document.addEventListener("click", (e) => {
         closeYearContextMenu();
+        if (!e.target.closest(".active-export-wrap")) {
+          document.getElementById("activeExportMenu")?.classList.remove("show");
+        }
 
         const menu = document.getElementById("actionMenu");
         const toggleBtn = document.querySelector(".mobile-menu-btn");

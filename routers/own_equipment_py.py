@@ -227,6 +227,11 @@ async def export_multi_sheet_excel(payload: ExportMultiSheetRequest):
                     if c_idx == 14:
                         cell.font = Font(name="Calibri", size=11, bold=True, color="FF0000" if float(val or 0) < 0 else "008000")
 
+            # 🟢 Enable AutoFilter on Row 2 (excluding Total row) & Freeze Row 2
+            last_data_row = row_num - 1 if rows_data else 2
+            ws.auto_filter.ref = f"A2:N{last_data_row}"
+            ws.freeze_panes = "A3"
+
             # 🟢 AUTO COLUMN WIDTHS (Skip Row 1 Title to prevent Year column from getting too wide)
             for c_idx in range(1, len(headers) + 1):
                 col_letter = get_column_letter(c_idx)

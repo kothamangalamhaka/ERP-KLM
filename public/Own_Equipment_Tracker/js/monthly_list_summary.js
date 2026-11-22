@@ -454,6 +454,18 @@ function openColumnFilterMenu(colKey, x, y) {
         totOpExp, opRev, netOpRev, kafil, owner, inv, pl
       };
 
+      // മറ്റു കോളങ്ങളിലെ ആക്ടീവ് ഫിൽറ്ററുകൾ പാസ്സാകുന്ന വരികൾ മാത്രം ലിസ്റ്റിൽ ഉൾപ്പെടുത്തുന്നു
+      let passesOtherFilters = true;
+      for (const [fCol, selectedVals] of Object.entries(activeSummaryFilters)) {
+        if (selectedVals === null || selectedVals === undefined || fCol === colKey)
+          continue;
+        if (!selectedVals.includes(getRowColValue(rowItem, fCol))) {
+          passesOtherFilters = false;
+          break;
+        }
+      }
+      if (!passesOtherFilters) return;
+
       const val = getRowColValue(rowItem, colKey);
       if (val === "__BLANK__") {
         hasBlank = true;
