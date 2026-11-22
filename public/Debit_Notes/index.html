@@ -440,6 +440,106 @@
       </div>
     </div>
 
+    <!-- Bulk Ref No Attachment Modal -->
+    <div
+      id="refNoUploadModal"
+      class="modal-overlay"
+      style="display: none; z-index: 3600; align-items: flex-start; padding-top: 32px;"
+    >
+      <div class="modal-box" style="max-width: 780px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header-bar">
+          <h3>📎 Bulk Attach File by Reference No</h3>
+          <button class="modal-close-icon" onclick="closeRefNoUploadModal()">
+            ✕
+          </button>
+        </div>
+        <p class="modal-sub-text" style="margin-bottom: 12px;">
+          Search or select a Reference No to list all matching rows. Uncheck any row you wish to exclude, then upload a single shared PDF/Image.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px; margin-bottom: 12px;">
+          <div class="form-field">
+            <label>🔍 Search Reference No</label>
+            <input
+              type="text"
+              id="refModalSearchInput"
+              class="modal-input"
+              placeholder="Type Ref No to filter..."
+              oninput="filterRefNoDropdown(this.value)"
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-field">
+            <label>Select Reference No</label>
+            <select
+              id="refModalSelect"
+              class="modal-input"
+              style="font-weight: 700; color: #0284c7;"
+              onchange="renderRefNoMatchingRows(this.value)"
+            ></select>
+          </div>
+        </div>
+
+        <div
+          id="refModalRowsContainer"
+          style="
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            max-height: 300px;
+          "
+        >
+          <div style="padding: 20px; text-align: center; color: #64748b; font-size: 12px;">
+            Choose a Reference No above to view matching entries.
+          </div>
+        </div>
+
+        <div class="form-field" style="margin-bottom: 8px;">
+          <label>Select File (PDF / Image — Shared across checked rows)</label>
+          <input
+            type="file"
+            id="refModalFileInput"
+            class="modal-input"
+            accept=".pdf,.png,.jpg,.jpeg"
+            style="padding: 5px;"
+          />
+        </div>
+
+        <div
+          id="refModalProgressContainer"
+          class="progress-wrapper"
+          style="display: none"
+        >
+          <div class="progress-bar-bg">
+            <div id="refModalProgressBar" class="progress-bar-fill"></div>
+          </div>
+          <span id="refModalProgressText" class="progress-text"
+            >Uploading: 0%</span
+          >
+        </div>
+
+        <div class="modal-actions-bar">
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="closeRefNoUploadModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="refModalUploadBtn"
+            onclick="submitRefNoBulkUpload()"
+          >
+            ⬆️ Upload &amp; Link Selected Rows
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- PDF Viewer Popup Modal -->
     <div id="pdfViewerModal" class="modal-overlay" style="display: none; z-index: 4000; align-items: center; justify-content: center;">
       <div class="modal-box" style="width: 90vw; max-width: 1050px; height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 8px;">
@@ -573,6 +673,14 @@
 
         <button class="btn btn-success" onclick="openAddNewDataModal()">
           ➕ Add New Data
+        </button>
+        <button
+          class="btn btn-outline"
+          onclick="openRefNoUploadModal()"
+          style="border-color: #7c3aed; color: #7c3aed; font-weight: 700"
+          title="Attach a single shared PDF to multiple rows with the same Ref No"
+        >
+          📎 Ref No Upload
         </button>
         <!-- Status-only edit mode button -->
         <button

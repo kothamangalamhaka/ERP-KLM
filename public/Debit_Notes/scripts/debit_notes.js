@@ -333,6 +333,7 @@ function createBlankRowObj() {
     approved_by: "",
     particulars: "",
     plate_no: "",
+    auto_plate_id: "",
     driver_name: "",
     site: "",
     company: "",
@@ -475,11 +476,18 @@ function renderTable() {
 
     let attachmentHtml = "";
     if (row.attachment_path) {
+      const attFileName = row.attachment_path.split("/").pop().toUpperCase();
+      const isSharedRefAttachment = attFileName.startsWith("REF_");
+      const canReplaceInRow = isEditable && !isSharedRefAttachment;
+      const replaceBtnHtml = canReplaceInRow
+        ? `<button type="button" class="btn-attachment" style="padding:2px 5px;" onclick="triggerRowFileUpload(${idx})" title="Change file">🔄</button>`
+        : "";
+
       attachmentHtml = `
         <div style="display:flex; align-items:center; gap:4px; justify-content:center;">
-          <button type="button" class="btn-attachment has-file" onclick="openPdfViewerModal('${row.attachment_path}', '${escapeHTML(row.plate_no || "")}', '${escapeHTML(row.month_year || "")}')" title="View Attachment">📎 View</button>
-          <button type="button" class="btn-attachment has-file" style="padding:3px 6px;" onclick="downloadAttachmentWithCustomName(event, '${row.attachment_path}', '${escapeHTML(row.plate_no || "")}', '${escapeHTML(row.month_year || "")}')" title="Download Original Quality">📥</button>
-          ${isEditable ? `<button type="button" class="btn-attachment" style="padding:2px 5px;" onclick="triggerRowFileUpload(${idx})" title="Change file">🔄</button>` : ""}
+          <button type="button" class="btn-attachment has-file" onclick="openPdfViewerModal('${row.attachment_path}', '${escapeHTML(row.plate_no || row.auto_plate_id || "")}', '${escapeHTML(row.month_year || "")}')" title="${isSharedRefAttachment ? "Shared Ref No File (Manage via Ref No Upload button)" : "View Attachment"}">📎 View</button>
+          <button type="button" class="btn-attachment has-file" style="padding:3px 6px;" onclick="downloadAttachmentWithCustomName(event, '${row.attachment_path}', '${escapeHTML(row.plate_no || row.auto_plate_id || "")}', '${escapeHTML(row.month_year || "")}')" title="Download Original Quality">📥</button>
+          ${replaceBtnHtml}
         </div>
       `;
     } else {
@@ -503,6 +511,9 @@ function renderTable() {
         </div>`
       : `<span style="font-weight: 600; color: #0284c7;">${escapeHTML(row.month_year || "")}</span>`;
 
+    const autoIdLabel = !row.plate_no && row.auto_plate_id
+      ? `#${escapeHTML(row.auto_plate_id)}`
+      : "";
     const plateHtml = isEditable
       ? `<input 
           type="text" 
@@ -512,10 +523,14 @@ function renderTable() {
           value="${escapeHTML(row.plate_no || "")}" 
           oninput="handleLastRowLiveInput(${idx})" 
           onchange="onPlateChange(${idx}, this.value)" 
-          placeholder="Plate No"
+          placeholder="${autoIdLabel || "Plate No"}"
           autocomplete="off"
         >`
-      : `<span style="font-weight: 700;">${escapeHTML(row.plate_no || "")}</span>`;
+      : row.plate_no
+        ? `<span style="font-weight: 700;">${escapeHTML(row.plate_no)}</span>`
+        : autoIdLabel
+          ? `<span style="font-weight: 600; color: #94a3b8; font-size: 11px; letter-spacing: 0.5px;">${autoIdLabel}</span>`
+          : "";
 
     const vatStatusHtml = isEditable
       ? `<select class="cell-select" onchange="onVatStatusChange(${idx}, this.value)">
@@ -668,7 +683,9 @@ async function handleRowFileSelected(e) {
   const formData = new FormData();
   formData.append("id", row.id || "");
   formData.append("plate_no", (row.plate_no || "").trim().toUpperCase());
+  formData.append("auto_plate_id", (row.auto_plate_id || "").trim());
   formData.append("month_year", (row.month_year || "").trim().toUpperCase());
+  formData.append("particulars", (row.particulars || "").trim());
   formData.append("file", file);
 
   showStatus("Uploading file: 0%", "saving");
@@ -689,6 +706,7 @@ async function handleRowFileSelected(e) {
       const res = JSON.parse(xhr.responseText);
       if (res.success) {
         row.attachment_path = res.file_path;
+        if (res.auto_plate_id) row.auto_plate_id = res.auto_plate_id;
         showStatus("✓ Uploaded (100%)", "saved");
         saveRowToBackend(activeUploadRowIdx);
         renderTable();
@@ -796,6 +814,9 @@ async function processSaveQueue() {
 
       if (res.success) {
         row.id = Number(res.id);
+        if (res.auto_plate_id !== undefined) {
+          row.auto_plate_id = res.auto_plate_id;
+        }
         row.vat_amount = res.vat_amount;
         row.total_amount = res.total_amount;
 
@@ -996,6 +1017,7 @@ async function submitNewRecordModal(e) {
     approved_by: document.getElementById("m_approved_by").value,
     particulars: document.getElementById("m_particulars").value.trim(),
     plate_no: document.getElementById("m_plate_no").value.trim().toUpperCase(),
+    auto_plate_id: editingRow ? editingRow.auto_plate_id || "" : "",
     driver_name: document.getElementById("m_driver_name").value,
     site: document.getElementById("m_site").value,
     company: document.getElementById("m_company").value,
@@ -1026,6 +1048,7 @@ async function submitNewRecordModal(e) {
 
     const newId = res.id;
     newRec.id = newId;
+    newRec.auto_plate_id = res.auto_plate_id || newRec.auto_plate_id || "";
     newRec.vat_amount = res.vat_amount;
     newRec.total_amount = res.total_amount;
 
@@ -1036,6 +1059,7 @@ async function submitNewRecordModal(e) {
       formData.append("id", newId);
       formData.append("plate_no", newRec.plate_no || "VEHICLE");
       formData.append("month_year", newRec.month_year || "MONTH");
+      formData.append("particulars", newRec.particulars || "");
       formData.append("file", file);
 
       const progContainer = document.getElementById(
@@ -1506,6 +1530,9 @@ function applyFiltersAndSearch() {
       if (searchType === "general") {
         const rowStr = Object.values(row).join(" ").toUpperCase();
         if (!rowStr.includes(q)) visible = false;
+      } else if (searchType === "plate_no") {
+        const combinedPlate = `${row.plate_no || ""} #${row.auto_plate_id || ""} ${row.auto_plate_id || ""}`.toUpperCase();
+        if (!combinedPlate.includes(q)) visible = false;
       } else {
         const val = (row[searchType] || "").toUpperCase();
         if (!val.includes(q)) visible = false;
@@ -1632,6 +1659,7 @@ async function downloadAttachmentWithCustomName(
   e.preventDefault();
   if (!fileUrl) return;
 
+  const cleanFileFromUrl = fileUrl.split("/").pop().split(/\#|\?/)[0];
   const cleanPlate = (plateNo || "VEHICLE")
     .replace(/[^a-zA-Z0-9]/g, "_")
     .toUpperCase();
@@ -1640,7 +1668,7 @@ async function downloadAttachmentWithCustomName(
     .toUpperCase();
 
   const ext = fileUrl.split(".").pop().split(/\#|\?/)[0] || "pdf";
-  const downloadFileName = `${cleanPlate}_${cleanMonth}.${ext}`;
+  const downloadFileName = cleanFileFromUrl || `${cleanPlate}_${cleanMonth}.${ext}`;
 
   showStatus("Downloading file...", "saving");
 
@@ -1802,4 +1830,234 @@ function copyCellTextOnContextMenu(e, label) {
     document.body.removeChild(ta);
     showStatus(`✓ Copied ${label}: ${text}`, "saved");
   });
+}
+
+// ==========================================
+// BULK ATTACH BY REFERENCE NO
+// ==========================================
+let allRefNoOptionsCache = [];
+
+function populateRefNoSelectOptions(filterQuery = "") {
+  const selectEl = document.getElementById("refModalSelect");
+  const q = (filterQuery || "").trim().toLowerCase();
+  const prevVal = selectEl.value;
+
+  const filtered = q
+    ? allRefNoOptionsCache.filter((item) =>
+        item.label.toLowerCase().includes(q),
+      )
+    : allRefNoOptionsCache;
+
+  selectEl.innerHTML =
+    `<option value="">-- Choose Reference No (${filtered.length}) --</option>` +
+    filtered
+      .map(
+        (item) =>
+          `<option value="${escapeHTML(item.label)}">${escapeHTML(item.label)} (${item.count} row${item.count > 1 ? "s" : ""})</option>`,
+      )
+      .join("");
+
+  if (filtered.length === 1) {
+    selectEl.value = filtered[0].label;
+    renderRefNoMatchingRows(filtered[0].label);
+  } else if (prevVal && filtered.some((item) => item.label === prevVal)) {
+    selectEl.value = prevVal;
+  } else {
+    selectEl.value = "";
+    renderRefNoMatchingRows("");
+  }
+}
+
+function filterRefNoDropdown(query) {
+  populateRefNoSelectOptions(query);
+}
+
+function openRefNoUploadModal() {
+  const container = document.getElementById("refModalRowsContainer");
+  const searchInp = document.getElementById("refModalSearchInput");
+  if (searchInp) searchInp.value = "";
+  document.getElementById("refModalFileInput").value = "";
+  document.getElementById("refModalProgressContainer").style.display = "none";
+
+  const refMap = new Map();
+  records.forEach((r) => {
+    if (!r.id) return;
+    const ref = (r.ref_no || "").trim();
+    if (ref) {
+      const key = ref.toLowerCase();
+      if (!refMap.has(key)) {
+        refMap.set(key, { label: ref, count: 0 });
+      }
+      refMap.get(key).count += 1;
+    }
+  });
+
+  allRefNoOptionsCache = Array.from(refMap.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, undefined, { numeric: true }),
+  );
+
+  populateRefNoSelectOptions("");
+  container.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; font-size: 12px;">Search or choose a Reference No above to view matching entries.</div>`;
+  document.getElementById("refNoUploadModal").style.display = "flex";
+  if (searchInp) setTimeout(() => searchInp.focus(), 60);
+}
+
+function closeRefNoUploadModal() {
+  document.getElementById("refNoUploadModal").style.display = "none";
+}
+
+function renderRefNoMatchingRows(selectedRef) {
+  const container = document.getElementById("refModalRowsContainer");
+  const cleanRef = (selectedRef || "").trim().toLowerCase();
+
+  if (!cleanRef) {
+    container.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; font-size: 12px;">Choose a Reference No above to view matching entries.</div>`;
+    return;
+  }
+
+  const matched = records
+    .map((r, globalIdx) => ({ r, sn: globalIdx + 1 }))
+    .filter(
+      ({ r }) => r.id && (r.ref_no || "").trim().toLowerCase() === cleanRef,
+    );
+
+  if (matched.length === 0) {
+    container.innerHTML = `<div style="padding: 20px; text-align: center; color: #ef4444; font-size: 12px;">No saved rows found for this Reference No.</div>`;
+    return;
+  }
+
+  let html = `
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <thead>
+        <tr style="background: #0f172a; color: #ffffff;">
+          <th style="padding: 7px 10px; width: 40px; text-align: center;">
+            <input type="checkbox" checked onchange="toggleAllRefModalChecks(this.checked)">
+          </th>
+          <th style="padding: 7px 8px; width: 45px;">SN</th>
+          <th style="padding: 7px 8px;">Month</th>
+          <th style="padding: 7px 8px;">Plate / ID</th>
+          <th style="padding: 7px 8px;">Particulars</th>
+          <th style="padding: 7px 8px; text-align: right;">Total</th>
+          <th style="padding: 7px 8px; text-align: center;">Current File</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  matched.forEach(({ r, sn }) => {
+    const plateDisp = r.plate_no
+      ? escapeHTML(r.plate_no)
+      : r.auto_plate_id
+        ? `#${escapeHTML(r.auto_plate_id)}`
+        : "-";
+    const totDisp = (parseFloat(r.total_amount) || parseFloat(r.amount) || 0).toFixed(2);
+    const fileStatus = r.attachment_path
+      ? `<span style="color: #15803d; font-weight: 600;">Attached</span>`
+      : `<span style="color: #94a3b8;">None</span>`;
+
+    html += `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 6px 10px; text-align: center;">
+          <input type="checkbox" class="ref-modal-row-cb" value="${r.id}" checked>
+        </td>
+        <td style="padding: 6px 8px; text-align: center; font-weight: 700;">${sn}</td>
+        <td style="padding: 6px 8px; text-align: center;">${escapeHTML(r.month_year || "-")}</td>
+        <td style="padding: 6px 8px; text-align: center; font-weight: 600;">${plateDisp}</td>
+        <td style="padding: 6px 8px;">${escapeHTML(r.particulars || "-")}</td>
+        <td style="padding: 6px 8px; text-align: right; font-weight: 600;">${totDisp}</td>
+        <td style="padding: 6px 8px; text-align: center;">${fileStatus}</td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+}
+
+function toggleAllRefModalChecks(checkedState) {
+  document.querySelectorAll(".ref-modal-row-cb").forEach((cb) => {
+    cb.checked = checkedState;
+  });
+}
+
+async function submitRefNoBulkUpload() {
+  const refNo = (document.getElementById("refModalSelect").value || "").trim();
+  const fileInput = document.getElementById("refModalFileInput");
+  const checkedIds = Array.from(
+    document.querySelectorAll(".ref-modal-row-cb:checked"),
+  ).map((cb) => Number(cb.value));
+
+  if (!refNo) {
+    showStatus("Please select a Reference No", "error");
+    return;
+  }
+  if (checkedIds.length === 0) {
+    showStatus("Please keep at least one row checked", "error");
+    return;
+  }
+  if (!fileInput.files.length) {
+    showStatus("Please choose a file to upload", "error");
+    return;
+  }
+
+  const btn = document.getElementById("refModalUploadBtn");
+  const progContainer = document.getElementById("refModalProgressContainer");
+  const progBar = document.getElementById("refModalProgressBar");
+  const progText = document.getElementById("refModalProgressText");
+
+  btn.disabled = true;
+  btn.innerText = "Uploading...";
+  progContainer.style.display = "block";
+  progBar.style.width = "0%";
+
+  const formData = new FormData();
+  formData.append("ref_no", refNo);
+  formData.append("row_ids", JSON.stringify(checkedIds));
+  formData.append("file", fileInput.files[0]);
+
+  try {
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/debit-notes/api/upload-by-ref");
+      xhr.setRequestHeader("x-security-code", securityCode);
+      xhr.setRequestHeader("x-client-id", myClientId);
+
+      xhr.upload.onprogress = function (ev) {
+        if (ev.lengthComputable) {
+          const pct = Math.round((ev.loaded / ev.total) * 100);
+          progBar.style.width = pct + "%";
+          progText.innerText = `Uploading: ${pct}%`;
+        }
+      };
+
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          const res = JSON.parse(xhr.responseText);
+          if (res.success) {
+            checkedIds.forEach((id) => {
+              const target = records.find((r) => Number(r.id) === Number(id));
+              if (target) target.attachment_path = res.file_path;
+            });
+            resolve(res);
+          } else {
+            reject(new Error(res.message || "Upload failed"));
+          }
+        } else {
+          reject(new Error("HTTP Upload Error"));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network Error"));
+      xhr.send(formData);
+    });
+
+    renderTable();
+    closeRefNoUploadModal();
+    showStatus(`✓ Shared file linked to ${checkedIds.length} row(s)`, "saved");
+  } catch (err) {
+    showStatus("Error: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "⬆️ Upload & Link Selected Rows";
+  }
 }

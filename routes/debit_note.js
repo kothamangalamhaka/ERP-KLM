@@ -98,6 +98,62 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 });
 
+async function generateNextAutoPlateId(dbClient = pool) {
+  await dbClient.query(
+    `CREATE SEQUENCE IF NOT EXISTS debit_notes_auto_plate_seq START 1`,
+  );
+  // Sync sequence with highest existing numeric auto_plate_id so duplicates never occur
+  await dbClient.query(`
+    SELECT setval(
+      'debit_notes_auto_plate_seq',
+      GREATEST(
+        COALESCE((SELECT MAX(NULLIF(REGEXP_REPLACE(auto_plate_id, '[^0-9]', '', 'g'), '')::bigint) FROM debit_notes), 0),
+        1
+      ),
+      EXISTS(SELECT 1 FROM debit_notes WHERE auto_plate_id IS NOT NULL AND TRIM(auto_plate_id) != '')
+    )
+  `);
+  const seqRes = await dbClient.query(
+    `SELECT LPAD(nextval('debit_notes_auto_plate_seq')::text, 4, '0') AS code`,
+  );
+  return seqRes.rows[0].code;
+}
+
+function buildDebitNoteFileName({
+  rowId,
+  plateNo,
+  autoPlateId,
+  monthYear,
+  particulars,
+  ext,
+}) {
+  const rawPlate = (plateNo || "").trim().toUpperCase();
+  const cleanMonth = ((monthYear || "MONTH").trim().toUpperCase())
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+  const cleanPart = (particulars || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_|_$/g, "")
+    .substring(0, 50);
+
+  if (rawPlate) {
+    const cleanPlate = rawPlate
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_|_$/g, "");
+    const idTag = rowId ? `_ID${rowId}` : `_${Date.now()}`;
+    return cleanPart
+      ? `${cleanPlate}_${cleanMonth}_${cleanPart}${idTag}${ext}`
+      : `${cleanPlate}_${cleanMonth}${idTag}${ext}`;
+  } else {
+    const uid = (autoPlateId || "0001").trim();
+    const idTag = rowId ? `_ID${rowId}` : "";
+    return cleanPart
+      ? `${uid}_${cleanMonth}_${cleanPart}${idTag}${ext}`
+      : `${uid}_${cleanMonth}${idTag}${ext}`;
+  }
+}
+
 function parseMonthYearRange(monthYearStr) {
   if (!monthYearStr) return null;
   const parts = monthYearStr.trim().split(/[\s-]+/);
@@ -359,6 +415,7 @@ router.get("/api/records", verifyVatTrackerCode, async (req, res) => {
         TO_CHAR(received_date, 'YYYY-MM-DD') AS received_date,
         TO_CHAR(submitted_date, 'YYYY-MM-DD') AS submitted_date,
         month_year, approved_by, particulars, plate_no,
+        COALESCE(auto_plate_id, '') AS auto_plate_id,
         driver_name, site, company, customer,
         COALESCE(amount, 0) as amount,
         vat_status,
@@ -371,16 +428,25 @@ router.get("/api/records", verifyVatTrackerCode, async (req, res) => {
       ORDER BY id ASC
     `);
 
-    // ഫയൽ ഡിസ്കിൽ ശരിക്കും ഉണ്ടോ എന്ന് പരിശോധിച്ച് ഇല്ലെങ്കിൽ attachment_path ശൂന്യമാക്കുന്നു
+    const missingIds = [];
     const sanitizedRows = result.rows.map((row) => {
-      if (row.attachment_path) {
-        const fullPath = path.join(__dirname, "../public", row.attachment_path);
+      if (row.attachment_path && String(row.attachment_path).trim() !== "") {
+        const cleanRel = String(row.attachment_path).trim().replace(/^\/+/, "");
+        const fullPath = path.join(__dirname, "../public", cleanRel);
         if (!fs.existsSync(fullPath)) {
+          missingIds.push(row.id);
           return { ...row, attachment_path: null };
         }
       }
       return row;
     });
+
+    if (missingIds.length > 0) {
+      await pool.query(
+        `UPDATE debit_notes SET attachment_path = NULL WHERE id = ANY($1::int[])`,
+        [missingIds],
+      );
+    }
 
     res.json({ success: true, data: sanitizedRows });
   } catch (error) {
@@ -528,47 +594,80 @@ router.post(
         return res.json({ success: false, message: "No file uploaded" });
       }
 
-      const rowId = req.body.id;
+      const rowId = req.body.id ? Number(req.body.id) : null;
       let finalPlate = (req.body.plate_no || "").trim().toUpperCase();
       let finalMonth = (req.body.month_year || "").trim().toUpperCase();
+      let finalParticulars = (req.body.particulars || "").trim();
+      let finalAutoPlateId = (req.body.auto_plate_id || "").trim();
+      let oldAttachmentPath = null;
 
-      // Retrieve accurate plate and month from database if rowId is provided
       if (rowId) {
         const rowData = await pool.query(
-          `SELECT plate_no, month_year FROM debit_notes WHERE id = $1`,
+          `SELECT plate_no, auto_plate_id, month_year, particulars, attachment_path FROM debit_notes WHERE id = $1`,
           [rowId],
         );
         if (rowData.rows.length > 0) {
-          finalPlate = (rowData.rows[0].plate_no || finalPlate || "VEHICLE")
+          finalPlate = (rowData.rows[0].plate_no || finalPlate || "")
             .trim()
             .toUpperCase();
+          finalAutoPlateId = (
+            rowData.rows[0].auto_plate_id ||
+            finalAutoPlateId ||
+            ""
+          ).trim();
           finalMonth = (rowData.rows[0].month_year || finalMonth || "MONTH")
             .trim()
             .toUpperCase();
+          finalParticulars = (
+            rowData.rows[0].particulars ||
+            finalParticulars ||
+            ""
+          ).trim();
+          oldAttachmentPath = rowData.rows[0].attachment_path || null;
         }
       }
 
-      const cleanPlate = (finalPlate || "VEHICLE").replace(
-        /[^a-zA-Z0-9]/g,
-        "_",
-      );
-      const cleanMonth = (finalMonth || "MONTH").replace(/[^a-zA-Z0-9]/g, "_");
+      // Generate unique 0001+ ID if Plate No is empty
+      if (!finalPlate && !finalAutoPlateId) {
+        finalAutoPlateId = await generateNextAutoPlateId();
+      }
+
       const ext = path.extname(req.file.originalname) || ".pdf";
-      const targetFileName = `${cleanPlate}_${cleanMonth}${ext}`;
+      const targetFileName = buildDebitNoteFileName({
+        rowId,
+        plateNo: finalPlate,
+        autoPlateId: finalAutoPlateId,
+        monthYear: finalMonth,
+        particulars: finalParticulars,
+        ext,
+      });
       const targetFilePath = path.join(uploadDir, targetFileName);
 
-      // Overwrite/Rename temp file cleanly to PLATE_MONTH.pdf
-      if (fs.existsSync(targetFilePath)) {
-        fs.unlinkSync(targetFilePath);
+      // Remove only THIS row's previous file if replacing on the same row
+      if (oldAttachmentPath) {
+        const oldFull = path.join(
+          __dirname,
+          "../public",
+          oldAttachmentPath.replace(/^\/+/, ""),
+        );
+        if (fs.existsSync(oldFull) && oldFull !== targetFilePath) {
+          try {
+            fs.unlinkSync(oldFull);
+          } catch (e) {}
+        }
       }
-      fs.renameSync(req.file.path, targetFilePath);
 
+      fs.renameSync(req.file.path, targetFilePath);
       const relativePath = `/uploads/Debit_Note/${targetFileName}`;
 
       if (rowId) {
         await pool.query(
-          `UPDATE debit_notes SET attachment_path = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-          [relativePath, rowId],
+          `UPDATE debit_notes
+           SET attachment_path = $1,
+               auto_plate_id = COALESCE(NULLIF($2, ''), auto_plate_id),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $3`,
+          [relativePath, finalPlate ? "" : finalAutoPlateId, rowId],
         );
       }
 
@@ -576,6 +675,119 @@ router.post(
         success: true,
         file_path: relativePath,
         file_name: targetFileName,
+        auto_plate_id: finalPlate ? "" : finalAutoPlateId,
+      });
+    } catch (error) {
+      res.json({ success: false, message: error.message });
+    }
+  },
+);
+
+// Bulk attach single shared PDF across selected rows having the same Ref No
+router.post(
+  "/api/upload-by-ref",
+  verifyVatTrackerCode,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.json({ success: false, message: "No file uploaded" });
+      }
+
+      const refNo = (req.body.ref_no || "").trim();
+      let rowIds = [];
+      try {
+        rowIds = JSON.parse(req.body.row_ids || "[]")
+          .map((id) => Number(id))
+          .filter((id) => id > 0);
+      } catch (e) {
+        rowIds = [];
+      }
+
+      if (!refNo || rowIds.length === 0) {
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        return res.json({
+          success: false,
+          message: "Select a valid Ref No and at least one row",
+        });
+      }
+
+      const cleanRef = refNo
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "_")
+        .replace(/^_|_$/g, "");
+      const ext = path.extname(req.file.originalname) || ".pdf";
+      const targetFileName = `REF_${cleanRef}${ext}`;
+      const targetFilePath = path.join(uploadDir, targetFileName);
+
+      // Clean up previous individual files if they are not shared with unselected rows
+      const prevRes = await pool.query(
+        `SELECT id, attachment_path FROM debit_notes WHERE id = ANY($1::int[])`,
+        [rowIds],
+      );
+      const oldPaths = [
+        ...new Set(
+          prevRes.rows
+            .map((r) => r.attachment_path)
+            .filter((p) => p && String(p).trim() !== ""),
+        ),
+      ];
+
+      if (fs.existsSync(targetFilePath)) {
+        fs.unlinkSync(targetFilePath);
+      }
+      fs.renameSync(req.file.path, targetFilePath);
+
+      const relativePath = `/uploads/Debit_Note/${targetFileName}`;
+
+      await pool.query(
+        `UPDATE debit_notes
+         SET attachment_path = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ANY($2::int[])`,
+        [relativePath, rowIds],
+      );
+
+      // Safely remove replaced old files only if no remaining DB row references them
+      for (const oldRel of oldPaths) {
+        if (oldRel === relativePath) continue;
+        const stillUsed = await pool.query(
+          `SELECT 1 FROM debit_notes WHERE attachment_path = $1 LIMIT 1`,
+          [oldRel],
+        );
+        if (stillUsed.rows.length === 0) {
+          const oldFull = path.join(
+            __dirname,
+            "../public",
+            oldRel.replace(/^\/+/, ""),
+          );
+          if (fs.existsSync(oldFull)) {
+            try {
+              fs.unlinkSync(oldFull);
+            } catch (e) {}
+          }
+        }
+      }
+
+      const senderId = req.headers["x-client-id"] || null;
+      const updatedRowsRes = await pool.query(
+        `SELECT id, TO_CHAR(received_date, 'YYYY-MM-DD') AS received_date, TO_CHAR(submitted_date, 'YYYY-MM-DD') AS submitted_date,
+         month_year, approved_by, particulars, plate_no, COALESCE(auto_plate_id, '') AS auto_plate_id,
+         driver_name, site, company, customer,
+         COALESCE(amount, 0) as amount, vat_status, COALESCE(vat_amount, 0) as vat_amount, COALESCE(total_amount, 0) as total_amount,
+         COALESCE(qc_entry, 0) as qc_entry,
+         owner_name, status, ref_no, work_order, remark, attachment_path
+         FROM debit_notes WHERE id = ANY($1::int[])`,
+        [rowIds],
+      );
+
+      updatedRowsRes.rows.forEach((uRow) => {
+        broadcastDebitNoteUpdate("UPSERT", uRow, senderId);
+      });
+
+      res.json({
+        success: true,
+        file_path: relativePath,
+        updated_count: rowIds.length,
       });
     } catch (error) {
       res.json({ success: false, message: error.message });
@@ -593,6 +805,7 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
       approved_by,
       particulars,
       plate_no,
+      auto_plate_id,
       driver_name,
       site,
       company,
@@ -613,8 +826,11 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
       ? parseFloat(qc_entry)
       : null;
 
+    const cleanPlateVal = plate_no ? plate_no.trim().toUpperCase() : "";
+    let finalAutoId = (auto_plate_id || "").trim();
+
     const hasData =
-      (plate_no && plate_no.trim() !== "") ||
+      cleanPlateVal !== "" ||
       (particulars && particulars.trim() !== "") ||
       numAmount > 0 ||
       (received_date && received_date.trim() !== "") ||
@@ -640,6 +856,62 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
         : null;
 
     if (id) {
+      const oldMetaRes = await pool.query(
+        `SELECT attachment_path, auto_plate_id FROM debit_notes WHERE id = $1`,
+        [id],
+      );
+      if (!cleanPlateVal) {
+        finalAutoId =
+          (oldMetaRes.rows[0]?.auto_plate_id || "").trim() ||
+          finalAutoId ||
+          (await generateNextAutoPlateId());
+      } else {
+        finalAutoId = oldMetaRes.rows[0]?.auto_plate_id || finalAutoId || "";
+      }
+
+      let updatedAttachmentPath = attachment_path || null;
+      const existingAttPath =
+        updatedAttachmentPath || oldMetaRes.rows[0]?.attachment_path || null;
+
+      const isSharedRefFile =
+        existingAttPath &&
+        path.basename(existingAttPath).toUpperCase().startsWith("REF_");
+
+      if (existingAttPath && !isSharedRefFile) {
+        const oldFull = path.join(
+          __dirname,
+          "../public",
+          existingAttPath.replace(/^\/+/, ""),
+        );
+        if (fs.existsSync(oldFull)) {
+          const ext = path.extname(oldFull) || ".pdf";
+          const newFileName = buildDebitNoteFileName({
+            rowId: id,
+            plateNo: cleanPlateVal,
+            autoPlateId: finalAutoId,
+            monthYear: month_year,
+            particulars,
+            ext,
+          });
+          const newFull = path.join(uploadDir, newFileName);
+
+          if (oldFull !== newFull && !fs.existsSync(newFull)) {
+            try {
+              fs.renameSync(oldFull, newFull);
+              updatedAttachmentPath = `/uploads/Debit_Note/${newFileName}`;
+            } catch (renErr) {
+              console.warn("Debit note attachment rename skipped:", renErr.message);
+            }
+          }
+        } else {
+          updatedAttachmentPath = null;
+          await pool.query(
+            `UPDATE debit_notes SET attachment_path = NULL WHERE id = $1`,
+            [id],
+          );
+        }
+      }
+
       await pool.query(
         `UPDATE debit_notes SET
           received_date = $1::date,
@@ -648,30 +920,32 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
           approved_by = $4,
           particulars = $5,
           plate_no = $6,
-          driver_name = $7,
-          site = $8,
-          company = $9,
-          customer = $10,
-          amount = $11,
-          vat_status = $12,
-          vat_amount = $13,
-          total_amount = $14,
-          qc_entry = $15,
-          owner_name = $16,
-          status = $17,
-          ref_no = $18,
-          work_order = $19,
-          remark = $20,
-          attachment_path = COALESCE($21, attachment_path),
+          auto_plate_id = $7,
+          driver_name = $8,
+          site = $9,
+          company = $10,
+          customer = $11,
+          amount = $12,
+          vat_status = $13,
+          vat_amount = $14,
+          total_amount = $15,
+          qc_entry = $16,
+          owner_name = $17,
+          status = $18,
+          ref_no = $19,
+          work_order = $20,
+          remark = $21,
+          attachment_path = COALESCE($22, attachment_path),
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = $22`,
+        WHERE id = $23`,
         [
           cleanReceivedDate,
           cleanSubmittedDate,
           month_year || null,
           approved_by || null,
           particulars || null,
-          plate_no ? plate_no.trim().toUpperCase() : null,
+          cleanPlateVal || null,
+          finalAutoId || null,
           driver_name || null,
           site || null,
           company || null,
@@ -686,17 +960,21 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
           ref_no || null,
           work_order || null,
           remark || null,
-          attachment_path || null,
+          updatedAttachmentPath,
           id,
         ],
       );
     } else {
+      if (!cleanPlateVal && !finalAutoId) {
+        finalAutoId = await generateNextAutoPlateId();
+      }
+
       const insertRes = await pool.query(
         `INSERT INTO debit_notes (
-          received_date, submitted_date, month_year, approved_by, particulars, plate_no,
+          received_date, submitted_date, month_year, approved_by, particulars, plate_no, auto_plate_id,
           driver_name, site, company, customer, amount, vat_status, vat_amount, total_amount,
           qc_entry, owner_name, status, ref_no, work_order, remark, attachment_path
-        ) VALUES ($1::date, $2::date, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        ) VALUES ($1::date, $2::date, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
         RETURNING id`,
         [
           cleanReceivedDate,
@@ -704,7 +982,8 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
           month_year || null,
           approved_by || null,
           particulars || null,
-          plate_no ? plate_no.trim().toUpperCase() : null,
+          cleanPlateVal || null,
+          finalAutoId || null,
           driver_name || null,
           site || null,
           company || null,
@@ -744,7 +1023,8 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
 
     const broadcastRowRes = await pool.query(
       `SELECT id, TO_CHAR(received_date, 'YYYY-MM-DD') AS received_date, TO_CHAR(submitted_date, 'YYYY-MM-DD') AS submitted_date,
-       month_year, approved_by, particulars, plate_no, driver_name, site, company, customer,
+       month_year, approved_by, particulars, plate_no, COALESCE(auto_plate_id, '') AS auto_plate_id,
+       driver_name, site, company, customer,
        COALESCE(amount, 0) as amount, vat_status, COALESCE(vat_amount, 0) as vat_amount, COALESCE(total_amount, 0) as total_amount,
        COALESCE(qc_entry, 0) as qc_entry,
        owner_name, status, ref_no, work_order, remark, attachment_path FROM debit_notes WHERE id = $1`,
@@ -754,7 +1034,11 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
     if (broadcastRowRes.rows.length > 0) {
       const bRow = broadcastRowRes.rows[0];
       if (bRow.attachment_path) {
-        const fullP = path.join(__dirname, "../public", bRow.attachment_path);
+        const fullP = path.join(
+          __dirname,
+          "../public",
+          bRow.attachment_path.replace(/^\/+/, ""),
+        );
         if (!fs.existsSync(fullP)) {
           bRow.attachment_path = null;
         }
@@ -765,6 +1049,7 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
     res.json({
       success: true,
       id: finalId,
+      auto_plate_id: finalAutoId || "",
       vat_amount: vatAmount,
       total_amount: totalAmount,
       seal_applied: sealResult.success,
