@@ -3691,7 +3691,6 @@ window.startBillingAppFaceAuth = async function (action) {
   modal.style.display = "flex";
   appLivenessPassed = false;
   isAppProcessing = false;
-  appScanStartTime = Date.now();
   instruction.innerText = "Opening Camera...";
   instruction.style.color = "#0284c7";
 
@@ -3701,18 +3700,23 @@ window.startBillingAppFaceAuth = async function (action) {
     }
 
     appCamStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 300 }, height: { ideal: 225 }, facingMode: "user" },
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
       audio: false,
     });
     video.srcObject = appCamStream;
     await video.play();
 
+    appScanStartTime = Date.now();
     instruction.innerText = "Scanning face... Look straight at the camera";
     instruction.style.color = "#10b981";
 
     const captureLoop = async () => {
       if (!appCamStream || appLivenessPassed || isAppProcessing) return;
-      if (video.readyState >= 2 && Date.now() - appScanStartTime >= 700) {
+      if (
+        video.readyState >= 2 &&
+        video.videoWidth > 0 &&
+        Date.now() - appScanStartTime >= 1200
+      ) {
         appLivenessPassed = true;
         instruction.innerText = "Capturing & Verifying...";
         await handleBillingAppFaceCapture(video);
@@ -3731,9 +3735,14 @@ window.startBillingAppFaceAuth = async function (action) {
 async function handleBillingAppFaceCapture(frame) {
   isAppProcessing = true;
   const canvas = document.getElementById("billingAppUniversalCanvas");
+  const vw = frame.videoWidth || 640;
+  const vh = frame.videoHeight || 480;
+  const scale = Math.min(1, 480 / Math.max(vw, vh));
+  canvas.width = Math.round(vw * scale);
+  canvas.height = Math.round(vh * scale);
   const ctx = canvas.getContext("2d");
   ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
-  const imageData = canvas.toDataURL("image/jpeg");
+  const imageData = canvas.toDataURL("image/jpeg", 0.92);
 
   if (activeAppFaceAction === "login") {
     document.getElementById("loader").style.display = "flex";

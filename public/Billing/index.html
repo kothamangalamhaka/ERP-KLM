@@ -34,6 +34,35 @@
           transform: rotate(1turn);
         }
       }
+      .login-box {
+        position: relative;
+      }
+      .login-box .face-corner-btn {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 10px;
+        background: rgba(16, 185, 129, 0.18);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+      }
+      .login-box .face-corner-btn:hover {
+        background: rgba(16, 185, 129, 0.34);
+        box-shadow: 0 6px 18px rgba(16, 185, 129, 0.28);
+        transform: translateY(-1px);
+      }
     </style>
 
     <div
@@ -72,6 +101,14 @@
     <div id="loginScreen">
       <!-- Login Box -->
       <div class="login-box" id="loginBox">
+        <button
+          type="button"
+          class="face-corner-btn"
+          title="Face Login"
+          onclick="startBillingAppFaceAuth('login')"
+        >
+          📸
+        </button>
         <h2>Vendor Bill Summary</h2>
         <input
           type="text"
@@ -86,12 +123,6 @@
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
         <button onclick="executeLogin()">Secure Login</button>
-        <button
-          onclick="startBillingAppFaceAuth('login')"
-          style="background: #10b981; margin-top: 10px"
-        >
-          📸 Face Login
-        </button>
 
         <div style="margin-top: 15px; font-size: 14px">
           <a
