@@ -494,6 +494,9 @@
             if (data.success && data.token) {
                 localStorage.setItem('emp_token', data.token);
                 localStorage.setItem('emp_user', JSON.stringify(data.user));
+                if (data.faceTrustToken) {
+                    localStorage.setItem('eq_face_trust_token', data.faceTrustToken);
+                }
                 window.location.replace(getLoginDestination());
             } else {
                 showAlert(data.message || 'Login failed', 'error');
@@ -679,7 +682,10 @@
                 const res = await fetch('/py/own-equipment-face-login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData })
+                    body: JSON.stringify({
+                        image: imageData,
+                        face_trust_token: localStorage.getItem('eq_face_trust_token')
+                    })
                 });
                 const data = await res.json();
                 closeWe1UniversalFace();
@@ -770,6 +776,15 @@
             });
         }
     });
+
+    function updateWe1FaceBtnVisibility() {
+        const faceBtn = document.querySelector('.face-corner-btn');
+        if (faceBtn) {
+            faceBtn.style.display = localStorage.getItem('eq_face_trust_token') ? 'flex' : 'none';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', updateWe1FaceBtnVisibility);
+    updateWe1FaceBtnVisibility();
 </script>
 </body>
 </html>

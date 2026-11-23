@@ -142,9 +142,15 @@ app.use(
 app.use("/py", async (req, res) => {
   try {
     const url = `http://127.0.0.1:8001/py${req.url}`;
+    const clientIp = (req.headers["x-forwarded-for"] || req.ip || "")
+      .split(",")[0]
+      .trim();
     const options = {
       method: req.method,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(clientIp ? { "x-forwarded-for": clientIp } : {}),
+      },
     };
     if (
       ["POST", "PUT", "PATCH"].includes(req.method) &&

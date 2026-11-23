@@ -39,6 +39,7 @@ JOB_WAIT_SECONDS = 10
 class FaceRequest(BaseModel):
     image: Optional[str] = None
     frames: Optional[List[str]] = None
+    face_trust_token: Optional[str] = None
 
 
 def get_conn():
@@ -528,17 +529,36 @@ def own_equipment_invalidate_cache():
 
 @router.post("/reset-face-lock")
 def reset_face_lock(request: Request):
+    if request.headers.get("x-internal-secret") != JWT_SECRET:
+        return {"success": False, "message": "Unauthorized"}
     ip = get_client_ip(request)
     record_success(ip)
     if request.client and request.client.host:
         record_success(request.client.host)
-    record_success("127.0.0.1")
     return {"success": True, "message": "Face lock cleared"}
 
 
 @router.post("/own-equipment-face-login")
 def own_equipment_face_login(payload: FaceRequest, request: Request):
     ip = get_client_ip(request)
+
+    if not payload.face_trust_token:
+        return {
+            "success": False,
+            "code": "DEVICE_NOT_TRUSTED",
+            "message": "Please login with username and password first to enable Face Login on this device.",
+        }
+    try:
+        trust = jwt.decode(payload.face_trust_token, JWT_SECRET, algorithms=["HS256"])
+        if trust.get("purpose") != "face_device_trust" or not trust.get("username"):
+            raise ValueError("Invalid trust token")
+        trusted_username = trust["username"]
+    except Exception:
+        return {
+            "success": False,
+            "code": "DEVICE_NOT_TRUSTED",
+            "message": "Face Login session expired. Please login with username and password.",
+        }
 
     remaining = check_locked(ip)
     if remaining > 0:
@@ -562,22 +582,21 @@ def own_equipment_face_login(payload: FaceRequest, request: Request):
             return {"success": False, "message": f"No face detected in the image. {left} attempt(s) left."}
 
         snap = get_own_eq_cache_snapshot()
-        if not snap["encodings"]:
-            return {"success": False, "code": "NOT_RECOGNIZED", "message": "No registered face data found for Equipment Tracker users."}
+        matched_idx = next(
+            (i for i, u in enumerate(snap["users"]) if u[1] == trusted_username),
+            None,
+        )
+        if matched_idx is None:
+            return {
+                "success": False,
+                "code": "NOT_RECOGNIZED",
+                "message": "No face data registered for this user. Use Reset / Update Face Data.",
+            }
 
-        distances = face_recognition.face_distance(snap["encodings"], current)
-        best_idx = int(np.argmin(distances))
-        best_dist = float(distances[best_idx])
-
-        ambiguous = False
-        if len(distances) > 1:
-            second = float(np.partition(distances, 1)[1])
-            if second - best_dist < 0.03:
-                ambiguous = True
-
-        if best_dist > MATCH_THRESHOLD or ambiguous:
+        best_dist = float(face_recognition.face_distance([snap["encodings"][matched_idx]], current)[0])
+        if best_dist > MATCH_THRESHOLD:
             left = record_failure(ip)
-            logger.info("Own Equipment face NOT recognized ip=%s dist=%.3f ambiguous=%s", ip, best_dist, ambiguous)
+            logger.info("Own Equipment face NOT recognized user=%s ip=%s dist=%.3f", trusted_username, ip, best_dist)
             if left == 0:
                 return locked_response(LOCKOUT_SECONDS)
             return {
@@ -586,7 +605,7 @@ def own_equipment_face_login(payload: FaceRequest, request: Request):
                 "message": f"Face not recognized. {left} attempt(s) left.",
             }
 
-        user_id = snap["users"][best_idx][0]
+        user_id = snap["users"][matched_idx][0]
 
         conn = get_conn()
         try:

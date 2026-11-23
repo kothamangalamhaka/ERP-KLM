@@ -49,6 +49,9 @@ async function handleLogin() {
         localStorage.setItem("eq_token", data.token);
       }
       localStorage.setItem("eq_user", JSON.stringify(data.user));
+      if (data.faceTrustToken) {
+        localStorage.setItem("eq_face_trust_token", data.faceTrustToken);
+      }
 
       window.location.replace(
         window.ownEquipmentSession.getLoginDestination(),
@@ -249,7 +252,10 @@ async function handleEqFaceCapture(frame) {
       const res = await fetch("/py/own-equipment-face-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageData }),
+        body: JSON.stringify({
+          image: imageData,
+          face_trust_token: localStorage.getItem("eq_face_trust_token"),
+        }),
       });
       const data = await res.json();
       closeEqUniversalFace();
@@ -387,4 +393,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  });
+  const faceBtn = document.querySelector(".face-corner-btn");
+  if (faceBtn) {
+    faceBtn.style.display = localStorage.getItem("eq_face_trust_token")
+      ? "flex"
+      : "none";
+  }
+});

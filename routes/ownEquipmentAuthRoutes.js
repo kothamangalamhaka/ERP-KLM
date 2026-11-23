@@ -175,10 +175,19 @@ router.post("/login", async (req, res) => {
       .trim();
     fetch("http://127.0.0.1:8001/py/reset-face-lock", {
       method: "POST",
-      headers: clientIp ? { "x-forwarded-for": clientIp } : {},
+      headers: {
+        "x-internal-secret": process.env.JWT_SECRET,
+        ...(clientIp ? { "x-forwarded-for": clientIp } : {}),
+      },
     }).catch(() => {});
 
-    res.json({ success: true, token, user });
+    const faceTrustToken = jwt.sign(
+      { username: user.username, purpose: "face_device_trust" },
+      process.env.JWT_SECRET,
+      { expiresIn: "30d" },
+    );
+
+    res.json({ success: true, token, user, faceTrustToken });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error during login." });
