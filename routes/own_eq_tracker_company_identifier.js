@@ -8,9 +8,11 @@ function normalizeCompanyName(rawSite) {
   const s = rawSite.trim().toLowerCase();
 
   if (s.includes("haka")) return "Haka";
-  if (s.includes("aljoda") || s.includes("al joda") || s.includes("joda")) return "Al Joda";
+  if (s.includes("aljoda") || s.includes("al joda") || s.includes("joda"))
+    return "Al Joda";
   if (s.includes("masar") || s.includes("wheel")) return "Masar Wheels";
-  if (s.includes("we1") || s.includes("we 1") || s.includes("we-1")) return "We1";
+  if (s.includes("we1") || s.includes("we 1") || s.includes("we-1"))
+    return "We1";
 
   return null;
 }
@@ -35,15 +37,18 @@ function cleanSiteName(rawSite) {
     /\bMasar\b/gi,
     /\bWe\s*1\b/gi,
     /\bWe1\b/gi,
-    /\bWe-1\b/gi
+    /\bWe-1\b/gi,
   ];
 
-  unwantedPatterns.forEach(pattern => {
+  unwantedPatterns.forEach((pattern) => {
     clean = clean.replace(pattern, " ");
   });
 
   // ചിഹ്നങ്ങളും അധിക സ്പേസുകളും ക്ലീൻ ചെയ്യുന്നു
-  clean = clean.replace(/[-–—_/\\,|]+/g, " ").replace(/\s+/g, " ").trim();
+  clean = clean
+    .replace(/[-–—_/\\,|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return clean;
 }
 
@@ -55,11 +60,11 @@ router.get("/monthly-companies", async (req, res) => {
     const siteLogsRes = await pool.query(
       `SELECT plate_no, site_name, work_start_date, work_end_date, status 
        FROM vehicle_site_log 
-       ORDER BY COALESCE(work_start_date, '1970-01-01') ASC, id ASC`
+       ORDER BY COALESCE(work_start_date, '1970-01-01') ASC, id ASC`,
     );
 
     const plateLogsRes = await pool.query(
-      `SELECT old_plate_no, new_plate_no, change_date FROM vehicle_plate_log ORDER BY change_date ASC`
+      `SELECT old_plate_no, new_plate_no, change_date FROM vehicle_plate_log ORDER BY change_date ASC`,
     );
 
     const logs = siteLogsRes.rows;
@@ -79,7 +84,9 @@ router.get("/monthly-companies", async (req, res) => {
 
         if (!companyMap[pNo]) companyMap[pNo] = {};
 
-        const logStart = log.work_start_date ? new Date(log.work_start_date) : null;
+        const logStart = log.work_start_date
+          ? new Date(log.work_start_date)
+          : null;
         const logEnd = log.work_end_date ? new Date(log.work_end_date) : null;
 
         // ആ മാസത്തിൽ സൈറ്റ് പ്രവർത്തിച്ചിട്ടുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
@@ -90,11 +97,18 @@ router.get("/monthly-companies", async (req, res) => {
           const matchedComp = normalizeCompanyName(log.site_name);
           const cleanedSite = cleanSiteName(log.site_name);
           if (matchedComp || cleanedSite) {
-            if (!companyMap[pNo][m]) companyMap[pNo][m] = { comps: [], sites: [] };
-            if (matchedComp && !companyMap[pNo][m].comps.includes(matchedComp)) {
+            if (!companyMap[pNo][m])
+              companyMap[pNo][m] = { comps: [], sites: [] };
+            if (
+              matchedComp &&
+              !companyMap[pNo][m].comps.includes(matchedComp)
+            ) {
               companyMap[pNo][m].comps.push(matchedComp);
             }
-            if (cleanedSite && !companyMap[pNo][m].sites.includes(cleanedSite)) {
+            if (
+              cleanedSite &&
+              !companyMap[pNo][m].sites.includes(cleanedSite)
+            ) {
               companyMap[pNo][m].sites.push(cleanedSite);
             }
           }
@@ -113,7 +127,7 @@ router.get("/monthly-companies", async (req, res) => {
         } else {
           finalResult[pNo][m] = {
             company: item.comps.join(" & "),
-            site: item.sites.join(" & ")
+            site: item.sites.join(" & "),
           };
         }
       }

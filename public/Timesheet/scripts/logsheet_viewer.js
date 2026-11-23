@@ -36,20 +36,29 @@ async function openLogsheetViewer(passedPlate = "") {
 
   try {
     currentToken = localStorage.getItem("timesheetToken");
-    const logRes = await fetch(`/timesheet/api/vehicle-logs?plate=${encodeURIComponent(cleanP)}`, {
-      headers: { Authorization: "Bearer " + currentToken }
-    });
+    const logRes = await fetch(
+      `/timesheet/api/vehicle-logs?plate=${encodeURIComponent(cleanP)}`,
+      {
+        headers: { Authorization: "Bearer " + currentToken },
+      },
+    );
     const logData = await logRes.json();
-    if (logData.success && logData.plateChanges && logData.plateChanges.length > 0) {
-      logData.plateChanges.forEach(pl => {
+    if (
+      logData.success &&
+      logData.plateChanges &&
+      logData.plateChanges.length > 0
+    ) {
+      logData.plateChanges.forEach((pl) => {
         let oP = (pl.old_plate_no || "").trim().toUpperCase();
         let nP = (pl.new_plate_no || "").trim().toUpperCase();
         if (oP && !plateCandidates.includes(oP)) plateCandidates.push(oP);
         if (nP && !plateCandidates.includes(nP)) plateCandidates.push(nP);
         let arrowFormat1 = `${oP} ➔ ${nP}`;
         let arrowFormat2 = `${oP} -> ${nP}`;
-        if (!plateCandidates.includes(arrowFormat1)) plateCandidates.push(arrowFormat1);
-        if (!plateCandidates.includes(arrowFormat2)) plateCandidates.push(arrowFormat2);
+        if (!plateCandidates.includes(arrowFormat1))
+          plateCandidates.push(arrowFormat1);
+        if (!plateCandidates.includes(arrowFormat2))
+          plateCandidates.push(arrowFormat2);
       });
     }
   } catch (e) {
@@ -213,7 +222,8 @@ function renderFileList() {
   // 🟢 Select All Header ചേർക്കുന്നു
   if (logsheetFiles.length > 0) {
     const selectAllDiv = document.createElement("div");
-    selectAllDiv.style.cssText = "padding: 8px 12px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: bold; color: #334155; position: sticky; top: 0; z-index: 5;";
+    selectAllDiv.style.cssText =
+      "padding: 8px 12px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: bold; color: #334155; position: sticky; top: 0; z-index: 5;";
     selectAllDiv.innerHTML = `
       <input type="checkbox" id="selectAllLogsheets" style="cursor: pointer; width: 15px; height: 15px;" onchange="toggleSelectAllLogsheets(this.checked)" />
       <label for="selectAllLogsheets" style="cursor: pointer; margin: 0; user-select: none;">Select All</label>
@@ -260,7 +270,7 @@ function updateSelectAllCheckboxState() {
   const selectAll = document.getElementById("selectAllLogsheets");
   if (!selectAll) return;
   const checkboxes = document.querySelectorAll(".ls-checkbox");
-  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+  const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
   selectAll.checked = allChecked;
 }
 
@@ -431,9 +441,9 @@ function resetZoomRotate() {
 function updateSaveRotationBtnState() {
   const btn = document.getElementById("btnSaveRotation");
   if (!btn) return;
-  
+
   // 🟢 0-o allenkil 360-nte multiples-o (original position) aanengil strictly inactive
-  const isRotated = (currentRotation % 360) !== 0;
+  const isRotated = currentRotation % 360 !== 0;
 
   if (isRotated) {
     btn.disabled = false;
@@ -545,9 +555,12 @@ async function generatePdfFromFiles(
   window.pauseEntryRecordPoll = true; // 🟢 Pause background polling during parallel PDF download
 
   try {
-    const pdfLibObj = window.PDFLib || (typeof PDFLib !== "undefined" ? PDFLib : null);
+    const pdfLibObj =
+      window.PDFLib || (typeof PDFLib !== "undefined" ? PDFLib : null);
     if (!pdfLibObj || !pdfLibObj.PDFDocument) {
-      throw new Error("PDF-Lib library not loaded. Please verify /node_xlsx_scripts/pdf-lib.min.js");
+      throw new Error(
+        "PDF-Lib library not loaded. Please verify /node_xlsx_scripts/pdf-lib.min.js",
+      );
     }
 
     const { PDFDocument } = pdfLibObj;
@@ -680,12 +693,7 @@ async function downloadSelectedAsPdf() {
     .replace("Logsheets - ", "")
     .replace(/[^a-zA-Z0-9 ]/g, "")
     .trim();
-  await generatePdfFromFiles(
-    selectedFiles,
-    `${plate}.pdf`,
-    btn,
-    "📑 Selected",
-  );
+  await generatePdfFromFiles(selectedFiles, `${plate}.pdf`, btn, "📑 Selected");
 }
 
 // ✅ 3. Copy CURRENT Logsheet as High-Quality Image to Clipboard
@@ -803,7 +811,6 @@ async function copyCurrentLogsheetToClipboard() {
   }
 }
 
-
 // ==========================================
 // 🟢 CONTEXT MENU & LOGSHEET TOOLS LOGIC
 // ==========================================
@@ -816,7 +823,9 @@ function openContextMenuForFile(e, index) {
   if (!menu) return;
 
   const file = logsheetFiles[index];
-  const isPdf = file && (file.mime.includes("pdf") || file.basename.toLowerCase().endsWith(".pdf"));
+  const isPdf =
+    file &&
+    (file.mime.includes("pdf") || file.basename.toLowerCase().endsWith(".pdf"));
 
   if (isPdf) {
     extractBtn.style.display = "flex";
@@ -840,14 +849,26 @@ async function triggerFileRename() {
   const menu = document.getElementById("lsContextMenu");
   if (menu) menu.style.display = "none";
 
-  if (contextSelectedFileIndex === -1 || !logsheetFiles[contextSelectedFileIndex]) return;
+  if (
+    contextSelectedFileIndex === -1 ||
+    !logsheetFiles[contextSelectedFileIndex]
+  )
+    return;
   const file = logsheetFiles[contextSelectedFileIndex];
 
   const currentExt = file.basename.substring(file.basename.lastIndexOf("."));
-  const baseWithoutExt = file.basename.substring(0, file.basename.lastIndexOf("."));
+  const baseWithoutExt = file.basename.substring(
+    0,
+    file.basename.lastIndexOf("."),
+  );
 
-  const newName = await customPrompt(`Rename file "${file.basename}":`, false, "Rename File");
-  if (!newName || newName.trim() === "" || newName.trim() === baseWithoutExt) return;
+  const newName = await customPrompt(
+    `Rename file "${file.basename}":`,
+    false,
+    "Rename File",
+  );
+  if (!newName || newName.trim() === "" || newName.trim() === baseWithoutExt)
+    return;
 
   try {
     const activeToken = localStorage.getItem("timesheetToken");
@@ -862,8 +883,9 @@ async function triggerFileRename() {
     const data = await res.json();
     if (data.success) {
       // 🟢 SILENT RENAME: ലിസ്റ്റോ വ്യൂവറോ റീലോഡ് ചെയ്യാതെ ആ ഫയലിന്റെ പേര് മാത്രം UI-ൽ അപ്ഡേറ്റ് ചെയ്യുന്നു
-      const newBaseName = data.newBaseName || (newName.trim() + currentExt);
-      const newFullPath = data.newPath || file.filename.replace(file.basename, newBaseName);
+      const newBaseName = data.newBaseName || newName.trim() + currentExt;
+      const newFullPath =
+        data.newPath || file.filename.replace(file.basename, newBaseName);
 
       // 1. മെമ്മറിയിലെ ഫയൽ ഡാറ്റ അപ്ഡേറ്റ് ചെയ്യുന്നു
       file.basename = newBaseName;
@@ -908,7 +930,11 @@ async function triggerExtractPdf() {
   const menu = document.getElementById("lsContextMenu");
   if (menu) menu.style.display = "none";
 
-  if (contextSelectedFileIndex === -1 || !logsheetFiles[contextSelectedFileIndex]) return;
+  if (
+    contextSelectedFileIndex === -1 ||
+    !logsheetFiles[contextSelectedFileIndex]
+  )
+    return;
   const file = logsheetFiles[contextSelectedFileIndex];
 
   // SweetAlert confirmation
@@ -974,13 +1000,13 @@ async function saveCurrentRotation() {
 
   // റൊട്ടേഷൻ ചെയ്തിട്ടില്ലെങ്കിൽ സേവ് ചെയ്യേണ്ടതില്ല
   if (currentRotation === 0) {
-    Swal.fire({ 
-      toast: true, 
-      position: "top-end", 
-      icon: "info", 
-      title: "Rotate the image (⟳) before saving.", 
-      showConfirmButton: false, 
-      timer: 2000 
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "info",
+      title: "Rotate the image (⟳) before saving.",
+      showConfirmButton: false,
+      timer: 2000,
     });
     return;
   }
@@ -1000,7 +1026,10 @@ async function saveCurrentRotation() {
         "Content-Type": "application/json",
         Authorization: "Bearer " + activeToken,
       },
-      body: JSON.stringify({ filePath: file.filename, rotation: currentRotation }),
+      body: JSON.stringify({
+        filePath: file.filename,
+        rotation: currentRotation,
+      }),
     });
     const data = await res.json();
 

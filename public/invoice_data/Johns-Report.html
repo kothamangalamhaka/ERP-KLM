@@ -273,7 +273,10 @@
         background-color: rgba(22, 163, 74, 0.22) !important;
         border-color: #16a34a !important;
       }
-      [data-theme="dark"] #diffSummaryBadges > div[style*="#dcfce7"] div:last-child {
+      [data-theme="dark"]
+        #diffSummaryBadges
+        > div[style*="#dcfce7"]
+        div:last-child {
         color: #4ade80 !important;
       }
       [data-theme="dark"] #diffSummaryBadges > div[style*="#fee2e2"],
@@ -281,18 +284,36 @@
         background-color: rgba(220, 38, 38, 0.22) !important;
         border-color: #dc2626 !important;
       }
-      [data-theme="dark"] #diffSummaryBadges > div[style*="#fee2e2"] div:last-child,
-      [data-theme="dark"] #diffSummaryBadges > div[style*="#fff1f2"] div:last-child {
+      [data-theme="dark"]
+        #diffSummaryBadges
+        > div[style*="#fee2e2"]
+        div:last-child,
+      [data-theme="dark"]
+        #diffSummaryBadges
+        > div[style*="#fff1f2"]
+        div:last-child {
         color: #f87171 !important;
       }
-      [data-theme="dark"] #diffSummaryBadges > div[style*="#f0fdf4"] div:last-child {
+      [data-theme="dark"]
+        #diffSummaryBadges
+        > div[style*="#f0fdf4"]
+        div:last-child {
         color: #34d399 !important;
       }
-      [data-theme="dark"] #diffSummaryBadges > div[style*="#fef2f2"] div:last-child {
+      [data-theme="dark"]
+        #diffSummaryBadges
+        > div[style*="#fef2f2"]
+        div:last-child {
         color: #fca5a5 !important;
       }
-      [data-theme="dark"] #diffSummaryBadges > div[style*="#fefce8"] div:last-child,
-      [data-theme="dark"] #diffSummaryBadges > div[style*="#fff7ed"] div:last-child {
+      [data-theme="dark"]
+        #diffSummaryBadges
+        > div[style*="#fefce8"]
+        div:last-child,
+      [data-theme="dark"]
+        #diffSummaryBadges
+        > div[style*="#fff7ed"]
+        div:last-child {
         color: #facc15 !important;
       }
 
@@ -524,8 +545,16 @@
         position: fixed;
         inset: 0;
         background:
-          radial-gradient(circle at 20% 25%, rgba(14, 165, 233, 0.35), transparent 45%),
-          radial-gradient(circle at 80% 75%, rgba(99, 102, 241, 0.3), transparent 45%),
+          radial-gradient(
+            circle at 20% 25%,
+            rgba(14, 165, 233, 0.35),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 75%,
+            rgba(99, 102, 241, 0.3),
+            transparent 45%
+          ),
           rgba(15, 23, 42, 0.78);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
@@ -608,7 +637,9 @@
         font-size: 13px;
         letter-spacing: 0.3px;
         box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
       }
       .security-card button:hover {
         transform: translateY(-1px);
@@ -757,12 +788,24 @@
       />
       <div
         id="netSupplierModeToggle"
-        style="display: none; gap: 4px; align-items: center; background: #e2e8f0; padding: 3px; border-radius: 5px;"
+        style="
+          display: none;
+          gap: 4px;
+          align-items: center;
+          background: #e2e8f0;
+          padding: 3px;
+          border-radius: 5px;
+        "
       >
         <button
           id="btnNsCompact"
           class="btn"
-          style="padding: 4px 10px; font-size: 11px; background: #0f172a; color: #fff;"
+          style="
+            padding: 4px 10px;
+            font-size: 11px;
+            background: #0f172a;
+            color: #fff;
+          "
           onclick="setNetSupplierViewMode('compact')"
         >
           Compact
@@ -770,7 +813,12 @@
         <button
           id="btnNsDetailed"
           class="btn"
-          style="padding: 4px 10px; font-size: 11px; background: transparent; color: #334155;"
+          style="
+            padding: 4px 10px;
+            font-size: 11px;
+            background: transparent;
+            color: #334155;
+          "
           onclick="setNetSupplierViewMode('detailed')"
         >
           Detailed
@@ -794,14 +842,20 @@
           <button
             class="btn"
             style="background: #0d9488; color: #fff"
-            onclick="closeRibbonMenu(); createCurrentDataBackup();"
+            onclick="
+              closeRibbonMenu();
+              createCurrentDataBackup();
+            "
           >
             💾 Backup
           </button>
           <button
             class="btn"
             style="background: #6366f1; color: #fff"
-            onclick="closeRibbonMenu(); openBackupListModal();"
+            onclick="
+              closeRibbonMenu();
+              openBackupListModal();
+            "
           >
             📂 View Backups
           </button>
@@ -816,7 +870,10 @@
           <button
             class="btn btn-success"
             style="margin-left: 0"
-            onclick="closeRibbonMenu(); exportToExcelWorkbook();"
+            onclick="
+              closeRibbonMenu();
+              exportToExcelWorkbook();
+            "
           >
             📊 Export Excel
           </button>
@@ -1575,7 +1632,7 @@
           .replace(/[^A-Z0-9]/g, "");
       }
 
-            let specialRulesCache = [];
+      let specialRulesCache = [];
 
       async function ensureSpecialRules() {
         try {
@@ -1611,7 +1668,10 @@
             parseInt(parts[0], 10),
             parseInt(parts[1], 10) - 1,
             parseInt(parts[2], 10),
-            0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0,
           );
         }
         let d = new Date(dStr);
@@ -1724,7 +1784,7 @@
         loader.style.display = "none";
       }
 
-            function transformData(raw, monthStr, yearNum) {
+      function transformData(raw, monthStr, yearNum) {
         let rows = [];
         const mIdx = monthNames.indexOf(monthStr);
         const monthStart = new Date(yearNum, mIdx, 1, 0, 0, 0, 0);
@@ -1732,8 +1792,18 @@
         const daysInMonth = monthEnd.getDate();
         const fullMonth = `${monthStr} ${yearNum}`;
         const shortMonths = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
 
         const endDateSuffix = (log) => {
@@ -1812,7 +1882,9 @@
 
           let hasMonthTimesheetActivity = vTimesheets.some((ts) => {
             let tm = parseFloat(ts.calc_time) || 0;
-            let bd = String(ts.bd || "").trim().toUpperCase();
+            let bd = String(ts.bd || "")
+              .trim()
+              .toUpperCase();
             let wrkStart = String(ts.wrk_start || "").trim();
             return tm > 0 || bd !== "" || wrkStart !== "";
           });
@@ -1837,7 +1909,9 @@
             let statusType = "";
             if (lastSiteLog && lastSiteLog.site_name) {
               naLabel = `Prev: ${lastSiteLog.site_name.trim()}${endDateSuffix(lastSiteLog)}`;
-              statusType = String(lastSiteLog.status || "").trim().toLowerCase();
+              statusType = String(lastSiteLog.status || "")
+                .trim()
+                .toLowerCase();
             }
             activeSites = [
               {
@@ -1867,7 +1941,8 @@
 
             let matchedRates = vRates.filter((r) => {
               let rSite = (r.site_name || "").trim().toUpperCase();
-              if (rSite !== sName.toUpperCase() && rSite !== "ALL") return false;
+              if (rSite !== sName.toUpperCase() && rSite !== "ALL")
+                return false;
               let rStart = safeDate(r.work_start_date, "2000-01-01");
               let rEnd = safeDate(r.work_end_date, "2099-01-01");
               return rStart <= overlapEnd && rEnd >= overlapStart;
@@ -1987,10 +2062,18 @@
 
             let ts = vTimesheets.find((r) => parseInt(r.record_date) === i);
             let tm = ts ? parseFloat(ts.calc_time) || 0 : 0;
-            let bd = ts ? String(ts.bd || "").trim().toUpperCase() : "";
+            let bd = ts
+              ? String(ts.bd || "")
+                  .trim()
+                  .toUpperCase()
+              : "";
             let hasData = tm > 0 || bd !== "" || (ts && ts.wrk_start);
 
-            if (!hasData && specialRule && specialRule.rule_type !== "FULL_OT") {
+            if (
+              !hasData &&
+              specialRule &&
+              specialRule.rule_type !== "FULL_OT"
+            ) {
               bd = specialRule.rule_type;
               hasData = true;
             }
@@ -2092,7 +2175,9 @@
                 (i.site_name || "").trim().startsWith("Prev:"),
               );
             if (!inv && sName !== "N/A")
-              inv = vInvoices.find((i) => !i.site_name || i.site_name === "N/A");
+              inv = vInvoices.find(
+                (i) => !i.site_name || i.site_name === "N/A",
+              );
 
             let inv_nr =
               inv && inv.bill_nr !== null && inv.bill_nr !== ""
@@ -2133,7 +2218,8 @@
 
             // ---- Calculations ----
             let cleanUpperSite = displaySiteName.trim().toUpperCase();
-            let isAfifOrZ = cleanUpperSite.includes("AFIF") || cleanUpperSite.startsWith("Z");
+            let isAfifOrZ =
+              cleanUpperSite.includes("AFIF") || cleanUpperSite.startsWith("Z");
             let clientOtMultiplier = isAfifOrZ ? 1.0 : 0.7;
 
             let bill_nrate = bill && bill.nrate ? parseFloat(bill.nrate) : 0;
@@ -2181,7 +2267,8 @@
                 : "";
 
             let bill_rent = bill && bill.rent ? parseFloat(bill.rent) : 0;
-            let rent_vat = bill && bill.vat_amount ? parseFloat(bill.vat_amount) : 0;
+            let rent_vat =
+              bill && bill.vat_amount ? parseFloat(bill.vat_amount) : 0;
             let rent_total = bill && bill.total ? parseFloat(bill.total) : 0;
             let net_total = rent_total;
 
@@ -2261,7 +2348,7 @@
         rows.forEach((r, idx) => (r.sn = idx + 1));
         return rows;
       }
-      
+
       function renderBottomTabs() {
         const bar = document.getElementById("bottomTabsContainer");
         bar.innerHTML = "";
@@ -2378,11 +2465,23 @@
           });
         });
         const shortMonthOrder = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
         const parseMonthKey = (mKey) => {
-          const [mStr, yStr] = String(mKey || "").trim().split(" ");
+          const [mStr, yStr] = String(mKey || "")
+            .trim()
+            .split(" ");
           const yNum = parseInt(yStr, 10) || 0;
           const mIdx = shortMonthOrder.findIndex(
             (m) => m.toLowerCase() === (mStr || "").toLowerCase(),
@@ -2521,7 +2620,8 @@
         const tbl = document.querySelector(".table-wrapper table");
         if (tbl) {
           tbl.style.minWidth =
-            activeMonthKey === "Net Supplier" && netSupplierViewMode === "compact"
+            activeMonthKey === "Net Supplier" &&
+            netSupplierViewMode === "compact"
               ? "780px"
               : "1650px";
         }
@@ -2694,11 +2794,17 @@
           });
 
           const visibleOwners = new Set(
-            data.map((r) => String(r.owner || "N/A").trim().toUpperCase()),
+            data.map((r) =>
+              String(r.owner || "N/A")
+                .trim()
+                .toUpperCase(),
+            ),
           );
           let masterMatchedProfit = 0;
           (monthsDataset["Master Data"] || []).forEach((mr) => {
-            const mOwner = String(mr.owner || "N/A").trim().toUpperCase();
+            const mOwner = String(mr.owner || "N/A")
+              .trim()
+              .toUpperCase();
             if (visibleOwners.has(mOwner) && typeof mr.gain_loss === "number") {
               masterMatchedProfit += mr.gain_loss;
             }
@@ -2710,13 +2816,17 @@
             const plBg = isProfit ? "#dcfce7" : "#fee2e2";
             const plBorder = isProfit ? "#86efac" : "#fca5a5";
             const plColor = isProfit ? "#15803d" : "#b91c1c";
-            const plLabel = isProfit ? "Overall Profit (Net C/F)" : "Overall Loss (Net C/F)";
+            const plLabel = isProfit
+              ? "Overall Profit (Net C/F)"
+              : "Overall Loss (Net C/F)";
 
             const isMasterProfit = masterMatchedProfit >= 0;
             const mBg = isMasterProfit ? "#eff6ff" : "#fff1f2";
             const mBorder = isMasterProfit ? "#93c5fd" : "#fda4af";
             const mColor = isMasterProfit ? "#1d4ed8" : "#be123c";
-            const mLabel = isMasterProfit ? "Master Net Profit" : "Master Net Loss";
+            const mLabel = isMasterProfit
+              ? "Master Net Profit"
+              : "Master Net Loss";
 
             const diffBg = cfDiff >= 0 ? "#fefce8" : "#fff7ed";
             const diffBorder = cfDiff >= 0 ? "#fde047" : "#fdba74";
@@ -2749,7 +2859,11 @@
           const frag = document.createDocumentFragment();
           data.forEach((r, idx) => {
             const netBg =
-              r.net_cf > 0 ? "#dcfce7" : r.net_cf < 0 ? "#fee2e2" : "transparent";
+              r.net_cf > 0
+                ? "#dcfce7"
+                : r.net_cf < 0
+                  ? "#fee2e2"
+                  : "transparent";
             const netColor =
               r.net_cf > 0 ? "#15803d" : r.net_cf < 0 ? "#b91c1c" : "#0f172a";
 
@@ -3050,11 +3164,23 @@
 
         if (sortConfig) {
           const shortMonthsRef = [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
           ];
           const monthRank = (str) => {
-            const [mPart, yPart] = String(str || "").trim().split(" ");
+            const [mPart, yPart] = String(str || "")
+              .trim()
+              .split(" ");
             const mIdx = shortMonthsRef.findIndex(
               (m) => m.toLowerCase() === (mPart || "").toLowerCase(),
             );
@@ -3333,8 +3459,18 @@
       function getFormattedExportDate() {
         const d = new Date();
         const shortMonths = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
         const dd = String(d.getDate()).padStart(2, "0");
         const mmm = shortMonths[d.getMonth()];

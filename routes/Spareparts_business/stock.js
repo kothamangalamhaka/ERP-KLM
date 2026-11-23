@@ -8,11 +8,14 @@ const JWT_SECRET = process.env.JWT_SECRET;
 function verifySpUser(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ success: false, message: "Login required." });
+  if (!token)
+    return res.status(401).json({ success: false, message: "Login required." });
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err || decoded.module !== "spare_parts") {
-      return res.status(403).json({ success: false, message: "Invalid session." });
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid session." });
     }
     req.spUser = decoded;
     next();
@@ -71,7 +74,7 @@ router.get("/summary", verifySpUser, async (req, res) => {
           sold_qty: 0,
           available_qty: 0,
           available_ins: [],
-          breakdown: []
+          breakdown: [],
         };
       }
 
@@ -88,41 +91,56 @@ router.get("/summary", verifySpUser, async (req, res) => {
         chassis_no: row.chassis_no,
         total_qty: total,
         sold_qty: sold,
-        available_qty: avail
+        available_qty: avail,
       });
     });
 
-    const items = Object.values(grouped).sort((a, b) =>
-      a.item_code.localeCompare(b.item_code, undefined, { numeric: true }) ||
-      a.item_name.localeCompare(b.item_name)
+    const items = Object.values(grouped).sort(
+      (a, b) =>
+        a.item_code.localeCompare(b.item_code, undefined, { numeric: true }) ||
+        a.item_name.localeCompare(b.item_name),
     );
 
     res.json({ success: true, items });
   } catch (err) {
     console.error("SpareParts Stock Summary Error:", err.message);
-    res.status(500).json({ success: false, message: "Failed to load stock summary." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to load stock summary." });
   }
 });
 
 // Get Date-wise Add & Sold History for Specific IN No & Item
 router.get("/history", verifySpUser, async (req, res) => {
   try {
-    const inNo = String(req.query.inNo || "").trim().toUpperCase();
-    const itemName = String(req.query.itemName || "").trim().toUpperCase();
-    const itemCode = String(req.query.itemCode || "").trim().toUpperCase();
+    const inNo = String(req.query.inNo || "")
+      .trim()
+      .toUpperCase();
+    const itemName = String(req.query.itemName || "")
+      .trim()
+      .toUpperCase();
+    const itemCode = String(req.query.itemCode || "")
+      .trim()
+      .toUpperCase();
 
     if (!inNo || !itemName) {
-      return res.status(400).json({ success: false, message: "IN No and Item Name required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "IN No and Item Name required." });
     }
 
-    const vRes = await pool.query("SELECT id FROM spare_parts_vehicles WHERE in_no = $1", [inNo]);
+    const vRes = await pool.query(
+      "SELECT id FROM spare_parts_vehicles WHERE in_no = $1",
+      [inNo],
+    );
     if (vRes.rows.length === 0) {
       return res.json({ success: true, entries: [] });
     }
     const vehicleId = vRes.rows[0].id;
 
     // 1. Added Stock Logs (Matches "CODE - ITEM" or "ITEM")
-    const fullLabel = itemCode && itemCode !== "-" ? `${itemCode} - ${itemName}` : itemName;
+    const fullLabel =
+      itemCode && itemCode !== "-" ? `${itemCode} - ${itemName}` : itemName;
     const addLogsRes = await pool.query(
       `SELECT 
          TO_CHAR(added_date, 'YYYY-MM-DD') AS tx_date,
@@ -131,7 +149,7 @@ router.get("/history", verifySpUser, async (req, res) => {
          created_at
        FROM spare_parts_stock_logs
        WHERE vehicle_id = $1 AND (item_name = $2 OR item_name = $3)`,
-      [vehicleId, itemName, fullLabel]
+      [vehicleId, itemName, fullLabel],
     );
 
     // 2. Sold JV Logs
@@ -143,17 +161,21 @@ router.get("/history", verifySpUser, async (req, res) => {
          created_at
        FROM spare_parts_jv
        WHERE vehicle_id = $1 AND voucher_type = 'SALES' AND item_name = $2`,
-      [vehicleId, itemName]
+      [vehicleId, itemName],
     );
 
     const entries = [...addLogsRes.rows, ...soldLogsRes.rows].sort(
-      (a, b) => a.tx_date.localeCompare(b.tx_date) || new Date(a.created_at) - new Date(b.created_at)
+      (a, b) =>
+        a.tx_date.localeCompare(b.tx_date) ||
+        new Date(a.created_at) - new Date(b.created_at),
     );
 
     res.json({ success: true, entries });
   } catch (err) {
     console.error("SpareParts Stock History Error:", err.message);
-    res.status(500).json({ success: false, message: "Failed to load history." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to load history." });
   }
 });
 

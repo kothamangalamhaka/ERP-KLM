@@ -598,7 +598,8 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         ...vehicles.map((v) => (v.owner_name || "").trim().toUpperCase()),
       ].filter(Boolean),
     );
-    const exactOwnerSearch = searchUpper !== "" && allOwnerNames.has(searchUpper);
+    const exactOwnerSearch =
+      searchUpper !== "" && allOwnerNames.has(searchUpper);
 
     vehicles.forEach((v) => {
       let masterPlate = (v.plate_no || "").trim().toUpperCase();

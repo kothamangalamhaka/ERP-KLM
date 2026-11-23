@@ -434,7 +434,7 @@ async function generatePendingReport() {
       let vPlateChanges = pLogs.filter(
         (pl) =>
           (pl.old_plate_no || "").trim().toUpperCase() === masterPlate ||
-          (pl.new_plate_no || "").trim().toUpperCase() === masterPlate
+          (pl.new_plate_no || "").trim().toUpperCase() === masterPlate,
       );
 
       if (vPlateChanges.length > 0) {
@@ -443,7 +443,7 @@ async function generatePendingReport() {
           let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
           let cDate = new Date(cYear, cMonth - 1, cDay);
 
-          if (cYear === curYearInt && (cMonth - 1) === mIdx) {
+          if (cYear === curYearInt && cMonth - 1 === mIdx) {
             displayPlate = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
           } else if (monthEnd < cDate) {
             displayPlate = pl.old_plate_no.trim().toUpperCase();
@@ -469,7 +469,9 @@ async function generatePendingReport() {
         return st <= monthEnd && ed >= monthStart;
       });
 
-      const oLogs = (data.logs.owners || []).filter((l) => l.plate_no === plate);
+      const oLogs = (data.logs.owners || []).filter(
+        (l) => l.plate_no === plate,
+      );
       let activeOwners = oLogs.filter((o) => {
         let st = parseLogDate(o.work_start_date, new Date("2000-01-01"));
         let ed = parseLogDate(o.work_end_date, new Date("2099-01-01"));
@@ -478,8 +480,20 @@ async function generatePendingReport() {
 
       let currSite =
         activeSites.map((s) => s.site_name).join(" & ") || v.site_name || "N/A";
-      let ownerName = activeOwners.map((o) => o.owner_name).filter(Boolean).join(" & ") || v.owner_name || "N/A";
-      let ownerMob = activeOwners.map((o) => o.owner_mobile).filter(Boolean).join(" & ") || v.owner_mobile || "";
+      let ownerName =
+        activeOwners
+          .map((o) => o.owner_name)
+          .filter(Boolean)
+          .join(" & ") ||
+        v.owner_name ||
+        "N/A";
+      let ownerMob =
+        activeOwners
+          .map((o) => o.owner_mobile)
+          .filter(Boolean)
+          .join(" & ") ||
+        v.owner_mobile ||
+        "";
       let currDriver =
         activeDrivers.map((d) => d.driver_name).join(" & ") ||
         v.driver_name ||
@@ -502,8 +516,8 @@ async function generatePendingReport() {
           let wsStr = String(rec.wrk_start || "").trim();
           let weStr = String(rec.wrk_end || "").trim();
 
-          let hasValidWork = (wsStr !== "" && weStr !== "");
-          let hasValidBd = (bdStr !== "");
+          let hasValidWork = wsStr !== "" && weStr !== "";
+          let hasValidBd = bdStr !== "";
 
           if (timeRaw === 0 && !hasValidWork && !hasValidBd) {
             blankDays.push(i);
@@ -1178,7 +1192,12 @@ async function exportToPDF() {
   try {
     // Measure row heights to paginate without cutting rows
     const probe = makeBox(
-      titleHTML + tableOpen + headHTML + "<tbody>" + rowsHTML.join("") + "</tbody></table>",
+      titleHTML +
+        tableOpen +
+        headHTML +
+        "<tbody>" +
+        rowsHTML.join("") +
+        "</tbody></table>",
     );
     const titleH = probe.querySelector("h2").offsetHeight + 15;
     const headH = probe.querySelector("thead").offsetHeight;
@@ -1203,7 +1222,11 @@ async function exportToPDF() {
     if (cur.length) pages.push(cur);
 
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
 
     for (let p = 0; p < pages.length; p++) {
       const body = pages[p].map((i) => rowsHTML[i]).join("");
@@ -1222,7 +1245,14 @@ async function exportToPDF() {
           backgroundColor: "#ffffff",
         });
         if (p > 0) pdf.addPage();
-        pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, 297, 210);
+        pdf.addImage(
+          canvas.toDataURL("image/jpeg", 0.95),
+          "JPEG",
+          0,
+          0,
+          297,
+          210,
+        );
       } finally {
         document.body.removeChild(page);
       }
@@ -1378,18 +1408,18 @@ async function exportToPNGZip(mode) {
         allImages.push(...imgs);
       }
     } else if (mode === "Owner") {
-  const groups = {};
-  data.forEach((row) => {
-    const key =
-      row.owner.replace(/[^a-zA-Z0-9_ ]/g, "").trim() || "Unknown";
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(row);
-  });
-  for (const [gName, subset] of Object.entries(groups)) {
-    let imgs = await createA4Images(gName, subset, m, y, "Owner");
-    allImages.push(...imgs);
-  }
-}
+      const groups = {};
+      data.forEach((row) => {
+        const key =
+          row.owner.replace(/[^a-zA-Z0-9_ ]/g, "").trim() || "Unknown";
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(row);
+      });
+      for (const [gName, subset] of Object.entries(groups)) {
+        let imgs = await createA4Images(gName, subset, m, y, "Owner");
+        allImages.push(...imgs);
+      }
+    }
 
     if (allImages.length === 1) {
       saveAs(allImages[0].blob, allImages[0].name);

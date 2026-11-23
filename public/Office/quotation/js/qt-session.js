@@ -2,24 +2,26 @@
   const protectedPages = new Set(["index.html", "dashboard.html"]);
   const directory = window.location.pathname.slice(
     0,
-    window.location.pathname.lastIndexOf("/") + 1
+    window.location.pathname.lastIndexOf("/") + 1,
   );
 
   function getCurrentPage() {
     const file = window.location.pathname.slice(
-      window.location.pathname.lastIndexOf("/") + 1
+      window.location.pathname.lastIndexOf("/") + 1,
     );
     return file || "index.html";
   }
 
   function getLoginDestination() {
-    const requested = new URLSearchParams(window.location.search).get("redirect");
+    const requested = new URLSearchParams(window.location.search).get(
+      "redirect",
+    );
     if (!requested) return "index.html";
 
     try {
       const destination = new URL(requested, window.location.href);
       const page = destination.pathname.slice(
-        destination.pathname.lastIndexOf("/") + 1
+        destination.pathname.lastIndexOf("/") + 1,
       );
       if (
         destination.origin === window.location.origin &&
@@ -46,7 +48,7 @@
 
     document.documentElement.style.visibility = "hidden";
     window.location.replace(
-      `login.html?redirect=${encodeURIComponent(returnTarget)}`
+      `login.html?redirect=${encodeURIComponent(returnTarget)}`,
     );
     return false;
   }

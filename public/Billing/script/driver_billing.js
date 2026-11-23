@@ -15,8 +15,18 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 const monthsList = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 function formatShortMonth(fullVal) {
@@ -97,13 +107,17 @@ function nextMonthDriverBilling() {
 function toggleDropdown(id) {
   let el = document.getElementById(id);
   let isShowing = el.classList.contains("show");
-  document.querySelectorAll(".custom-dropdown-options").forEach((d) => d.classList.remove("show"));
+  document
+    .querySelectorAll(".custom-dropdown-options")
+    .forEach((d) => d.classList.remove("show"));
   if (!isShowing) el.classList.add("show");
 }
 
 document.addEventListener("click", function (e) {
   if (!e.target.closest(".custom-dropdown")) {
-    document.querySelectorAll(".custom-dropdown-options").forEach((d) => d.classList.remove("show"));
+    document
+      .querySelectorAll(".custom-dropdown-options")
+      .forEach((d) => d.classList.remove("show"));
   }
 });
 
@@ -117,7 +131,9 @@ function filterCheckboxList(inputId, listId) {
 }
 
 function toggleAllCheckboxes(listId, isChecked) {
-  let items = document.getElementById(listId).querySelectorAll(".dynamic-check");
+  let items = document
+    .getElementById(listId)
+    .querySelectorAll(".dynamic-check");
   items.forEach((item) => {
     if (item.parentElement.style.display !== "none") item.checked = isChecked;
   });
@@ -126,7 +142,10 @@ function toggleAllCheckboxes(listId, isChecked) {
 
 function getSelectedCheckboxes(listId) {
   let selected = [];
-  document.getElementById(listId).querySelectorAll(".dynamic-check:checked").forEach((chk) => selected.push(chk.value));
+  document
+    .getElementById(listId)
+    .querySelectorAll(".dynamic-check:checked")
+    .forEach((chk) => selected.push(chk.value));
   return selected;
 }
 
@@ -152,20 +171,40 @@ function getShortDate() {
 
 // 🟢 FETCH DATA
 function cleanPlate(p) {
-  return String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return String(p || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
 }
 
-function calculateClientLogHours(records, monthIndex, year, siteName, specialRules) {
+function calculateClientLogHours(
+  records,
+  monthIndex,
+  year,
+  siteName,
+  specialRules,
+) {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-  const normalizedSite = String(siteName || "").split("&")[0].trim().toUpperCase();
-  let nhr = 0, othr = 0;
+  const normalizedSite = String(siteName || "")
+    .split("&")[0]
+    .trim()
+    .toUpperCase();
+  let nhr = 0,
+    othr = 0;
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const record = (records || []).find((item) => parseInt(item.record_date, 10) === day);
+    const record = (records || []).find(
+      (item) => parseInt(item.record_date, 10) === day,
+    );
     const workHours = record ? parseFloat(record.calc_time) || 0 : 0;
-    let status = record ? String(record.bd || "").trim().toUpperCase() : "";
-    const formattedDate = new Date(year, monthIndex, day)
-      .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    let status = record
+      ? String(record.bd || "")
+          .trim()
+          .toUpperCase()
+      : "";
+    const formattedDate = new Date(year, monthIndex, day).toLocaleDateString(
+      "en-GB",
+      { day: "2-digit", month: "short", year: "numeric" },
+    );
     const specialRule = (specialRules || []).find(
       (rule) =>
         Array.isArray(rule.sites) &&
@@ -178,7 +217,8 @@ function calculateClientLogHours(records, monthIndex, year, siteName, specialRul
       status = specialRule.rule_type;
     }
 
-    const isFullOt = new Date(year, monthIndex, day).getDay() === 5 ||
+    const isFullOt =
+      new Date(year, monthIndex, day).getDay() === 5 ||
       day === 31 ||
       specialRule?.rule_type === "FULL_OT";
 
@@ -243,45 +283,79 @@ function processFetchedData(res, autoArrangeDrivers = []) {
     (plateLogs || []).forEach((pl) => {
       let op = (pl.old_plate_no || "").trim().toUpperCase();
       let np = (pl.new_plate_no || "").trim().toUpperCase();
-      if (op === masterPlate && !relatedPlates.includes(np)) relatedPlates.push(np);
-      if (np === masterPlate && !relatedPlates.includes(op)) relatedPlates.push(op);
+      if (op === masterPlate && !relatedPlates.includes(np))
+        relatedPlates.push(np);
+      if (np === masterPlate && !relatedPlates.includes(op))
+        relatedPlates.push(op);
     });
 
-    let dLogs = (res.driver_logs || []).filter((d) => relatedPlates.includes((d.plate_no || "").trim().toUpperCase()));
-    let sLogs = (res.site_logs || []).filter((s) => relatedPlates.includes((s.plate_no || "").trim().toUpperCase()));
+    let dLogs = (res.driver_logs || []).filter((d) =>
+      relatedPlates.includes((d.plate_no || "").trim().toUpperCase()),
+    );
+    let sLogs = (res.site_logs || []).filter((s) =>
+      relatedPlates.includes((s.plate_no || "").trim().toUpperCase()),
+    );
 
-    let driver = dLogs.length > 0 ? dLogs[0].driver_name : (v.driver_name || "Unassigned");
-    let site = sLogs.length > 0 ? sLogs[0].site_name : (v.site_name || "N/A");
+    let driver =
+      dLogs.length > 0 ? dLogs[0].driver_name : v.driver_name || "Unassigned";
+    let site = sLogs.length > 0 ? sLogs[0].site_name : v.site_name || "N/A";
 
     function matchesPlate(targetP) {
       if (!targetP) return false;
       let raw = String(targetP).trim().toUpperCase();
-      let parts = raw.split(/➔|→|->/).map(p => cleanPlate(p)).filter(Boolean);
-      let cleanRelated = relatedPlates.map(p => cleanPlate(p));
-      return parts.some(p => cleanRelated.includes(p)) || cleanRelated.includes(cleanPlate(raw));
+      let parts = raw
+        .split(/➔|→|->/)
+        .map((p) => cleanPlate(p))
+        .filter(Boolean);
+      let cleanRelated = relatedPlates.map((p) => cleanPlate(p));
+      return (
+        parts.some((p) => cleanRelated.includes(p)) ||
+        cleanRelated.includes(cleanPlate(raw))
+      );
     }
 
     let saved = savedBillingData.find(
       (b) =>
         matchesPlate(b.plate_no) &&
-        (b.site_name || "").trim().toUpperCase() === site.trim().toUpperCase()
+        (b.site_name || "").trim().toUpperCase() === site.trim().toUpperCase(),
     );
 
     let driverOt = saved ? parseFloat(saved.driver_ot) || 0 : 0;
     let driverAmount = saved ? parseFloat(saved.driver_amount) || 0 : 0;
-    let rate = driverOt > 0 && driverAmount > 0 ? Number((driverAmount / driverOt).toFixed(2)) : 15;
+    let rate =
+      driverOt > 0 && driverAmount > 0
+        ? Number((driverAmount / driverOt).toFixed(2))
+        : 15;
 
     // Logsheet Calculations
-    const vehicleTimesheets = timesheetRows.filter((t) => matchesPlate(t.plate_no));
-    const logHours = targetMonthIdx >= 0
-      ? calculateClientLogHours(vehicleTimesheets, targetMonthIdx, targetYearNum, site, specialRules)
-      : { nhr: 0, othr: 0 };
+    const vehicleTimesheets = timesheetRows.filter((t) =>
+      matchesPlate(t.plate_no),
+    );
+    const logHours =
+      targetMonthIdx >= 0
+        ? calculateClientLogHours(
+            vehicleTimesheets,
+            targetMonthIdx,
+            targetYearNum,
+            site,
+            specialRules,
+          )
+        : { nhr: 0, othr: 0 };
 
     // Bill Summary & Supplier Hours
-    const matchingInvoices = invoiceRows.filter((i) => matchesPlate(i.plate_no));
-    const inv = matchingInvoices.find(
-      (item) => String(item.site_name || "").trim().toUpperCase() === String(site || "").trim().toUpperCase(),
-    ) || matchingInvoices[0];
+    const matchingInvoices = invoiceRows.filter((i) =>
+      matchesPlate(i.plate_no),
+    );
+    const inv =
+      matchingInvoices.find(
+        (item) =>
+          String(item.site_name || "")
+            .trim()
+            .toUpperCase() ===
+          String(site || "")
+            .trim()
+            .toUpperCase(),
+      ) || matchingInvoices[0];
 
     let supNr = saved ? parseFloat(saved.nhr) || 0 : 0;
     let supOt = saved ? parseFloat(saved.othr) || 0 : 0;
@@ -296,7 +370,7 @@ function processFetchedData(res, autoArrangeDrivers = []) {
       related_plates: relatedPlates,
       driver_ot: driverOt,
       rate: rate,
-      driver_amount: driverAmount || (driverOt * rate),
+      driver_amount: driverAmount || driverOt * rate,
       log_nr: logHours.nhr,
       log_ot: logHours.othr,
       bill_nr: inv ? parseFloat(inv.bill_nr) || 0 : 0,
@@ -313,9 +387,14 @@ function processFetchedData(res, autoArrangeDrivers = []) {
     const container = document.getElementById("dynamicBillsContainer");
     container.innerHTML = "";
     autoArrangeDrivers.forEach((drName, idx) => {
-      let drRows = masterData.filter(m => (m.driver || "").trim().toUpperCase() === drName.trim().toUpperCase());
+      let drRows = masterData.filter(
+        (m) =>
+          (m.driver || "").trim().toUpperCase() === drName.trim().toUpperCase(),
+      );
       if (drRows.length > 0) {
-        container.appendChild(createDriverBillCard(drName, drRows, `driver_${idx + 1}`));
+        container.appendChild(
+          createDriverBillCard(drName, drRows, `driver_${idx + 1}`),
+        );
       }
     });
     showToast(`Month changed! Re-loaded driver tables.`);
@@ -325,8 +404,12 @@ function processFetchedData(res, autoArrangeDrivers = []) {
 }
 
 function populateFilters() {
-  let drivers = [...new Set(masterData.map((d) => (d.driver || "").trim()))].filter(Boolean).sort();
-  let sites = [...new Set(masterData.map((d) => (d.site_name || "").trim()))].filter(Boolean).sort();
+  let drivers = [...new Set(masterData.map((d) => (d.driver || "").trim()))]
+    .filter(Boolean)
+    .sort();
+  let sites = [...new Set(masterData.map((d) => (d.site_name || "").trim()))]
+    .filter(Boolean)
+    .sort();
 
   let dList = document.getElementById("driverList");
   let sList = document.getElementById("siteList");
@@ -350,7 +433,8 @@ function arrangeByDriver() {
   const selectedSites = getSelectedCheckboxes("siteList");
 
   const filtered = masterData.filter(
-    (d) => selectedDrivers.includes(d.driver) && selectedSites.includes(d.site_name)
+    (d) =>
+      selectedDrivers.includes(d.driver) && selectedSites.includes(d.site_name),
   );
 
   const container = document.getElementById("dynamicBillsContainer");
@@ -371,7 +455,9 @@ function arrangeByDriver() {
   let index = 0;
   for (let driverName in groups) {
     index++;
-    container.appendChild(createDriverBillCard(driverName, groups[driverName], `driver_${index}`));
+    container.appendChild(
+      createDriverBillCard(driverName, groups[driverName], `driver_${index}`),
+    );
   }
 }
 
@@ -400,7 +486,12 @@ function createManualTable() {
     },
   ];
 
-  const card = createDriverBillCard("", blankItems, `manual_${manualTableCount}`, true);
+  const card = createDriverBillCard(
+    "",
+    blankItems,
+    `manual_${manualTableCount}`,
+    true,
+  );
   container.insertAdjacentElement("afterbegin", card);
   showToast("Manual Driver OT Table Added!");
 }
@@ -573,7 +664,10 @@ function showPlateSuggestions(input) {
   let matches = [];
   masterData.forEach((r) => {
     let p = r.plate_no || "";
-    if (p.toUpperCase().replace(/\s+/g, "").includes(val) && !matches.includes(p)) {
+    if (
+      p.toUpperCase().replace(/\s+/g, "").includes(val) &&
+      !matches.includes(p)
+    ) {
       matches.push(p);
     }
   });
@@ -617,19 +711,28 @@ function autoFillDriverPlate(input, plateNo) {
   if (!match) return;
 
   const row = input.closest("tr");
-  if (match.vehicle_type) row.querySelector(".vtype").value = match.vehicle_type;
+  if (match.vehicle_type)
+    row.querySelector(".vtype").value = match.vehicle_type;
   if (match.driver) row.querySelector(".driver").value = match.driver;
   if (match.site_name) row.querySelector(".site").value = match.site_name;
-  if (match.driver_ot !== undefined) row.querySelector(".dr-ot").value = match.driver_ot;
+  if (match.driver_ot !== undefined)
+    row.querySelector(".dr-ot").value = match.driver_ot;
   if (match.rate) row.querySelector(".dr-rate").value = match.rate;
-  if (match.driver_amount !== undefined) row.querySelector(".dr-amt").value = match.driver_amount;
+  if (match.driver_amount !== undefined)
+    row.querySelector(".dr-amt").value = match.driver_amount;
 
-  if (row.querySelector(".log-nr")) row.querySelector(".log-nr").innerText = match.log_nr || 0;
-  if (row.querySelector(".log-ot")) row.querySelector(".log-ot").innerText = match.log_ot || 0;
-  if (row.querySelector(".bill-nr")) row.querySelector(".bill-nr").innerText = match.bill_nr || 0;
-  if (row.querySelector(".bill-ot")) row.querySelector(".bill-ot").innerText = match.bill_ot || 0;
-  if (row.querySelector(".sup-nr")) row.querySelector(".sup-nr").innerText = match.sup_nr || 0;
-  if (row.querySelector(".sup-ot")) row.querySelector(".sup-ot").innerText = match.sup_ot || 0;
+  if (row.querySelector(".log-nr"))
+    row.querySelector(".log-nr").innerText = match.log_nr || 0;
+  if (row.querySelector(".log-ot"))
+    row.querySelector(".log-ot").innerText = match.log_ot || 0;
+  if (row.querySelector(".bill-nr"))
+    row.querySelector(".bill-nr").innerText = match.bill_nr || 0;
+  if (row.querySelector(".bill-ot"))
+    row.querySelector(".bill-ot").innerText = match.bill_ot || 0;
+  if (row.querySelector(".sup-nr"))
+    row.querySelector(".sup-nr").innerText = match.sup_nr || 0;
+  if (row.querySelector(".sup-ot"))
+    row.querySelector(".sup-ot").innerText = match.sup_ot || 0;
 
   calcDriverRow(input);
 }
@@ -637,10 +740,12 @@ function autoFillDriverPlate(input, plateNo) {
 // 🟢 CLEAN EXPORT (NO SITE, RATE, LOG COLUMNS IN PRINT/COPY)
 function prepareCardForCleanExport(printArea) {
   // 1. Site, Rate, Act, Log, Bill കോളങ്ങൾ പൂർണ്ണമായി ഹൈഡ് ചെയ്യുന്നു
-  printArea.querySelectorAll(".site-col, .rate-col, .no-export").forEach((el) => {
-    el.classList.add("hide-on-card-export");
-    el.style.display = "none";
-  });
+  printArea
+    .querySelectorAll(".site-col, .rate-col, .no-export")
+    .forEach((el) => {
+      el.classList.add("hide-on-card-export");
+      el.style.display = "none";
+    });
 
   // 2. ഇൻപുട്ടുകൾ ടെക്സ്റ്റ് സ്പാനുകളാക്കുന്നു
   printArea.querySelectorAll("input").forEach((inp) => {
@@ -666,7 +771,9 @@ function revertCardAfterCleanExport(printArea) {
     el.style.display = "";
   });
   printArea.querySelectorAll(".temp-export-span").forEach((s) => s.remove());
-  printArea.querySelectorAll("input").forEach((inp) => (inp.style.display = ""));
+  printArea
+    .querySelectorAll("input")
+    .forEach((inp) => (inp.style.display = ""));
 
   // സാധാരണ UI ലേക്ക് വരുമ്പോൾ (#, Date, Vehicle Type, Driver, Site, Plate No) 6 ആക്കുന്നു
   const footerColspan = printArea.querySelector(".footer-colspan");
@@ -695,16 +802,20 @@ async function copyHighQualityCard(id) {
   const canvas = await html2canvas(printArea, { scale: 4, useCORS: true });
   revertCardAfterCleanExport(printArea);
 
-  canvas.toBlob(async (blob) => {
-    if (navigator.clipboard && window.isSecureContext) {
-      const item = new ClipboardItem({ "image/png": blob });
-      await navigator.clipboard.write([item]);
-      showToast("Driver Card Copied to Clipboard!");
-    } else {
-      showToast("Direct copy unsupported. Downloading image.");
-      exportSingleImage(id);
-    }
-  }, "image/png", 1.0);
+  canvas.toBlob(
+    async (blob) => {
+      if (navigator.clipboard && window.isSecureContext) {
+        const item = new ClipboardItem({ "image/png": blob });
+        await navigator.clipboard.write([item]);
+        showToast("Driver Card Copied to Clipboard!");
+      } else {
+        showToast("Direct copy unsupported. Downloading image.");
+        exportSingleImage(id);
+      }
+    },
+    "image/png",
+    1.0,
+  );
 }
 
 // 🟢 MULTI-MONTH BULK SAVE (NO CONFLICTS)
@@ -793,7 +904,8 @@ function handleDriverPlateKeyDown(e, input) {
     } else if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
       e.stopPropagation();
-      let targetVal = activeIndex > -1 ? items[activeIndex].innerText : items[0].innerText;
+      let targetVal =
+        activeIndex > -1 ? items[activeIndex].innerText : items[0].innerText;
       input.value = targetVal;
       box.style.display = "none";
       autoFillDriverPlate(input, targetVal);

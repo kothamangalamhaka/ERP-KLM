@@ -1,6 +1,7 @@
 let currentZoom = 1;
 let currentRotation = 0;
-let posX = 0, posY = 0;
+let posX = 0,
+  posY = 0;
 let logsheetFiles = [];
 let currentFileIndex = -1;
 let currentToken = "";
@@ -25,9 +26,11 @@ async function openLogsheetViewer(plate) {
   const year = document.getElementById("selYear").value;
 
   title.innerText = `Logsheets - ${plate} (${month} ${year})`;
-  sidebar.innerHTML = '<div style="text-align:center; padding:20px;">Loading...</div>';
-  viewer.innerHTML = '<div style="text-align:center; padding: 50px; color:#64748b;">Select a file from the list to view</div>';
-  
+  sidebar.innerHTML =
+    '<div style="text-align:center; padding:20px;">Loading...</div>';
+  viewer.innerHTML =
+    '<div style="text-align:center; padding: 50px; color:#64748b;">Select a file from the list to view</div>';
+
   // Show Modal properly
   modal.style.display = "flex";
   modal.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
@@ -36,16 +39,22 @@ async function openLogsheetViewer(plate) {
 
   // Setup Resizers
   const sidebarResizer = document.getElementById("sidebarResizer");
-  const modalResizer = document.getElementById("modalResizer"); 
+  const modalResizer = document.getElementById("modalResizer");
 
   let isResizingSidebar = false;
   let isResizingModal = false;
 
   if (sidebarResizer) {
-    sidebarResizer.onmousedown = () => { isResizingSidebar = true; sidebarResizer.classList.add("active"); };
+    sidebarResizer.onmousedown = () => {
+      isResizingSidebar = true;
+      sidebarResizer.classList.add("active");
+    };
   }
   if (modalResizer) {
-    modalResizer.onmousedown = (e) => { e.preventDefault(); isResizingModal = true; };
+    modalResizer.onmousedown = (e) => {
+      e.preventDefault();
+      isResizingModal = true;
+    };
   }
 
   document.onmousemove = (e) => {
@@ -60,7 +69,7 @@ async function openLogsheetViewer(plate) {
     if (isResizingModal) {
       let newWidth = window.innerWidth - e.clientX;
       if (newWidth > 400 && newWidth < window.innerWidth - 50) {
-         modalContent.style.width = newWidth + "px";
+        modalContent.style.width = newWidth + "px";
       }
     }
   };
@@ -68,7 +77,7 @@ async function openLogsheetViewer(plate) {
   document.onmouseup = () => {
     isResizingSidebar = false;
     isResizingModal = false;
-    if(sidebarResizer) sidebarResizer.classList.remove("active");
+    if (sidebarResizer) sidebarResizer.classList.remove("active");
   };
 
   try {
@@ -98,7 +107,10 @@ async function openLogsheetViewer(plate) {
     }
 
     logsheetFiles = data.files.sort((a, b) =>
-      a.basename.localeCompare(b.basename, undefined, { numeric: true, sensitivity: "base" })
+      a.basename.localeCompare(b.basename, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }),
     );
 
     renderFileList();
@@ -134,7 +146,9 @@ function selectFileIndex(index) {
   if (index < 0 || index >= logsheetFiles.length) return;
   currentFileIndex = index;
 
-  document.querySelectorAll(".logsheet-file-item").forEach((el) => el.classList.remove("active"));
+  document
+    .querySelectorAll(".logsheet-file-item")
+    .forEach((el) => el.classList.remove("active"));
   const activeEl = document.getElementById(`ls-file-${index}`);
   if (activeEl) {
     activeEl.classList.add("active");
@@ -151,7 +165,7 @@ function closeLogsheetViewer() {
   modal.style.backgroundColor = "transparent";
   modal.style.backdropFilter = "none";
   modal.style.pointerEvents = "none";
-  
+
   document.getElementById("logsheetViewerContainer").innerHTML = "";
   logsheetFiles = [];
   currentFileIndex = -1;
@@ -159,7 +173,8 @@ function closeLogsheetViewer() {
 
 function loadViewerContent(filePath, mimeType, token) {
   const viewer = document.getElementById("logsheetViewerContainer");
-  viewer.innerHTML = '<div style="text-align:center; padding:20px; font-weight:bold; color:#8b5cf6;">Loading File...</div>';
+  viewer.innerHTML =
+    '<div style="text-align:center; padding:20px; font-weight:bold; color:#8b5cf6;">Loading File...</div>';
 
   currentZoom = 1;
   currentRotation = 0;
@@ -169,7 +184,9 @@ function loadViewerContent(filePath, mimeType, token) {
   const activeToken = localStorage.getItem("timesheetToken");
   const reqHeaders = { Authorization: "Bearer " + activeToken };
 
-  fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(filePath)}`, { headers: reqHeaders })
+  fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(filePath)}`, {
+    headers: reqHeaders,
+  })
     .then((res) => {
       if (!res.ok) throw new Error("File fetch failed");
       return res.blob();
@@ -208,7 +225,8 @@ function loadViewerContent(filePath, mimeType, token) {
             canvas.style.backgroundColor = "#fff";
 
             const ctx = canvas.getContext("2d");
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            await page.render({ canvasContext: ctx, viewport: viewport })
+              .promise;
 
             zoomContent.appendChild(canvas);
           }
@@ -343,9 +361,9 @@ function applyTransform() {
   for (let i = 0; i < children.length; i++) {
     children[i].style.transform = `rotate(${currentRotation}deg)`;
     children[i].style.transition = "transform 0.2s ease-out";
-    
+
     if (currentRotation % 180 !== 0) {
-      children[i].style.margin = "10% 0"; 
+      children[i].style.margin = "10% 0";
     } else {
       children[i].style.margin = "0";
     }
@@ -359,7 +377,7 @@ function attachMouseEvents() {
   wrapper.onwheel = (e) => {
     e.preventDefault();
     if (e.deltaY < 0) {
-      adjustZoom(0.2); 
+      adjustZoom(0.2);
     } else {
       adjustZoom(-0.2);
     }
@@ -407,7 +425,12 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-async function generatePdfFromFiles(filesArray, pdfFilename, btnElement, originalBtnText) {
+async function generatePdfFromFiles(
+  filesArray,
+  pdfFilename,
+  btnElement,
+  originalBtnText,
+) {
   if (!filesArray.length) {
     customAlert("No valid files selected for PDF.", "Notice");
     return;
@@ -419,25 +442,33 @@ async function generatePdfFromFiles(filesArray, pdfFilename, btnElement, origina
   try {
     const { PDFDocument } = PDFLib;
     const { jsPDF } = window.jspdf;
-    
+
     const mergedPdf = await PDFDocument.create();
     const activeToken = localStorage.getItem("timesheetToken");
     const reqHeaders = { Authorization: "Bearer " + activeToken };
 
     for (let i = 0; i < filesArray.length; i++) {
       const file = filesArray[i];
-      const res = await fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`, { headers: reqHeaders });
+      const res = await fetch(
+        `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+        { headers: reqHeaders },
+      );
       if (!res.ok) continue;
-      
+
       const blob = await res.blob();
       const arrayBuffer = await blob.arrayBuffer();
 
       if (file.mime && file.mime.includes("pdf")) {
         const existingPdf = await PDFDocument.load(arrayBuffer);
-        const copiedPages = await mergedPdf.copyPages(existingPdf, existingPdf.getPageIndices());
+        const copiedPages = await mergedPdf.copyPages(
+          existingPdf,
+          existingPdf.getPageIndices(),
+        );
         copiedPages.forEach((page) => mergedPdf.addPage(page));
       } else {
-        const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
+        const bitmap = await createImageBitmap(blob, {
+          imageOrientation: "from-image",
+        });
         const canvas = document.createElement("canvas");
         canvas.width = bitmap.width;
         canvas.height = bitmap.height;
@@ -446,7 +477,10 @@ async function generatePdfFromFiles(filesArray, pdfFilename, btnElement, origina
 
         const cleanDataUrl = canvas.toDataURL("image/jpeg", 0.95);
         const embeddedImage = await mergedPdf.embedJpg(cleanDataUrl);
-        const page = mergedPdf.addPage([embeddedImage.width, embeddedImage.height]);
+        const page = mergedPdf.addPage([
+          embeddedImage.width,
+          embeddedImage.height,
+        ]);
         page.drawImage(embeddedImage, {
           x: 0,
           y: 0,
@@ -462,7 +496,6 @@ async function generatePdfFromFiles(filesArray, pdfFilename, btnElement, origina
     link.href = URL.createObjectURL(blobOutput);
     link.download = pdfFilename;
     link.click();
-
   } catch (e) {
     console.error("PDF Merge Error:", e);
     customAlert("Failed to generate combined PDF.", "Error");
@@ -475,10 +508,17 @@ async function generatePdfFromFiles(filesArray, pdfFilename, btnElement, origina
 async function downloadAllAsPdf() {
   const btn = document.getElementById("btnDownloadPdf");
   const imageFiles = logsheetFiles.filter(
-    (f) => f.mime && (f.mime.includes("image") || f.mime.includes("pdf")) && f.size > 0,
+    (f) =>
+      f.mime &&
+      (f.mime.includes("image") || f.mime.includes("pdf")) &&
+      f.size > 0,
   );
 
-  const plate = document.getElementById("logsheetTitle").innerText.replace("Logsheets - ", "").replace(/[^a-zA-Z0-9 ]/g, "").trim();
+  const plate = document
+    .getElementById("logsheetTitle")
+    .innerText.replace("Logsheets - ", "")
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .trim();
   await generatePdfFromFiles(imageFiles, `${plate}.pdf`, btn, "PDF");
 }
 
@@ -491,7 +531,8 @@ async function downloadSelectedAsPdf() {
     if (
       cb.checked &&
       logsheetFiles[index].mime &&
-      (logsheetFiles[index].mime.includes("image") || logsheetFiles[index].mime.includes("pdf")) &&
+      (logsheetFiles[index].mime.includes("image") ||
+        logsheetFiles[index].mime.includes("pdf")) &&
       logsheetFiles[index].size > 0
     ) {
       selectedFiles.push(logsheetFiles[index]);
@@ -503,8 +544,17 @@ async function downloadSelectedAsPdf() {
     return;
   }
 
-  const plate = document.getElementById("logsheetTitle").innerText.replace("Logsheets - ", "").replace(/[^a-zA-Z0-9 ]/g, "").trim();
-  await generatePdfFromFiles(selectedFiles, `${plate}_Selected_Logsheets.pdf`, btn, "📑 Selected");
+  const plate = document
+    .getElementById("logsheetTitle")
+    .innerText.replace("Logsheets - ", "")
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .trim();
+  await generatePdfFromFiles(
+    selectedFiles,
+    `${plate}_Selected_Logsheets.pdf`,
+    btn,
+    "📑 Selected",
+  );
 }
 
 async function copyCurrentLogsheetToClipboard() {

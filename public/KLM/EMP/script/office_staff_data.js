@@ -90,7 +90,16 @@ function closeModal() {
   document.getElementById("regModal").style.display = "none";
 }
 
-function editEmployee(id, name, mobile, baseSal, shiftHrs, mobileAllowance, start, end) {
+function editEmployee(
+  id,
+  name,
+  mobile,
+  baseSal,
+  shiftHrs,
+  mobileAllowance,
+  start,
+  end,
+) {
   document.getElementById("modalTitle").innerText = "Edit Employee";
   document.getElementById("empId").value = id;
   document.getElementById("empName").value = name;
@@ -159,7 +168,8 @@ async function saveEmployee() {
 
 async function openHikeModal(empId, empName) {
   document.getElementById("hikeEmpId").value = empId;
-  document.getElementById("hikeModalTitle").innerText = `Salary Hike - ${empName}`;
+  document.getElementById("hikeModalTitle").innerText =
+    `Salary Hike - ${empName}`;
   document.getElementById("hikeBaseSalary").value = "";
   document.getElementById("hikeStartDate").value = "";
   document.getElementById("hikeModal").style.display = "block";
@@ -186,7 +196,9 @@ async function loadSalaryHistory(empId) {
     }
 
     history.forEach((item) => {
-      const endDisp = item.end_date ? item.end_date.split("T")[0] : "<span style='color:green;font-weight:bold;'>Ongoing</span>";
+      const endDisp = item.end_date
+        ? item.end_date.split("T")[0]
+        : "<span style='color:green;font-weight:bold;'>Ongoing</span>";
       tbody.innerHTML += `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 6px; font-weight: bold;">${parseFloat(item.base_salary).toFixed(2)}</td>
@@ -205,7 +217,9 @@ async function loadSalaryHistory(empId) {
 
 async function saveSalaryHike() {
   const empId = document.getElementById("hikeEmpId").value;
-  const baseSalary = parseFloat(document.getElementById("hikeBaseSalary").value);
+  const baseSalary = parseFloat(
+    document.getElementById("hikeBaseSalary").value,
+  );
   const startDate = document.getElementById("hikeStartDate").value;
   const token = sessionStorage.getItem("emp_token");
 

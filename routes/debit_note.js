@@ -18,7 +18,11 @@ async function ensureDnFaceTable() {
 }
 
 function euclideanDistance(desc1, desc2) {
-  if (!Array.isArray(desc1) || !Array.isArray(desc2) || desc1.length !== desc2.length) {
+  if (
+    !Array.isArray(desc1) ||
+    !Array.isArray(desc2) ||
+    desc1.length !== desc2.length
+  ) {
     return 999;
   }
   let sum = 0;

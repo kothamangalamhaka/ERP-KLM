@@ -1,787 +1,965 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - We1 Own EQ</title>
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-        }
+      * {
+        box-sizing: border-box;
+        font-family:
+          "Inter",
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background: radial-gradient(circle at 15% 20%, #1e3a8a 0%, #0f172a 55%, #020617 100%);
-            overflow: hidden;
-            position: relative;
-        }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        background: radial-gradient(
+          circle at 15% 20%,
+          #1e3a8a 0%,
+          #0f172a 55%,
+          #020617 100%
+        );
+        overflow: hidden;
+        position: relative;
+      }
 
-        /* Ambient Glowing Glass Orbs */
-        body::before,
-        body::after {
-            content: "";
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(75px);
-            z-index: 0;
-            pointer-events: none;
-        }
+      /* Ambient Glowing Glass Orbs */
+      body::before,
+      body::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(75px);
+        z-index: 0;
+        pointer-events: none;
+      }
 
-        body::before {
-            width: 340px;
-            height: 340px;
-            background: rgba(56, 189, 248, 0.35);
-            top: -80px;
-            left: -80px;
-        }
+      body::before {
+        width: 340px;
+        height: 340px;
+        background: rgba(56, 189, 248, 0.35);
+        top: -80px;
+        left: -80px;
+      }
 
-        body::after {
-            width: 380px;
-            height: 380px;
-            background: rgba(99, 102, 241, 0.32);
-            bottom: -100px;
-            right: -90px;
-        }
+      body::after {
+        width: 380px;
+        height: 380px;
+        background: rgba(99, 102, 241, 0.32);
+        bottom: -100px;
+        right: -90px;
+      }
 
-        /* Glassmorphism Card */
-        .auth-card {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 390px;
-            padding: 34px 30px;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(22px);
-            -webkit-backdrop-filter: blur(22px);
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-            color: #f8fafc;
-        }
+      /* Glassmorphism Card */
+      .auth-card {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 390px;
+        padding: 34px 30px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        box-shadow:
+          0 25px 50px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        color: #f8fafc;
+      }
 
-        .brand-badge {
-            width: 54px;
-            height: 54px;
-            margin: 0 auto 14px auto;
-            border-radius: 15px;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(99, 102, 241, 0.35));
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-        }
+      .brand-badge {
+        width: 54px;
+        height: 54px;
+        margin: 0 auto 14px auto;
+        border-radius: 15px;
+        background: linear-gradient(
+          135deg,
+          rgba(56, 189, 248, 0.35),
+          rgba(99, 102, 241, 0.35)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      }
 
-        .auth-card h2 {
-            text-align: center;
-            margin: 0 0 6px 0;
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-            color: #ffffff;
-        }
+      .auth-card h2 {
+        text-align: center;
+        margin: 0 0 6px 0;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: #ffffff;
+      }
 
-        .auth-subtitle {
-            text-align: center;
-            margin: 0 0 24px 0;
-            font-size: 12.5px;
-            color: rgba(226, 232, 240, 0.75);
-        }
+      .auth-subtitle {
+        text-align: center;
+        margin: 0 0 24px 0;
+        font-size: 12.5px;
+        color: rgba(226, 232, 240, 0.75);
+      }
 
-        .form-group {
-            margin-bottom: 16px;
-        }
+      .form-group {
+        margin-bottom: 16px;
+      }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 12.5px;
-            color: rgba(241, 245, 249, 0.9);
-            letter-spacing: 0.2px;
-        }
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 12.5px;
+        color: rgba(241, 245, 249, 0.9);
+        letter-spacing: 0.2px;
+      }
 
-        .input-wrap {
-            position: relative;
-        }
+      .input-wrap {
+        position: relative;
+      }
 
-        .form-group input {
-            width: 100%;
-            padding: 11px 14px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.2s ease;
-        }
+      .form-group input {
+        width: 100%;
+        padding: 11px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        font-size: 14px;
+        outline: none;
+        transition: all 0.2s ease;
+      }
 
-        .form-group input::placeholder {
-            color: rgba(203, 213, 225, 0.55);
-        }
+      .form-group input::placeholder {
+        color: rgba(203, 213, 225, 0.55);
+      }
 
-        .form-group input:focus {
-            border-color: #38bdf8;
-            background: rgba(255, 255, 255, 0.16);
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
-        }
+      .form-group input:focus {
+        border-color: #38bdf8;
+        background: rgba(255, 255, 255, 0.16);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+      }
 
-        .pass-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: rgba(226, 232, 240, 0.75);
-            cursor: pointer;
-            font-size: 15px;
-            padding: 2px;
-        }
+      .pass-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: rgba(226, 232, 240, 0.75);
+        cursor: pointer;
+        font-size: 15px;
+        padding: 2px;
+      }
 
-        .pass-toggle:hover {
-            color: #ffffff;
-        }
+      .pass-toggle:hover {
+        color: #ffffff;
+      }
 
-        .btn {
-            width: 100%;
-            padding: 12px;
-            margin-top: 8px;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-            color: #ffffff;
-            cursor: pointer;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-        }
+      .btn {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: #ffffff;
+        cursor: pointer;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
+          opacity 0.15s ease;
+      }
 
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.45);
-        }
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(16, 185, 129, 0.45);
+      }
 
-        .btn:active {
-            transform: translateY(0);
-        }
+      .btn:active {
+        transform: translateY(0);
+      }
 
-        .btn:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
+      .btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
 
-        .btn-signup {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
-        }
+      .btn-signup {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+      }
 
-        .btn-signup:hover {
-            box-shadow: 0 10px 24px rgba(59, 130, 246, 0.45);
-        }
+      .btn-signup:hover {
+        box-shadow: 0 10px 24px rgba(59, 130, 246, 0.45);
+      }
 
-        .toggle-link {
-            text-align: center;
-            margin-top: 18px;
-            font-size: 13px;
-            cursor: pointer;
-            color: #7dd3fc;
-            font-weight: 500;
-            transition: color 0.15s;
-        }
+      .toggle-link {
+        text-align: center;
+        margin-top: 18px;
+        font-size: 13px;
+        cursor: pointer;
+        color: #7dd3fc;
+        font-weight: 500;
+        transition: color 0.15s;
+      }
 
-        .toggle-link:hover {
-            color: #ffffff;
-            text-decoration: underline;
-        }
+      .toggle-link:hover {
+        color: #ffffff;
+        text-decoration: underline;
+      }
 
-        .alert {
-            display: none;
-            padding: 10px 12px;
-            margin-bottom: 16px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 500;
-            backdrop-filter: blur(10px);
-        }
+      .alert {
+        display: none;
+        padding: 10px 12px;
+        margin-bottom: 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+      }
 
-        .alert-error {
-            background: rgba(239, 68, 68, 0.22);
-            border: 1px solid rgba(248, 113, 113, 0.45);
-            color: #fecaca;
-            display: block;
-        }
+      .alert-error {
+        background: rgba(239, 68, 68, 0.22);
+        border: 1px solid rgba(248, 113, 113, 0.45);
+        color: #fecaca;
+        display: block;
+      }
 
-        .alert-success {
-            background: rgba(34, 197, 94, 0.22);
-            border: 1px solid rgba(74, 222, 128, 0.45);
-            color: #bbf7d0;
-            display: block;
-        }
+      .alert-success {
+        background: rgba(34, 197, 94, 0.22);
+        border: 1px solid rgba(74, 222, 128, 0.45);
+        color: #bbf7d0;
+        display: block;
+      }
 
-        .face-corner-btn {
-            position: absolute;
-            top: 14px;
-            right: 14px;
-            width: 38px;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid rgba(255, 255, 255, 0.24);
-            border-radius: 10px;
-            background: rgba(16, 185, 129, 0.2);
-            font-size: 18px;
-            line-height: 1;
-            cursor: pointer;
-            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-        }
+      .face-corner-btn {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 10px;
+        background: rgba(16, 185, 129, 0.2);
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        transition:
+          transform 0.2s ease,
+          background 0.2s ease,
+          box-shadow 0.2s ease;
+      }
 
-        .face-corner-btn:hover {
-            background: rgba(16, 185, 129, 0.38);
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-            transform: translateY(-1px);
-        }
+      .face-corner-btn:hover {
+        background: rgba(16, 185, 129, 0.38);
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        transform: translateY(-1px);
+      }
 
-        .btn-face-capture {
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-            box-shadow: 0 8px 20px rgba(2, 132, 199, 0.3);
-            margin-top: 2px;
-            margin-bottom: 10px;
-            padding: 10px;
-            font-size: 13.5px;
-        }
+      .btn-face-capture {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        box-shadow: 0 8px 20px rgba(2, 132, 199, 0.3);
+        margin-top: 2px;
+        margin-bottom: 10px;
+        padding: 10px;
+        font-size: 13.5px;
+      }
 
-        .btn-cancel {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
-        }
+      .btn-cancel {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+      }
 
-        .btn-secondary {
-            background: rgba(100, 116, 139, 0.72);
-            box-shadow: none;
-        }
+      .btn-secondary {
+        background: rgba(100, 116, 139, 0.72);
+        box-shadow: none;
+      }
 
-        .face-status {
-            display: none;
-            margin-bottom: 10px;
-            color: #4ade80;
-            font-size: 12px;
-            font-weight: 700;
-            text-align: center;
-        }
+      .face-status {
+        display: none;
+        margin-bottom: 10px;
+        color: #4ade80;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+      }
 
-        .sub-link {
-            margin-top: 10px;
-            color: #93c5fd;
-            font-size: 12.5px;
-        }
+      .sub-link {
+        margin-top: 10px;
+        color: #93c5fd;
+        font-size: 12.5px;
+      }
 
-        .face-modal-backdrop {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 10002;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background: rgba(2, 6, 23, 0.84);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
+      .face-modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10002;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        background: rgba(2, 6, 23, 0.84);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
 
-        .face-modal-card {
-            max-width: 360px;
-            padding: 26px 24px;
-            text-align: center;
-        }
+      .face-modal-card {
+        max-width: 360px;
+        padding: 26px 24px;
+        text-align: center;
+      }
 
-        .face-modal-card h2 {
-            margin-bottom: 8px;
-            font-size: 20px;
-        }
+      .face-modal-card h2 {
+        margin-bottom: 8px;
+        font-size: 20px;
+      }
 
-        .face-modal-subtitle {
-            margin: 0 0 18px;
-            color: rgba(226, 232, 240, 0.8);
-            font-size: 13px;
-        }
+      .face-modal-subtitle {
+        margin: 0 0 18px;
+        color: rgba(226, 232, 240, 0.8);
+        font-size: 13px;
+      }
 
-        .face-instruction {
-            min-height: 20px;
-            margin: 6px 0 14px;
-            color: #38bdf8;
-            font-size: 13.5px;
-            font-weight: 700;
-        }
+      .face-instruction {
+        min-height: 20px;
+        margin: 6px 0 14px;
+        color: #38bdf8;
+        font-size: 13.5px;
+        font-weight: 700;
+      }
 
-        .face-video {
-            width: 100%;
-            max-width: 300px;
-            height: auto;
-            border: 2px solid rgba(56, 189, 248, 0.55);
-            border-radius: 12px;
-            background: #020617;
-            transform: scaleX(-1);
-        }
+      .face-video {
+        width: 100%;
+        max-width: 300px;
+        height: auto;
+        border: 2px solid rgba(56, 189, 248, 0.55);
+        border-radius: 12px;
+        background: #020617;
+        transform: scaleX(-1);
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <div class="auth-card">
+      <div class="brand-badge">🚜</div>
+      <div id="alertBox" class="alert"></div>
 
-<div class="auth-card">
-    <div class="brand-badge">🚜</div>
-    <div id="alertBox" class="alert"></div>
-    
-    <form id="loginForm" onsubmit="handleLogin(event)">
-        <button type="button" class="face-corner-btn" title="Face Login" onclick="startWe1FaceAuth('login')">📸</button>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <button
+          type="button"
+          class="face-corner-btn"
+          title="Face Login"
+          onclick="startWe1FaceAuth('login')"
+        >
+          📸
+        </button>
         <h2>We1 EQ Login</h2>
         <p class="auth-subtitle">Sign in to manage own equipment operations</p>
         <div class="form-group">
-            <label for="username">Username</label>
-            <div class="input-wrap">
-                <input type="text" id="username" placeholder="Enter username" autocomplete="off" required>
-            </div>
+          <label for="username">Username</label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="username"
+              placeholder="Enter username"
+              autocomplete="off"
+              required
+            />
+          </div>
         </div>
         <div class="form-group">
-            <label for="password">Password</label>
-            <div class="input-wrap">
-                <input type="password" id="password" placeholder="Enter password" autocomplete="new-password" required style="padding-right: 38px;">
-                <button type="button" class="pass-toggle" onclick="togglePassVisibility('password', this)" title="Show/Hide Password">👁️</button>
-            </div>
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter password"
+              autocomplete="new-password"
+              required
+              style="padding-right: 38px"
+            />
+            <button
+              type="button"
+              class="pass-toggle"
+              onclick="togglePassVisibility('password', this)"
+              title="Show/Hide Password"
+            >
+              👁️
+            </button>
+          </div>
         </div>
         <button type="submit" id="loginBtn" class="btn">Login</button>
-        <div class="toggle-link" onclick="toggleView('signup')">New User? Sign Up Here</div>
-        <div class="toggle-link sub-link" onclick="openWe1ResetFaceModal()">📸 Enable / Reset Face Login</div>
-    </form>
+        <div class="toggle-link" onclick="toggleView('signup')">
+          New User? Sign Up Here
+        </div>
+        <div class="toggle-link sub-link" onclick="openWe1ResetFaceModal()">
+          📸 Enable / Reset Face Login
+        </div>
+      </form>
 
-    <form id="signupForm" onsubmit="handleSignup(event)" style="display: none;">
+      <form
+        id="signupForm"
+        onsubmit="handleSignup(event)"
+        style="display: none"
+      >
         <h2>User Signup</h2>
         <p class="auth-subtitle">Request access to We1 Own EQ</p>
         <div class="form-group">
-            <label for="signupUser">Username</label>
-            <div class="input-wrap">
-                <input type="text" id="signupUser" placeholder="Choose a username" autocomplete="off" required>
-            </div>
+          <label for="signupUser">Username</label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="signupUser"
+              placeholder="Choose a username"
+              autocomplete="off"
+              required
+            />
+          </div>
         </div>
         <div class="form-group">
-            <label for="signupPass">Password</label>
-            <div class="input-wrap">
-                <input type="password" id="signupPass" placeholder="Choose a password" autocomplete="new-password" required style="padding-right: 38px;">
-                <button type="button" class="pass-toggle" onclick="togglePassVisibility('signupPass', this)" title="Show/Hide Password">👁️</button>
-            </div>
+          <label for="signupPass">Password</label>
+          <div class="input-wrap">
+            <input
+              type="password"
+              id="signupPass"
+              placeholder="Choose a password"
+              autocomplete="new-password"
+              required
+              style="padding-right: 38px"
+            />
+            <button
+              type="button"
+              class="pass-toggle"
+              onclick="togglePassVisibility('signupPass', this)"
+              title="Show/Hide Password"
+            >
+              👁️
+            </button>
+          </div>
         </div>
-        <button type="button" id="regFaceBtn" class="btn btn-face-capture" onclick="startWe1FaceAuth('register')">📷 Capture Face for Signup</button>
-        <div id="regFaceStatus" class="face-status">✓ Face Captured Successfully!</div>
-        <button type="submit" id="signupBtn" class="btn btn-signup">Request Access</button>
-        <div class="toggle-link" onclick="toggleView('login')">Already have an account? Login</div>
-    </form>
-</div>
+        <button
+          type="button"
+          id="regFaceBtn"
+          class="btn btn-face-capture"
+          onclick="startWe1FaceAuth('register')"
+        >
+          📷 Capture Face for Signup
+        </button>
+        <div id="regFaceStatus" class="face-status">
+          ✓ Face Captured Successfully!
+        </div>
+        <button type="submit" id="signupBtn" class="btn btn-signup">
+          Request Access
+        </button>
+        <div class="toggle-link" onclick="toggleView('login')">
+          Already have an account? Login
+        </div>
+      </form>
+    </div>
 
-<!-- Credentials Modal for Reset / Update Face Data -->
-<div id="we1ResetVerifyModal" class="face-modal-backdrop">
-    <div class="auth-card face-modal-card">
+    <!-- Credentials Modal for Reset / Update Face Data -->
+    <div id="we1ResetVerifyModal" class="face-modal-backdrop">
+      <div class="auth-card face-modal-card">
         <h2>Verify Credentials</h2>
-        <p class="face-modal-subtitle">Enter username and password to re-register Face ID.</p>
-        <div class="form-group" style="text-align: left;">
-            <label for="we1RfUsername">Username</label>
-            <input type="text" id="we1RfUsername" placeholder="Username" autocomplete="off">
+        <p class="face-modal-subtitle">
+          Enter username and password to re-register Face ID.
+        </p>
+        <div class="form-group" style="text-align: left">
+          <label for="we1RfUsername">Username</label>
+          <input
+            type="text"
+            id="we1RfUsername"
+            placeholder="Username"
+            autocomplete="off"
+          />
         </div>
-        <div class="form-group" style="text-align: left;">
-            <label for="we1RfPassword">Password</label>
-            <input type="password" id="we1RfPassword" placeholder="Password" autocomplete="new-password">
+        <div class="form-group" style="text-align: left">
+          <label for="we1RfPassword">Password</label>
+          <input
+            type="password"
+            id="we1RfPassword"
+            placeholder="Password"
+            autocomplete="new-password"
+          />
         </div>
-        <button type="button" class="btn btn-face-capture" onclick="verifyAndStartWe1FaceReset()">Continue to Face Scan</button>
-        <button type="button" class="btn btn-secondary" onclick="closeWe1ResetFaceModal()">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-face-capture"
+          onclick="verifyAndStartWe1FaceReset()"
+        >
+          Continue to Face Scan
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          onclick="closeWe1ResetFaceModal()"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
-</div>
 
-<!-- Universal Direct Camera Face Verification Modal -->
-<div id="we1UniversalFaceModal" class="face-modal-backdrop">
-    <div class="auth-card face-modal-card">
+    <!-- Universal Direct Camera Face Verification Modal -->
+    <div id="we1UniversalFaceModal" class="face-modal-backdrop">
+      <div class="auth-card face-modal-card">
         <h2 id="we1FaceModalTitle">Face Verification</h2>
-        <div id="we1UniversalInstruction" class="face-instruction">Initializing Camera...</div>
-        <video id="we1UniversalVideo" class="face-video" width="320" height="240" autoplay muted playsinline></video>
-        <canvas id="we1UniversalCanvas" width="320" height="240" style="display: none;"></canvas>
-        <div style="margin-top: 16px;">
-            <button type="button" class="btn btn-cancel" onclick="closeWe1UniversalFace()">Cancel</button>
+        <div id="we1UniversalInstruction" class="face-instruction">
+          Initializing Camera...
         </div>
+        <video
+          id="we1UniversalVideo"
+          class="face-video"
+          width="320"
+          height="240"
+          autoplay
+          muted
+          playsinline
+        ></video>
+        <canvas
+          id="we1UniversalCanvas"
+          width="320"
+          height="240"
+          style="display: none"
+        ></canvas>
+        <div style="margin-top: 16px">
+          <button
+            type="button"
+            class="btn btn-cancel"
+            onclick="closeWe1UniversalFace()"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
-</div>
 
-<script>
-    function getLoginDestination() {
+    <script>
+      function getLoginDestination() {
         const params = new URLSearchParams(window.location.search);
-        return params.get('redirect') || 'index.html';
-    }
+        return params.get("redirect") || "index.html";
+      }
 
-    window.addEventListener('pageshow', function () {
-        if (localStorage.getItem('emp_token')) {
-            window.location.replace(getLoginDestination());
-            return;
+      window.addEventListener("pageshow", function () {
+        if (localStorage.getItem("emp_token")) {
+          window.location.replace(getLoginDestination());
+          return;
         }
 
-        document.getElementById('loginForm').reset();
-        document.getElementById('signupForm').reset();
-        showAlert('', '');
-    });
+        document.getElementById("loginForm").reset();
+        document.getElementById("signupForm").reset();
+        showAlert("", "");
+      });
 
-    function toggleView(type) {
-        document.getElementById('loginForm').style.display = type === 'login' ? 'block' : 'none';
-        document.getElementById('signupForm').style.display = type === 'signup' ? 'block' : 'none';
-        showAlert('', '');
-    }
+      function toggleView(type) {
+        document.getElementById("loginForm").style.display =
+          type === "login" ? "block" : "none";
+        document.getElementById("signupForm").style.display =
+          type === "signup" ? "block" : "none";
+        showAlert("", "");
+      }
 
-    function showAlert(msg, type) {
-        const box = document.getElementById('alertBox');
+      function showAlert(msg, type) {
+        const box = document.getElementById("alertBox");
         if (!box) return;
         if (!msg) {
-            box.style.display = 'none';
-            box.className = 'alert';
-            box.innerText = '';
-            return;
+          box.style.display = "none";
+          box.className = "alert";
+          box.innerText = "";
+          return;
         }
         box.className = `alert alert-${type}`;
         box.innerText = msg;
-        box.style.display = 'block';
-    }
+        box.style.display = "block";
+      }
 
-    function togglePassVisibility(inputId, btn) {
+      function togglePassVisibility(inputId, btn) {
         const input = document.getElementById(inputId);
         if (!input) return;
-        if (input.type === 'password') {
-            input.type = 'text';
-            btn.innerText = '🙈';
+        if (input.type === "password") {
+          input.type = "text";
+          btn.innerText = "🙈";
         } else {
-            input.type = 'password';
-            btn.innerText = '👁️';
+          input.type = "password";
+          btn.innerText = "👁️";
         }
-    }
+      }
 
-    async function handleLogin(event) {
+      async function handleLogin(event) {
         event.preventDefault();
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-        showAlert('', '');
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        showAlert("", "");
 
         if (!username || !password) {
-            showAlert('Please enter both fields', 'error');
-            return;
+          showAlert("Please enter both fields", "error");
+          return;
         }
 
-        const btn = document.getElementById('loginBtn');
+        const btn = document.getElementById("loginBtn");
         const origText = btn.innerText;
         btn.disabled = true;
-        btn.innerText = 'Signing in...';
+        btn.innerText = "Signing in...";
 
         try {
-            const res = await fetch('/api/own-equipment/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
+          const res = await fetch("/api/own-equipment/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
 
-            if (data.success && data.token) {
-                localStorage.setItem('emp_token', data.token);
-                localStorage.setItem('emp_user', JSON.stringify(data.user));
-                window.location.replace(getLoginDestination());
-            } else {
-                showAlert(data.message || 'Login failed', 'error');
-            }
+          if (data.success && data.token) {
+            localStorage.setItem("emp_token", data.token);
+            localStorage.setItem("emp_user", JSON.stringify(data.user));
+            window.location.replace(getLoginDestination());
+          } else {
+            showAlert(data.message || "Login failed", "error");
+          }
         } catch (err) {
-            showAlert('Server Error! Please try again.', 'error');
+          showAlert("Server Error! Please try again.", "error");
         } finally {
-            btn.disabled = false;
-            btn.innerText = origText;
+          btn.disabled = false;
+          btn.innerText = origText;
         }
-    }
+      }
 
-    async function handleSignup(event) {
+      async function handleSignup(event) {
         event.preventDefault();
-        const username = document.getElementById('signupUser').value.trim();
-        const password = document.getElementById('signupPass').value;
-        showAlert('', '');
+        const username = document.getElementById("signupUser").value.trim();
+        const password = document.getElementById("signupPass").value;
+        showAlert("", "");
 
         if (!username || !password) {
-            showAlert('Please enter username and password', 'error');
-            return;
+          showAlert("Please enter username and password", "error");
+          return;
         }
 
-        const btn = document.getElementById('signupBtn');
+        const btn = document.getElementById("signupBtn");
         const origText = btn.innerText;
         btn.disabled = true;
-        btn.innerText = 'Submitting...';
+        btn.innerText = "Submitting...";
 
         try {
-            const res = await fetch('/api/own-equipment/auth/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password, faceDescriptor: registeredWe1FaceDescriptor })
-            });
-            const data = await res.json();
+          const res = await fetch("/api/own-equipment/auth/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username,
+              password,
+              faceDescriptor: registeredWe1FaceDescriptor,
+            }),
+          });
+          const data = await res.json();
 
-            if (data.success) {
-                registeredWe1FaceDescriptor = null;
-                const regFaceBtn = document.getElementById('regFaceBtn');
-                const regFaceStatus = document.getElementById('regFaceStatus');
-                if (regFaceBtn) {
-                    regFaceBtn.style.background = '';
-                    regFaceBtn.innerText = '📷 Capture Face for Signup';
-                }
-                if (regFaceStatus) regFaceStatus.style.display = 'none';
-                showAlert(data.message || 'User registered successfully. Waiting for admin approval.', 'success');
-                setTimeout(() => toggleView('login'), 2000);
-            } else {
-                showAlert(data.message || 'Signup failed', 'error');
+          if (data.success) {
+            registeredWe1FaceDescriptor = null;
+            const regFaceBtn = document.getElementById("regFaceBtn");
+            const regFaceStatus = document.getElementById("regFaceStatus");
+            if (regFaceBtn) {
+              regFaceBtn.style.background = "";
+              regFaceBtn.innerText = "📷 Capture Face for Signup";
             }
+            if (regFaceStatus) regFaceStatus.style.display = "none";
+            showAlert(
+              data.message ||
+                "User registered successfully. Waiting for admin approval.",
+              "success",
+            );
+            setTimeout(() => toggleView("login"), 2000);
+          } else {
+            showAlert(data.message || "Signup failed", "error");
+          }
         } catch (err) {
-            showAlert('Server Error! Please try again.', 'error');
+          showAlert("Server Error! Please try again.", "error");
         } finally {
-            btn.disabled = false;
-            btn.innerText = origText;
+          btn.disabled = false;
+          btn.innerText = origText;
         }
-    }
+      }
 
-    let registeredWe1FaceDescriptor = null;
-    let activeWe1FaceAction = null;
-    let we1RfTempCreds = null;
-    let we1CamStream = null;
-    let we1CaptureTimer = null;
-    let we1LivenessPassed = false;
-    let isWe1Processing = false;
+      let registeredWe1FaceDescriptor = null;
+      let activeWe1FaceAction = null;
+      let we1RfTempCreds = null;
+      let we1CamStream = null;
+      let we1CaptureTimer = null;
+      let we1LivenessPassed = false;
+      let isWe1Processing = false;
 
-    function openWe1ResetFaceModal() {
-        document.getElementById('we1RfUsername').value = '';
-        document.getElementById('we1RfPassword').value = '';
-        document.getElementById('we1ResetVerifyModal').style.display = 'flex';
-    }
+      function openWe1ResetFaceModal() {
+        document.getElementById("we1RfUsername").value = "";
+        document.getElementById("we1RfPassword").value = "";
+        document.getElementById("we1ResetVerifyModal").style.display = "flex";
+      }
 
-    function closeWe1ResetFaceModal() {
-        document.getElementById('we1ResetVerifyModal').style.display = 'none';
+      function closeWe1ResetFaceModal() {
+        document.getElementById("we1ResetVerifyModal").style.display = "none";
         we1RfTempCreds = null;
-    }
+      }
 
-    async function verifyAndStartWe1FaceReset() {
-        const username = document.getElementById('we1RfUsername').value.trim();
-        const password = document.getElementById('we1RfPassword').value;
+      async function verifyAndStartWe1FaceReset() {
+        const username = document.getElementById("we1RfUsername").value.trim();
+        const password = document.getElementById("we1RfPassword").value;
 
         if (!username || !password) {
-            closeWe1ResetFaceModal();
-            showAlert('Enter both username and password.', 'error');
-            return;
+          closeWe1ResetFaceModal();
+          showAlert("Enter both username and password.", "error");
+          return;
         }
 
         try {
-            const res = await fetch('/api/own-equipment/auth/verify-credentials', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
+          const res = await fetch(
+            "/api/own-equipment/auth/verify-credentials",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username, password }),
+            },
+          );
+          const data = await res.json();
 
-            if (data.success) {
-                we1RfTempCreds = { username, password };
-                document.getElementById('we1ResetVerifyModal').style.display = 'none';
-                startWe1FaceAuth('reset');
-            } else {
-                closeWe1ResetFaceModal();
-                showAlert(data.message || 'Invalid credentials.', 'error');
-            }
-        } catch (err) {
+          if (data.success) {
+            we1RfTempCreds = { username, password };
+            document.getElementById("we1ResetVerifyModal").style.display =
+              "none";
+            startWe1FaceAuth("reset");
+          } else {
             closeWe1ResetFaceModal();
-            showAlert('Error connecting to server.', 'error');
+            showAlert(data.message || "Invalid credentials.", "error");
+          }
+        } catch (err) {
+          closeWe1ResetFaceModal();
+          showAlert("Error connecting to server.", "error");
         }
-    }
+      }
 
-    async function startWe1FaceAuth(action) {
+      async function startWe1FaceAuth(action) {
         closeWe1UniversalFace();
-        showAlert('', '');
+        showAlert("", "");
 
         activeWe1FaceAction = action;
-        const modal = document.getElementById('we1UniversalFaceModal');
-        const video = document.getElementById('we1UniversalVideo');
-        const instruction = document.getElementById('we1UniversalInstruction');
-        const title = document.getElementById('we1FaceModalTitle');
+        const modal = document.getElementById("we1UniversalFaceModal");
+        const video = document.getElementById("we1UniversalVideo");
+        const instruction = document.getElementById("we1UniversalInstruction");
+        const title = document.getElementById("we1FaceModalTitle");
 
         title.innerText =
-            action === 'login'
-                ? 'Face Login'
-                : action === 'register'
-                    ? 'Register Face ID'
-                    : 'Reset Face ID';
-        modal.style.display = 'flex';
+          action === "login"
+            ? "Face Login"
+            : action === "register"
+              ? "Register Face ID"
+              : "Reset Face ID";
+        modal.style.display = "flex";
         we1LivenessPassed = false;
         isWe1Processing = false;
-        instruction.innerText = 'Opening Camera...';
-        instruction.style.color = '#38bdf8';
+        instruction.innerText = "Opening Camera...";
+        instruction.style.color = "#38bdf8";
 
         try {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                throw new Error('Camera API unavailable on this connection.');
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Camera API unavailable on this connection.");
+          }
+
+          we1CamStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              facingMode: "user",
+            },
+            audio: false,
+          });
+          video.srcObject = we1CamStream;
+          await video.play();
+
+          instruction.innerText =
+            "Scanning face... Look straight at the camera";
+          instruction.style.color = "#4ade80";
+
+          if (we1CaptureTimer) clearTimeout(we1CaptureTimer);
+          we1CaptureTimer = setTimeout(async () => {
+            if (!we1CamStream || we1LivenessPassed || isWe1Processing) return;
+            if (video.readyState >= 2 && video.videoWidth > 0) {
+              we1LivenessPassed = true;
+              instruction.innerText = "Capturing & Verifying...";
+              await handleWe1FaceCapture(video);
+            } else {
+              video.addEventListener(
+                "loadeddata",
+                async () => {
+                  if (!we1CamStream || we1LivenessPassed || isWe1Processing)
+                    return;
+                  we1LivenessPassed = true;
+                  instruction.innerText = "Capturing & Verifying...";
+                  await handleWe1FaceCapture(video);
+                },
+                { once: true },
+              );
             }
-
-            we1CamStream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-                audio: false
-            });
-            video.srcObject = we1CamStream;
-            await video.play();
-
-            instruction.innerText = 'Scanning face... Look straight at the camera';
-            instruction.style.color = '#4ade80';
-
-            if (we1CaptureTimer) clearTimeout(we1CaptureTimer);
-            we1CaptureTimer = setTimeout(async () => {
-                if (!we1CamStream || we1LivenessPassed || isWe1Processing) return;
-                if (video.readyState >= 2 && video.videoWidth > 0) {
-                    we1LivenessPassed = true;
-                    instruction.innerText = 'Capturing & Verifying...';
-                    await handleWe1FaceCapture(video);
-                } else {
-                    video.addEventListener('loadeddata', async () => {
-                        if (!we1CamStream || we1LivenessPassed || isWe1Processing) return;
-                        we1LivenessPassed = true;
-                        instruction.innerText = 'Capturing & Verifying...';
-                        await handleWe1FaceCapture(video);
-                    }, { once: true });
-                }
-            }, 1200);
+          }, 1200);
         } catch (err) {
-            closeWe1UniversalFace();
-            showAlert('Camera Error: ' + (err.message || 'Access denied or unavailable.'), 'error');
+          closeWe1UniversalFace();
+          showAlert(
+            "Camera Error: " + (err.message || "Access denied or unavailable."),
+            "error",
+          );
         }
-    }
+      }
 
-    async function handleWe1FaceCapture(frame) {
+      async function handleWe1FaceCapture(frame) {
         isWe1Processing = true;
-        const canvas = document.getElementById('we1UniversalCanvas');
+        const canvas = document.getElementById("we1UniversalCanvas");
         const vw = frame.videoWidth || 320;
         const vh = frame.videoHeight || 240;
         const scale = Math.min(1, 480 / Math.max(vw, vh));
         canvas.width = Math.round(vw * scale);
         canvas.height = Math.round(vh * scale);
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
-        const imageData = canvas.toDataURL('image/jpeg', 0.92);
+        const imageData = canvas.toDataURL("image/jpeg", 0.92);
 
-        if (activeWe1FaceAction === 'login') {
-            try {
-                const res = await fetch('/py/own-equipment-face-login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        image: imageData,
-                        face_trust_token: localStorage.getItem('eq_face_trust_token')
-                    })
-                });
-                const data = await res.json();
-                closeWe1UniversalFace();
+        if (activeWe1FaceAction === "login") {
+          try {
+            const res = await fetch("/py/own-equipment-face-login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                image: imageData,
+                face_trust_token: localStorage.getItem("eq_face_trust_token"),
+              }),
+            });
+            const data = await res.json();
+            closeWe1UniversalFace();
 
-                if (data.success && data.token) {
-                    localStorage.setItem('emp_token', data.token);
-                    localStorage.setItem('emp_user', JSON.stringify(data.user));
-                    window.location.replace(getLoginDestination());
-                } else {
-                    showAlert(data.message || 'Face recognition failed.', 'error');
-                }
-            } catch (err) {
-                closeWe1UniversalFace();
-                showAlert('Error connecting to server.', 'error');
+            if (data.success && data.token) {
+              localStorage.setItem("emp_token", data.token);
+              localStorage.setItem("emp_user", JSON.stringify(data.user));
+              window.location.replace(getLoginDestination());
+            } else {
+              showAlert(data.message || "Face recognition failed.", "error");
             }
-        } else if (activeWe1FaceAction === 'register' || activeWe1FaceAction === 'reset') {
-            try {
-                const res = await fetch('/py/face-encode', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData })
-                });
-                const data = await res.json();
-                closeWe1UniversalFace();
+          } catch (err) {
+            closeWe1UniversalFace();
+            showAlert("Error connecting to server.", "error");
+          }
+        } else if (
+          activeWe1FaceAction === "register" ||
+          activeWe1FaceAction === "reset"
+        ) {
+          try {
+            const res = await fetch("/py/face-encode", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image: imageData }),
+            });
+            const data = await res.json();
+            closeWe1UniversalFace();
 
-                if (!data.success || !data.descriptor) {
-                    showAlert(data.message || 'Failed to encode face. Please retry.', 'error');
-                    return;
-                }
-
-                if (activeWe1FaceAction === 'register') {
-                    registeredWe1FaceDescriptor = data.descriptor;
-                    const regFaceBtn = document.getElementById('regFaceBtn');
-                    const regFaceStatus = document.getElementById('regFaceStatus');
-                    if (regFaceBtn) {
-                        regFaceBtn.style.background = '#10b981';
-                        regFaceBtn.innerText = '✓ Face ID Captured';
-                    }
-                    if (regFaceStatus) regFaceStatus.style.display = 'block';
-                } else if (activeWe1FaceAction === 'reset') {
-                    const resetRes = await fetch('/api/own-equipment/auth/reset-face-data', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: we1RfTempCreds.username,
-                            password: we1RfTempCreds.password,
-                            faceDescriptor: data.descriptor
-                        })
-                    });
-                    const resetData = await resetRes.json();
-                    we1RfTempCreds = null;
-                    if (resetData.success) {
-                        toggleView('login');
-                        showAlert(resetData.message || 'Face data updated successfully!', 'success');
-                    } else {
-                        showAlert(resetData.message || 'Failed to update face data.', 'error');
-                    }
-                }
-            } catch (err) {
-                closeWe1UniversalFace();
-                showAlert('Error processing face descriptor.', 'error');
+            if (!data.success || !data.descriptor) {
+              showAlert(
+                data.message || "Failed to encode face. Please retry.",
+                "error",
+              );
+              return;
             }
+
+            if (activeWe1FaceAction === "register") {
+              registeredWe1FaceDescriptor = data.descriptor;
+              const regFaceBtn = document.getElementById("regFaceBtn");
+              const regFaceStatus = document.getElementById("regFaceStatus");
+              if (regFaceBtn) {
+                regFaceBtn.style.background = "#10b981";
+                regFaceBtn.innerText = "✓ Face ID Captured";
+              }
+              if (regFaceStatus) regFaceStatus.style.display = "block";
+            } else if (activeWe1FaceAction === "reset") {
+              const resetRes = await fetch(
+                "/api/own-equipment/auth/reset-face-data",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    username: we1RfTempCreds.username,
+                    password: we1RfTempCreds.password,
+                    faceDescriptor: data.descriptor,
+                  }),
+                },
+              );
+              const resetData = await resetRes.json();
+              we1RfTempCreds = null;
+              if (resetData.success) {
+                toggleView("login");
+                showAlert(
+                  resetData.message || "Face data updated successfully!",
+                  "success",
+                );
+              } else {
+                showAlert(
+                  resetData.message || "Failed to update face data.",
+                  "error",
+                );
+              }
+            }
+          } catch (err) {
+            closeWe1UniversalFace();
+            showAlert("Error processing face descriptor.", "error");
+          }
         }
-    }
+      }
 
-    function closeWe1UniversalFace() {
-        const modal = document.getElementById('we1UniversalFaceModal');
-        if (modal) modal.style.display = 'none';
+      function closeWe1UniversalFace() {
+        const modal = document.getElementById("we1UniversalFaceModal");
+        if (modal) modal.style.display = "none";
         isWe1Processing = false;
         we1LivenessPassed = false;
         if (we1CaptureTimer) {
-            clearTimeout(we1CaptureTimer);
-            we1CaptureTimer = null;
+          clearTimeout(we1CaptureTimer);
+          we1CaptureTimer = null;
         }
         if (we1CamStream) {
-            we1CamStream.getTracks().forEach((track) => track.stop());
-            we1CamStream = null;
+          we1CamStream.getTracks().forEach((track) => track.stop());
+          we1CamStream = null;
         }
-        const video = document.getElementById('we1UniversalVideo');
+        const video = document.getElementById("we1UniversalVideo");
         if (video) video.srcObject = null;
-    }
+      }
 
-    ['we1RfUsername', 'we1RfPassword'].forEach((id) => {
+      ["we1RfUsername", "we1RfPassword"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) {
-            el.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') verifyAndStartWe1FaceReset();
-            });
+          el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") verifyAndStartWe1FaceReset();
+          });
         }
-    });
+      });
 
-    function updateWe1FaceBtnVisibility() {
-        const faceBtn = document.querySelector('.face-corner-btn');
+      function updateWe1FaceBtnVisibility() {
+        const faceBtn = document.querySelector(".face-corner-btn");
         if (faceBtn) {
-            faceBtn.style.display = localStorage.getItem('eq_face_trust_token') ? 'flex' : 'none';
+          faceBtn.style.display = localStorage.getItem("eq_face_trust_token")
+            ? "flex"
+            : "none";
         }
-    }
-    document.addEventListener('DOMContentLoaded', updateWe1FaceBtnVisibility);
-    updateWe1FaceBtnVisibility();
-</script>
-</body>
+      }
+      document.addEventListener("DOMContentLoaded", updateWe1FaceBtnVisibility);
+      updateWe1FaceBtnVisibility();
+    </script>
+  </body>
 </html>

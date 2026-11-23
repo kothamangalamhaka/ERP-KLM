@@ -7354,7 +7354,9 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               image: imageData,
-              face_trust_token: localStorage.getItem("invoice_face_trust_token"),
+              face_trust_token: localStorage.getItem(
+                "invoice_face_trust_token",
+              ),
             }),
           });
           const data = await res.json();
@@ -7555,7 +7557,10 @@
           closeBillingResetFaceModalAll();
           if (resetData.success) {
             if (resetData.faceTrustToken) {
-              localStorage.setItem("invoice_face_trust_token", resetData.faceTrustToken);
+              localStorage.setItem(
+                "invoice_face_trust_token",
+                resetData.faceTrustToken,
+              );
             }
             toggleAuthView("loginBox");
           }

@@ -245,31 +245,65 @@
         </button>
         <button
           class="btn"
-          style="
-            background: #8b5cf6;
-            margin-top: 0;
-            margin-bottom: 2px;
-          "
+          style="background: #8b5cf6; margin-top: 0; margin-bottom: 2px"
           onclick="openMultiAssetModal()"
         >
           Multi-Asset Report
         </button>
       </div>
 
-      <div id="multiAssetModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: #ffffff; padding: 25px; border-radius: 8px; width: 450px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-          <h3 style="margin-top: 0; color: #0f172a;">Multi-Asset PDF Generator</h3>
-          <div class="form-group" style="margin-bottom: 12px;">
+      <div
+        id="multiAssetModal"
+        style="
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.6);
+          z-index: 1000;
+          align-items: center;
+          justify-content: center;
+        "
+      >
+        <div
+          style="
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            width: 450px;
+            max-width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+          "
+        >
+          <h3 style="margin-top: 0; color: #0f172a">
+            Multi-Asset PDF Generator
+          </h3>
+          <div class="form-group" style="margin-bottom: 12px">
             <label>Asset Codes (Comma separated)</label>
-            <textarea id="multiAssetCodes" style="height: 90px;" placeholder="Ex: ASSET01, ASSET02, ASSET03"></textarea>
+            <textarea
+              id="multiAssetCodes"
+              style="height: 90px"
+              placeholder="Ex: ASSET01, ASSET02, ASSET03"
+            ></textarea>
           </div>
-          <div class="form-group" style="margin-bottom: 15px;">
+          <div class="form-group" style="margin-bottom: 15px">
             <label>Month & Year</label>
             <input type="month" id="multiMonthPicker" />
           </div>
-          <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button class="btn" style="background: #64748b;" onclick="closeMultiAssetModal()">Cancel</button>
-            <button class="btn" style="background: #8b5cf6;" onclick="downloadMultiAssetPDF()">Download Combined PDF</button>
+          <div style="display: flex; gap: 10px; justify-content: flex-end">
+            <button
+              class="btn"
+              style="background: #64748b"
+              onclick="closeMultiAssetModal()"
+            >
+              Cancel
+            </button>
+            <button
+              class="btn"
+              style="background: #8b5cf6"
+              onclick="downloadMultiAssetPDF()"
+            >
+              Download Combined PDF
+            </button>
           </div>
         </div>
       </div>
@@ -674,7 +708,9 @@
       }
 
       async function downloadMultiAssetPDF() {
-        const rawCodes = document.getElementById("multiAssetCodes").value.trim();
+        const rawCodes = document
+          .getElementById("multiAssetCodes")
+          .value.trim();
         const monthYear = document.getElementById("multiMonthPicker").value;
 
         if (!rawCodes || !monthYear) {
@@ -685,7 +721,7 @@
         // Comma, space, newline enniva ellam split cheythu code array aakkunnu
         const codes = rawCodes
           .split(/[\n,\r]+/)
-          .map(c => c.trim().toUpperCase())
+          .map((c) => c.trim().toUpperCase())
           .filter(Boolean);
 
         if (codes.length === 0) {
@@ -695,7 +731,7 @@
 
         try {
           const res = await fetch(
-            `${PY_BASE_URL}/api/ltass/filter-multi?asset_codes=${encodeURIComponent(codes.join(","))}&month_year=${monthYear}`
+            `${PY_BASE_URL}/api/ltass/filter-multi?asset_codes=${encodeURIComponent(codes.join(","))}&month_year=${monthYear}`,
           );
           const result = await res.json();
 
@@ -706,7 +742,7 @@
 
           // Case-insensitive grouping
           const groupedData = {};
-          result.data.forEach(row => {
+          result.data.forEach((row) => {
             const code = String(row[0]).trim().toUpperCase();
             if (!groupedData[code]) groupedData[code] = [];
             groupedData[code].push(row);
@@ -716,7 +752,20 @@
           const doc = new jsPDF("portrait", "pt", "a4");
 
           const [yyyy, mm] = monthYear.split("-");
-          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
           const displayMonth = `${months[parseInt(mm, 10) - 1]}-${yyyy}`;
 
           const pdfHeaders = [
@@ -749,7 +798,7 @@
             let totalNormalHr = 0;
             let totalOtHr = 0;
 
-            records.forEach(row => {
+            records.forEach((row) => {
               const workHrs = parseFloat(row[8]) || 0;
               const idleHrs = parseFloat(row[9]) || 0;
               const normalHrVal = workHrs + idleHrs;
@@ -777,18 +826,29 @@
                 row[9] || "",
                 row[10] || "",
                 normalHrVal.toString(),
-                row[11] || ""
+                row[11] || "",
               ]);
             });
 
             pdfData.push([
-              "", "", "", "", "", "", "", "TOTAL:",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "TOTAL:",
               totalNormalHr.toFixed(2).replace(/\.00$/, ""),
-              totalOtHr.toFixed(2).replace(/\.00$/, "")
+              totalOtHr.toFixed(2).replace(/\.00$/, ""),
             ]);
 
             doc.setFontSize(14);
-            doc.text(`Monthly Asset Report - ${code} (${displayMonth})`, 15, 30);
+            doc.text(
+              `Monthly Asset Report - ${code} (${displayMonth})`,
+              15,
+              30,
+            );
 
             doc.autoTable({
               head: pdfHeaders,
@@ -825,7 +885,10 @@
                 9: { halign: "center" },
               },
               didParseCell: function (data) {
-                if (data.row.raw && String(data.row.raw[7]).trim() === "TOTAL:") {
+                if (
+                  data.row.raw &&
+                  String(data.row.raw[7]).trim() === "TOTAL:"
+                ) {
                   data.cell.styles.fontStyle = "bold";
                   data.cell.styles.fillColor = [203, 213, 225];
                   if (data.column.index === 7) {

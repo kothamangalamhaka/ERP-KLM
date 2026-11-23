@@ -1522,201 +1522,206 @@
 
       async function viewDetails(id, cardElement) {
         if (cardElement) cardElement.classList.add("loading");
-        
+
         try {
           const res = await fetch(`/api/employee-tracker/details/${id}`);
           const data = await res.json();
           if (!data.success) return;
 
-        const emp = data.employee;
-        const history = data.history || [];
-        const vehHistory = data.vehicle_history || [];
-        const docs = data.documents || [];
-        const hasVal = (v) =>
-          v &&
-          String(v).trim() !== "" &&
-          String(v).trim().toUpperCase() !== "N/A";
+          const emp = data.employee;
+          const history = data.history || [];
+          const vehHistory = data.vehicle_history || [];
+          const docs = data.documents || [];
+          const hasVal = (v) =>
+            v &&
+            String(v).trim() !== "" &&
+            String(v).trim().toUpperCase() !== "N/A";
 
-        // 1. General Data - Left Side (Employee Data)
-        let empLeftLines = [];
-        let mobParts = [];
-        if (hasVal(emp.mobile)) mobParts.push(`<b>Mobile:</b> ${emp.mobile}`);
-        if (hasVal(emp.alt_mobile))
-          mobParts.push(`<b>Alt Mobile:</b> ${emp.alt_mobile}`);
-        if (mobParts.length > 0)
-          empLeftLines.push(
-            `<p style="margin:4px 0;">${mobParts.join(" | ")}</p>`,
-          );
+          // 1. General Data - Left Side (Employee Data)
+          let empLeftLines = [];
+          let mobParts = [];
+          if (hasVal(emp.mobile)) mobParts.push(`<b>Mobile:</b> ${emp.mobile}`);
+          if (hasVal(emp.alt_mobile))
+            mobParts.push(`<b>Alt Mobile:</b> ${emp.alt_mobile}`);
+          if (mobParts.length > 0)
+            empLeftLines.push(
+              `<p style="margin:4px 0;">${mobParts.join(" | ")}</p>`,
+            );
 
-        let passParts = [];
-        if (hasVal(emp.passport_no))
-          passParts.push(`<b>Passport No:</b> ${emp.passport_no}`);
-        if (hasVal(emp.passport_expiry))
-          passParts.push(`<b>Expiry:</b> ${formatDate(emp.passport_expiry)}`);
-        if (passParts.length > 0)
-          empLeftLines.push(
-            `<p style="margin:4px 0;">${passParts.join(" | ")}</p>`,
-          );
+          let passParts = [];
+          if (hasVal(emp.passport_no))
+            passParts.push(`<b>Passport No:</b> ${emp.passport_no}`);
+          if (hasVal(emp.passport_expiry))
+            passParts.push(`<b>Expiry:</b> ${formatDate(emp.passport_expiry)}`);
+          if (passParts.length > 0)
+            empLeftLines.push(
+              `<p style="margin:4px 0;">${passParts.join(" | ")}</p>`,
+            );
 
-        if (emp.country !== "India") {
-          empLeftLines.push(
-            `<p style="margin:4px 0;"><b>Working Country:</b> Kingdom of Saudi Arabia</p>`,
-          );
-          empLeftLines.push(
-            `<p style="margin:4px 0;"><b>IQAMA No:</b> ${emp.iqama_no || "N/A"} (Exp: ${formatDate(emp.iqama_expiry)})</p>`,
-          );
-          empLeftLines.push(
-            `<p style="margin:4px 0;"><b>Licence Exp:</b> ${formatDate(emp.licence_expiry)} | <b>Health Ins Exp:</b> ${formatDate(emp.health_insurance_expiry)}</p>`,
-          );
-          empLeftLines.push(
-            `<p style="margin:4px 0;"><b>Sponsor Name:</b> ${emp.sponsor_name || "N/A"}</p>`,
-          );
-        } else {
-          empLeftLines.push(
-            `<p style="margin:4px 0;"><b>Working Country:</b> India</p>`,
-          );
-        }
+          if (emp.country !== "India") {
+            empLeftLines.push(
+              `<p style="margin:4px 0;"><b>Working Country:</b> Kingdom of Saudi Arabia</p>`,
+            );
+            empLeftLines.push(
+              `<p style="margin:4px 0;"><b>IQAMA No:</b> ${emp.iqama_no || "N/A"} (Exp: ${formatDate(emp.iqama_expiry)})</p>`,
+            );
+            empLeftLines.push(
+              `<p style="margin:4px 0;"><b>Licence Exp:</b> ${formatDate(emp.licence_expiry)} | <b>Health Ins Exp:</b> ${formatDate(emp.health_insurance_expiry)}</p>`,
+            );
+            empLeftLines.push(
+              `<p style="margin:4px 0;"><b>Sponsor Name:</b> ${emp.sponsor_name || "N/A"}</p>`,
+            );
+          } else {
+            empLeftLines.push(
+              `<p style="margin:4px 0;"><b>Working Country:</b> India</p>`,
+            );
+          }
 
-        if (hasVal(emp.address))
-          empLeftLines.push(
-            `<p style="margin:4px 0;"><b>Address:</b> <i>${emp.address}</i></p>`,
-          );
-        if (hasVal(emp.notes))
-          empLeftLines.push(
-            `<p style="margin:4px 0;"><b>Notes:</b> <i>${emp.notes}</i></p>`,
-          );
+          if (hasVal(emp.address))
+            empLeftLines.push(
+              `<p style="margin:4px 0;"><b>Address:</b> <i>${emp.address}</i></p>`,
+            );
+          if (hasVal(emp.notes))
+            empLeftLines.push(
+              `<p style="margin:4px 0;"><b>Notes:</b> <i>${emp.notes}</i></p>`,
+            );
 
-        // 2. General Data - Right Side (Emergency Contact)
-        let emgRightLines = [];
-        if (hasVal(emp.emergency_name)) {
-          const rel = hasVal(emp.emergency_relation)
-            ? ` (${emp.emergency_relation})`
-            : "";
-          emgRightLines.push(
-            `<p style="margin:4px 0;"><b>Name:</b> ${emp.emergency_name}${rel}</p>`,
-          );
-        }
-        if (hasVal(emp.emergency_mobile)) {
-          emgRightLines.push(
-            `<p style="margin:4px 0;"><b>Mobile:</b> ${emp.emergency_mobile}</p>`,
-          );
-        }
-        if (hasVal(emp.emergency_alt)) {
-          emgRightLines.push(
-            `<p style="margin:4px 0;"><b>Alt Mobile:</b> ${emp.emergency_alt}</p>`,
-          );
-        }
-        const emergencyBoxHtml = `
+          // 2. General Data - Right Side (Emergency Contact)
+          let emgRightLines = [];
+          if (hasVal(emp.emergency_name)) {
+            const rel = hasVal(emp.emergency_relation)
+              ? ` (${emp.emergency_relation})`
+              : "";
+            emgRightLines.push(
+              `<p style="margin:4px 0;"><b>Name:</b> ${emp.emergency_name}${rel}</p>`,
+            );
+          }
+          if (hasVal(emp.emergency_mobile)) {
+            emgRightLines.push(
+              `<p style="margin:4px 0;"><b>Mobile:</b> ${emp.emergency_mobile}</p>`,
+            );
+          }
+          if (hasVal(emp.emergency_alt)) {
+            emgRightLines.push(
+              `<p style="margin:4px 0;"><b>Alt Mobile:</b> ${emp.emergency_alt}</p>`,
+            );
+          }
+          const emergencyBoxHtml = `
           <div class="pv-box">
             <h4>Emergency Contact</h4>
             ${emgRightLines.length > 0 ? emgRightLines.join("") : '<p style="margin:4px 0; color:#94a3b8;">No emergency contact recorded.</p>'}
           </div>
         `;
 
-        // 3. Working Environment - Left Side (Position & Site History Log: Present FIRST, then backwards)
-        const curSitePart = emp.site_name ? ` | Site: ${emp.site_name}` : "";
-        const curDeptPart = emp.department ? ` | Dept: ${emp.department}` : "";
-        const endLabel =
-          emp.category === "Released" && emp.released_date
-            ? formatDate(emp.released_date)
-            : "Present";
-        const curColor = emp.category === "Released" ? "#dc2626" : "#15803d";
+          // 3. Working Environment - Left Side (Position & Site History Log: Present FIRST, then backwards)
+          const curSitePart = emp.site_name ? ` | Site: ${emp.site_name}` : "";
+          const curDeptPart = emp.department
+            ? ` | Dept: ${emp.department}`
+            : "";
+          const endLabel =
+            emp.category === "Released" && emp.released_date
+              ? formatDate(emp.released_date)
+              : "Present";
+          const curColor = emp.category === "Released" ? "#dc2626" : "#15803d";
 
-        let timelineItems = [
-          `<li style="margin-bottom:8px; color:${curColor}; font-weight:600;">
+          let timelineItems = [
+            `<li style="margin-bottom:8px; color:${curColor}; font-weight:600;">
             <b>${formatDate(emp.joining_date)} - ${endLabel}</b> : ${emp.category} ${emp.designation ? `(${emp.designation})` : ""}${curDeptPart}${curSitePart}
           </li>`,
-        ];
+          ];
 
-        // Reverse history so most recent past entry comes right below Present
-        const sortedHistory = [...history].reverse();
-        sortedHistory.forEach((h) => {
-          const sitePart = h.previous_site ? ` | Site: ${h.previous_site}` : "";
-          const deptPart = h.previous_department
-            ? ` | Dept: ${h.previous_department}`
-            : "";
-          timelineItems.push(
-            `<li style="margin-bottom:7px; color:#334155;">
+          // Reverse history so most recent past entry comes right below Present
+          const sortedHistory = [...history].reverse();
+          sortedHistory.forEach((h) => {
+            const sitePart = h.previous_site
+              ? ` | Site: ${h.previous_site}`
+              : "";
+            const deptPart = h.previous_department
+              ? ` | Dept: ${h.previous_department}`
+              : "";
+            timelineItems.push(
+              `<li style="margin-bottom:7px; color:#334155;">
               <b>${formatDate(h.start_date)} - ${formatDate(h.end_date)}</b> : ${h.previous_category} ${h.previous_designation ? `(${h.previous_designation})` : ""}${deptPart}${sitePart}
             </li>`,
-          );
-        });
-
-        // 4. Working Environment - Right Side (Vehicle History Log: Active FIRST, leave blank if none)
-        let vehicleRightBoxHtml = `<div></div>`;
-        if (vehHistory.length > 0) {
-          // Sort so Active vehicles appear first, then newest previous vehicles backwards
-          const sortedVeh = [...vehHistory].sort((a, b) => {
-            const aActive = a.status === "Active" ? 0 : 1;
-            const bActive = b.status === "Active" ? 0 : 1;
-            if (aActive !== bActive) return aActive - bActive;
-            return (b.id || 0) - (a.id || 0);
+            );
           });
 
-          const vehListHtml = sortedVeh
-            .map((v) => {
-              const statusBadge =
-                v.status === "Sold"
-                  ? `<span style="color:#dc2626; font-weight:700;">Sold: ${formatDate(v.sold_date)}</span>`
-                  : `<span style="color:#15803d; font-weight:700;">(Active)</span>`;
-              let specs = [];
-              if (hasVal(v.chassis_no)) specs.push(`Chassis: ${v.chassis_no}`);
-              if (hasVal(v.serial_no)) specs.push(`Serial: ${v.serial_no}`);
-              if (hasVal(v.fahs_expiry))
-                specs.push(`FAHS: ${formatDate(v.fahs_expiry)}`);
-              if (hasVal(v.insurance_expiry))
-                specs.push(`Ins: ${formatDate(v.insurance_expiry)}`);
-              const specsStr =
-                specs.length > 0
-                  ? `<br><small style="color:#475569;">${specs.join(" | ")}</small>`
-                  : "";
+          // 4. Working Environment - Right Side (Vehicle History Log: Active FIRST, leave blank if none)
+          let vehicleRightBoxHtml = `<div></div>`;
+          if (vehHistory.length > 0) {
+            // Sort so Active vehicles appear first, then newest previous vehicles backwards
+            const sortedVeh = [...vehHistory].sort((a, b) => {
+              const aActive = a.status === "Active" ? 0 : 1;
+              const bActive = b.status === "Active" ? 0 : 1;
+              if (aActive !== bActive) return aActive - bActive;
+              return (b.id || 0) - (a.id || 0);
+            });
 
-              return `
+            const vehListHtml = sortedVeh
+              .map((v) => {
+                const statusBadge =
+                  v.status === "Sold"
+                    ? `<span style="color:#dc2626; font-weight:700;">Sold: ${formatDate(v.sold_date)}</span>`
+                    : `<span style="color:#15803d; font-weight:700;">(Active)</span>`;
+                let specs = [];
+                if (hasVal(v.chassis_no))
+                  specs.push(`Chassis: ${v.chassis_no}`);
+                if (hasVal(v.serial_no)) specs.push(`Serial: ${v.serial_no}`);
+                if (hasVal(v.fahs_expiry))
+                  specs.push(`FAHS: ${formatDate(v.fahs_expiry)}`);
+                if (hasVal(v.insurance_expiry))
+                  specs.push(`Ins: ${formatDate(v.insurance_expiry)}`);
+                const specsStr =
+                  specs.length > 0
+                    ? `<br><small style="color:#475569;">${specs.join(" | ")}</small>`
+                    : "";
+
+                return `
               <li style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed #e2e8f0;">
                 <b>${v.plate_no || "N/A"}</b> (${v.vehicle_model || "N/A"}) — Received: ${formatDate(v.purchase_date)} | ${statusBadge}${specsStr}
               </li>
             `;
-            })
-            .join("");
+              })
+              .join("");
 
-          vehicleRightBoxHtml = `
+            vehicleRightBoxHtml = `
             <div class="pv-box">
               <h4>Vehicle History Log</h4>
               <ul style="list-style:none; padding:0; margin:0; font-size:13px;">${vehListHtml}</ul>
             </div>
           `;
-        }
+          }
 
-        // 5. Attached Documents (Sorted Alphabetically, No Numbers, 4-5 Buttons per Row)
-        let docSectionHtml = "";
-        if (docs.length > 0) {
-          const sortedDocs = [...docs].sort((a, b) =>
-            String(a.doc_name || "").localeCompare(
-              String(b.doc_name || ""),
-              undefined,
-              { sensitivity: "base" },
-            ),
-          );
-          const docButtonsHtml = sortedDocs
-            .map(
-              (d) => `
+          // 5. Attached Documents (Sorted Alphabetically, No Numbers, 4-5 Buttons per Row)
+          let docSectionHtml = "";
+          if (docs.length > 0) {
+            const sortedDocs = [...docs].sort((a, b) =>
+              String(a.doc_name || "").localeCompare(
+                String(b.doc_name || ""),
+                undefined,
+                { sensitivity: "base" },
+              ),
+            );
+            const docButtonsHtml = sortedDocs
+              .map(
+                (d) => `
                 <a href="${d.file_path}" target="_blank" class="pv-doc-btn" title="Open ${d.doc_name}">
                   <span>📄</span>
                   <span>${d.doc_name}</span>
                 </a>
               `,
-            )
-            .join("");
+              )
+              .join("");
 
-          docSectionHtml = `
+            docSectionHtml = `
             <div class="pv-section-head">Attached Documents (${sortedDocs.length})</div>
             <div class="pv-docs-grid">${docButtonsHtml}</div>
           `;
-        }
+          }
 
-        const safeEmpName = String(emp.name || "Staff").replace(/'/g, "\\'");
+          const safeEmpName = String(emp.name || "Staff").replace(/'/g, "\\'");
 
-        document.getElementById("modalBody").innerHTML = `
+          document.getElementById("modalBody").innerHTML = `
           <div class="pv-top-actions no-card-capture">
             <button type="button" id="copyProfileCardBtn" class="pv-copy-btn" onclick="copyStaffProfileCardPNG('${safeEmpName}')" title="Copy Profile Card as HD PNG">📋</button>
           </div>
@@ -1756,7 +1761,7 @@
             <button class="btn btn-danger" onclick="deleteStaff(${emp.id})">🗑️ Delete Staff</button>
           </div>
         `;
-        document.getElementById("staffModal").style.display = "flex";
+          document.getElementById("staffModal").style.display = "flex";
         } finally {
           if (cardElement) cardElement.classList.remove("loading");
         }

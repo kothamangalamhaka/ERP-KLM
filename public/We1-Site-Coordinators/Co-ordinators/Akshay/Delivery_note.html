@@ -16,7 +16,7 @@
         print-color-adjust: exact;
       }
       .sheet {
-        position: relative; 
+        position: relative;
         max-width: 900px;
         margin: 0 auto;
         background: #fff;
@@ -32,16 +32,20 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-image: url('https://i.ibb.co/HfNBSbkk/Screenshot-2026-07-15-113003.png');
+        background-image: url("https://i.ibb.co/HfNBSbkk/Screenshot-2026-07-15-113003.png");
         background-repeat: no-repeat;
         background-position: center;
-        background-size: 400px; 
-        opacity: 0.08; 
+        background-size: 400px;
+        opacity: 0.08;
         z-index: 0;
-        pointer-events: none; 
+        pointer-events: none;
       }
 
-      .header, .title-row, table, .signatures, .footer {
+      .header,
+      .title-row,
+      table,
+      .signatures,
+      .footer {
         position: relative;
         z-index: 1;
       }
@@ -49,7 +53,7 @@
       .header {
         display: flex;
         justify-content: space-between;
-        align-items: center; 
+        align-items: center;
         border-bottom: 2px solid #000;
         padding-bottom: 10px;
         margin-bottom: 15px;
@@ -69,15 +73,15 @@
       .header .logo-wrap {
         width: 24%;
         display: flex;
-        justify-content: center; 
+        justify-content: center;
         align-items: center;
       }
-      
+
       .header .logo-wrap img {
-        max-width: 180px; 
+        max-width: 180px;
         height: auto;
       }
-      
+
       .header .company-name-en {
         font-weight: bold;
         font-size: 15px;
@@ -199,7 +203,7 @@
       .toolbar button:hover {
         background-color: #0056b3;
       }
-      
+
       @media print {
         @page {
           margin: 10mm;
@@ -211,7 +215,7 @@
           margin: 0;
         }
         .toolbar {
-          display: none; 
+          display: none;
         }
         .sheet {
           max-width: 100%;
@@ -219,7 +223,7 @@
           border: none;
           padding: 0;
           box-shadow: none;
-          page-break-inside: avoid; 
+          page-break-inside: avoid;
         }
       }
     </style>
@@ -227,17 +231,31 @@
   <body>
     <div class="toolbar">
       <button onclick="window.print()">Save as PDF</button>
-      <button id="pngBtn" onclick="saveAsPNG()" style="background-color: #28a745;">Save as PNG (High Quality)</button>
-      <label style="margin-left: 15px; font-size: 14px; cursor: pointer;">
-        <input type="checkbox" id="autoTranslate" checked /> Auto-translate English → Arabic
+      <button
+        id="pngBtn"
+        onclick="saveAsPNG()"
+        style="background-color: #28a745"
+      >
+        Save as PNG (High Quality)
+      </button>
+      <label style="margin-left: 15px; font-size: 14px; cursor: pointer">
+        <input type="checkbox" id="autoTranslate" checked /> Auto-translate
+        English → Arabic
       </label>
-      <div id="translateStatus" style="font-size: 12px; color: #888; margin-top: 5px"></div>
+      <div
+        id="translateStatus"
+        style="font-size: 12px; color: #888; margin-top: 5px"
+      ></div>
     </div>
 
     <div class="sheet" id="deliverySheet">
       <div class="header">
         <div class="en">
-          <div class="company-name-en" contenteditable="true" data-pair="companyName">
+          <div
+            class="company-name-en"
+            contenteditable="true"
+            data-pair="companyName"
+          >
             WE1 TRACK COMPANY
           </div>
           <div contenteditable="true" data-pair="address1">
@@ -249,20 +267,27 @@
           <div contenteditable="true" data-pair="city">
             Dammam 32241, Eastern Provinces
           </div>
-          <div contenteditable="true" data-pair="country">
-            Saudi Arabia
-          </div>
+          <div contenteditable="true" data-pair="country">Saudi Arabia</div>
           <div contenteditable="true" data-pair="mobile">
             Mobile: +966 508239864
           </div>
         </div>
 
         <div class="logo-wrap">
-          <img id="logoImg" src="https://i.ibb.co/HfNBSbkk/Screenshot-2026-07-15-113003.png" alt="Company Logo" crossorigin="anonymous" />
+          <img
+            id="logoImg"
+            src="https://i.ibb.co/HfNBSbkk/Screenshot-2026-07-15-113003.png"
+            alt="Company Logo"
+            crossorigin="anonymous"
+          />
         </div>
 
         <div class="ar">
-          <div class="company-name-ar" contenteditable="true" data-target="companyName">
+          <div
+            class="company-name-ar"
+            contenteditable="true"
+            data-target="companyName"
+          >
             شركة دبليو إي 1 تراك
           </div>
           <div contenteditable="true" data-target="address1">
@@ -374,28 +399,34 @@
     <script>
       // PNG ആയി സേവ് ചെയ്യാനുള്ള ഫംഗ്ഷൻ
       function saveAsPNG() {
-        const sheet = document.getElementById('deliverySheet');
-        const btn = document.getElementById('pngBtn');
-        const dnNo = document.getElementById('dnNumber').innerText.trim() || 'Invoice';
-        
+        const sheet = document.getElementById("deliverySheet");
+        const btn = document.getElementById("pngBtn");
+        const dnNo =
+          document.getElementById("dnNumber").innerText.trim() || "Invoice";
+
         btn.innerText = "Saving Image...";
-        
-        // High quality scale: 3 ഉപയോഗിച്ചിരിക്കുന്നു 
+
+        // High quality scale: 3 ഉപയോഗിച്ചിരിക്കുന്നു
         html2canvas(sheet, {
-          scale: 3, 
+          scale: 3,
           useCORS: true,
-          backgroundColor: "#ffffff"
-        }).then(canvas => {
-          const link = document.createElement('a');
-          link.download = 'Delivery_Note_' + dnNo + '.png';
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-          btn.innerText = "Save as PNG (High Quality)";
-        }).catch(err => {
-          console.error("Error saving PNG: ", err);
-          btn.innerText = "Error - Try Again";
-          setTimeout(() => btn.innerText = "Save as PNG (High Quality)", 3000);
-        });
+          backgroundColor: "#ffffff",
+        })
+          .then((canvas) => {
+            const link = document.createElement("a");
+            link.download = "Delivery_Note_" + dnNo + ".png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            btn.innerText = "Save as PNG (High Quality)";
+          })
+          .catch((err) => {
+            console.error("Error saving PNG: ", err);
+            btn.innerText = "Error - Try Again";
+            setTimeout(
+              () => (btn.innerText = "Save as PNG (High Quality)"),
+              3000,
+            );
+          });
       }
 
       // പഴയ ട്രാൻസ്ലേഷൻ കോഡ്
@@ -412,8 +443,16 @@
 
       function toArabicNumerals(str) {
         const map = {
-          0: "٠", 1: "١", 2: "٢", 3: "٣", 4: "٤",
-          5: "٥", 6: "٦", 7: "٧", 8: "٨", 9: "٩",
+          0: "٠",
+          1: "١",
+          2: "٢",
+          3: "٣",
+          4: "٤",
+          5: "٥",
+          6: "٦",
+          7: "٧",
+          8: "٨",
+          9: "٩",
         };
         return str.replace(/[0-9]/g, (d) => map[d]);
       }
@@ -454,15 +493,20 @@
 
             try {
               const convertNumbers = numeralFields.includes(key);
-              const translated = await translateToArabic(el.innerText, convertNumbers);
+              const translated = await translateToArabic(
+                el.innerText,
+                convertNumbers,
+              );
               if (translated) {
                 target.innerText = translated;
               }
-              statusEl.textContent = "Auto-translated (please review for accuracy)";
+              statusEl.textContent =
+                "Auto-translated (please review for accuracy)";
             } catch (e) {
               console.error(e);
-              statusEl.textContent = "Translation failed — API rate limit. Edit Arabic manually.";
-              statusEl.style.color = "#d9534f"; 
+              statusEl.textContent =
+                "Translation failed — API rate limit. Edit Arabic manually.";
+              statusEl.style.color = "#d9534f";
             }
 
             setTimeout(() => {

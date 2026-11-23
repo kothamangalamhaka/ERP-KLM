@@ -455,7 +455,9 @@ function formatPlateNumber(val) {
 // 🟢 Title Case Formatter for Driver Name, Owner Name, Nationality, Remarks & Notes
 function isPersonNameColumn(colName) {
   if (!colName) return false;
-  const clean = String(colName).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  const clean = String(colName)
+    .replace(/[^A-Z0-9]/gi, "")
+    .toUpperCase();
   return [
     "DRIVERNAME",
     "OLDDRIVERNAME",
@@ -3986,7 +3988,9 @@ function openAddEntryModal(dbId = null, clone = false) {
     const ownerMobs = new Set();
     if (idxOwner !== -1 && idxOwnerMob !== -1 && selOwner) {
       allRows.forEach((r) => {
-        const rOwner = String(r[idxOwner] || "").trim().toLowerCase();
+        const rOwner = String(r[idxOwner] || "")
+          .trim()
+          .toLowerCase();
         const rMob = String(r[idxOwnerMob] || "").trim();
         if (rOwner === selOwner && rMob) ownerMobs.add(rMob);
       });
@@ -4000,7 +4004,9 @@ function openAddEntryModal(dbId = null, clone = false) {
     const drvIqamas = new Set();
     if (idxDrv !== -1 && selDrv) {
       allRows.forEach((r) => {
-        const rDrv = String(r[idxDrv] || "").trim().toLowerCase();
+        const rDrv = String(r[idxDrv] || "")
+          .trim()
+          .toLowerCase();
         if (rDrv === selDrv) {
           if (idxDrvMob !== -1 && r[idxDrvMob])
             drvMobs.add(String(r[idxDrvMob]).trim());
@@ -5353,7 +5359,10 @@ async function recalculateAllDaysWorked() {
   if (userMenu) userMenu.classList.remove("show");
 
   if (currentUser.role === "Viewer") {
-    return showToast("Access Denied: Viewers cannot run recalculation.", "error");
+    return showToast(
+      "Access Denied: Viewers cannot run recalculation.",
+      "error",
+    );
   }
 
   Swal.fire({

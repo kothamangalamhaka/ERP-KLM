@@ -26,8 +26,18 @@ function formatDateDisplay(dStr) {
   if (isNaN(d.getTime())) return dStr;
   const day = String(d.getDate()).padStart(2, "0");
   const monthNames = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
   return `${day}-${monthNames[d.getMonth()]}-${d.getFullYear()}`;
 }
@@ -124,11 +134,16 @@ function calculateKPIs() {
 
   records.forEach((r) => {
     // Total Amount sum
-    const tot = parseFloat(String(r.total_amount || "").replace(/,/g, "")) || 
-                parseFloat(String(r.amount || "").replace(/,/g, "")) || 0;
-    
+    const tot =
+      parseFloat(String(r.total_amount || "").replace(/,/g, "")) ||
+      parseFloat(String(r.amount || "").replace(/,/g, "")) ||
+      0;
+
     // Status nookaathe Index-le purely QC Entry column mathram sum cheyyunnu
-    const qcRaw = r.qc_entry !== null && r.qc_entry !== undefined ? String(r.qc_entry).replace(/,/g, "").trim() : "";
+    const qcRaw =
+      r.qc_entry !== null && r.qc_entry !== undefined
+        ? String(r.qc_entry).replace(/,/g, "").trim()
+        : "";
     const qc = parseFloat(qcRaw) || 0;
 
     totalAmt += tot;
@@ -142,22 +157,34 @@ function calculateKPIs() {
   // Remaining = Total Amount - Paid Total (QC Entry sum)
   const remainingAmt = Math.max(0, totalAmt - paidAmt);
   const remainingCount = records.filter((r) => {
-    const tot = parseFloat(String(r.total_amount || "").replace(/,/g, "")) || 
-                parseFloat(String(r.amount || "").replace(/,/g, "")) || 0;
-    const qc = parseFloat(String(r.qc_entry || "").replace(/,/g, "").trim()) || 0;
-    return (tot - qc) > 0.001;
+    const tot =
+      parseFloat(String(r.total_amount || "").replace(/,/g, "")) ||
+      parseFloat(String(r.amount || "").replace(/,/g, "")) ||
+      0;
+    const qc =
+      parseFloat(
+        String(r.qc_entry || "")
+          .replace(/,/g, "")
+          .trim(),
+      ) || 0;
+    return tot - qc > 0.001;
   }).length;
 
-  document.getElementById("kpiTotalAmount").innerText = `SAR ${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("kpiTotalCount").innerText = `(${records.length} Records)`;
+  document.getElementById("kpiTotalAmount").innerText =
+    `SAR ${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("kpiTotalCount").innerText =
+    `(${records.length} Records)`;
 
   // Index-le QC Entry sum mathram PAID TOTAL aayi kaanikkunnu
-  document.getElementById("kpiPaidAmount").innerText = `SAR ${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("kpiPaidAmount").innerText =
+    `SAR ${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById("kpiPaidCount").innerText = `(${qcCount} Records)`;
 
   // Total Amount - QC Entry sum REMAINING AMOUNT aayi kaanikkunnu
-  document.getElementById("kpiPendingAmount").innerText = `SAR ${remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("kpiPendingCount").innerText = `(${remainingCount} Records)`;
+  document.getElementById("kpiPendingAmount").innerText =
+    `SAR ${remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("kpiPendingCount").innerText =
+    `(${remainingCount} Records)`;
 }
 
 function groupDataByOwner() {
@@ -176,13 +203,23 @@ function groupDataByOwner() {
       };
     }
 
-    const tot = parseFloat(String(r.total_amount || "").replace(/,/g, "")) || 
-                parseFloat(String(r.amount || "").replace(/,/g, "")) || 0;
-    const qc = parseFloat(String(r.qc_entry || "").replace(/,/g, "").trim()) || 0;
+    const tot =
+      parseFloat(String(r.total_amount || "").replace(/,/g, "")) ||
+      parseFloat(String(r.amount || "").replace(/,/g, "")) ||
+      0;
+    const qc =
+      parseFloat(
+        String(r.qc_entry || "")
+          .replace(/,/g, "")
+          .trim(),
+      ) || 0;
 
     groupedOwners[owner].totalAmount += tot;
     groupedOwners[owner].paidAmount += qc;
-    groupedOwners[owner].pendingAmount = Math.max(0, groupedOwners[owner].totalAmount - groupedOwners[owner].paidAmount);
+    groupedOwners[owner].pendingAmount = Math.max(
+      0,
+      groupedOwners[owner].totalAmount - groupedOwners[owner].paidAmount,
+    );
 
     groupedOwners[owner].items.push(r);
   });
@@ -204,7 +241,10 @@ function renderOwnersList(filterText = "") {
     div.className = `owner-item ${selectedOwnerKey === owner ? "active" : ""}`;
     div.onclick = () => selectOwner(owner);
 
-    const amt = groupedOwners[owner].totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const amt = groupedOwners[owner].totalAmount.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
     div.innerHTML = `
       <span class="owner-item-name">${escapeHTML(owner)}</span>
@@ -242,7 +282,11 @@ function selectOwner(owner) {
 
 function getOwnerRowValue(item, col) {
   if (col === "total_amount") {
-    return (parseFloat(item.total_amount) || parseFloat(item.amount) || 0).toFixed(2);
+    return (
+      parseFloat(item.total_amount) ||
+      parseFloat(item.amount) ||
+      0
+    ).toFixed(2);
   }
   if (col === "paid") {
     return (parseFloat(item.qc_entry) || 0).toFixed(2);
@@ -251,7 +295,10 @@ function getOwnerRowValue(item, col) {
     return formatCombinedSite(item.site, item.company, item.customer);
   }
   if (col === "status") {
-    const isPaid = String(item.status || "").trim().toLowerCase() === "paid";
+    const isPaid =
+      String(item.status || "")
+        .trim()
+        .toLowerCase() === "paid";
     return isPaid ? "Paid" : "Pending";
   }
   if (col === "received_date") {
@@ -267,7 +314,9 @@ function renderOwnerTableRows() {
   const tbody = document.getElementById("ownerTableBody");
   tbody.innerHTML = "";
 
-  const q = (document.getElementById("ownerTableSearchInput")?.value || "").trim().toUpperCase();
+  const q = (document.getElementById("ownerTableSearchInput")?.value || "")
+    .trim()
+    .toUpperCase();
 
   let visibleCount = 0;
   let ownerTotal = 0;
@@ -292,11 +341,19 @@ function renderOwnerTableRows() {
         item.plate_no,
         item.particulars,
         item.driver_name,
-        (parseFloat(item.total_amount) || parseFloat(item.amount) || 0).toFixed(2),
+        (parseFloat(item.total_amount) || parseFloat(item.amount) || 0).toFixed(
+          2,
+        ),
         formatCombinedSite(item.site, item.company, item.customer),
         item.remark,
-        String(item.status || "").trim().toLowerCase() === "paid" ? "Paid" : "Pending"
-      ].join(" ").toUpperCase();
+        String(item.status || "")
+          .trim()
+          .toLowerCase() === "paid"
+          ? "Paid"
+          : "Pending",
+      ]
+        .join(" ")
+        .toUpperCase();
 
       if (!rowText.includes(q)) visible = false;
     }
@@ -304,18 +361,32 @@ function renderOwnerTableRows() {
     if (!visible) return;
 
     visibleCount++;
-    const tot = parseFloat(String(item.total_amount || "").replace(/,/g, "")) || 
-                parseFloat(String(item.amount || "").replace(/,/g, "")) || 0;
+    const tot =
+      parseFloat(String(item.total_amount || "").replace(/,/g, "")) ||
+      parseFloat(String(item.amount || "").replace(/,/g, "")) ||
+      0;
     // Status 'Paid' aano ennathalla, item-le qc_entry value mathram Paid aayi edukkkunnu
-    const paidVal = parseFloat(String(item.qc_entry || "").replace(/,/g, "").trim()) || 0;
+    const paidVal =
+      parseFloat(
+        String(item.qc_entry || "")
+          .replace(/,/g, "")
+          .trim(),
+      ) || 0;
 
     ownerTotal += tot;
     ownerPaid += paidVal;
 
-    const isPaid = String(item.status || "").trim().toLowerCase() === "paid";
+    const isPaid =
+      String(item.status || "")
+        .trim()
+        .toLowerCase() === "paid";
     const statusText = isPaid ? "Paid" : "Pending";
     const statusClass = isPaid ? "paid" : "pending";
-    const combinedSite = formatCombinedSite(item.site, item.company, item.customer);
+    const combinedSite = formatCombinedSite(
+      item.site,
+      item.company,
+      item.customer,
+    );
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -340,10 +411,14 @@ function renderOwnerTableRows() {
     tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: #64748b; padding: 25px;">No records match your filter/search.</td></tr>`;
   }
 
-  document.getElementById("selectedOwnerSummary").innerText = `${visibleCount} of ${ownerData.items.length} records`;
-  document.getElementById("btmTotalAmt").innerText = `SAR ${ownerTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("btmPaidAmt").innerText = `SAR ${ownerPaid.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("btmPendingAmt").innerText = `SAR ${ownerPending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("selectedOwnerSummary").innerText =
+    `${visibleCount} of ${ownerData.items.length} records`;
+  document.getElementById("btmTotalAmt").innerText =
+    `SAR ${ownerTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("btmPaidAmt").innerText =
+    `SAR ${ownerPaid.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("btmPendingAmt").innerText =
+    `SAR ${ownerPending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function applyOwnerTableFilters() {
@@ -362,7 +437,8 @@ function openOwnerHeaderFilter(e, col) {
   popup.style.top = e.pageY + 10 + "px";
 
   document.getElementById("ownerFilterSearchInput").value = "";
-  document.getElementById("ownerFilterTitle").innerText = "Filter: " + col.replace("_", " ").toUpperCase();
+  document.getElementById("ownerFilterTitle").innerText =
+    "Filter: " + col.replace("_", " ").toUpperCase();
 
   const unique = new Set();
   ownerData.items.forEach((item) => {
@@ -376,7 +452,8 @@ function openOwnerHeaderFilter(e, col) {
   listEl.innerHTML = "";
 
   sorted.forEach((v) => {
-    const isChecked = !ownerActiveFilters[col] || ownerActiveFilters[col].includes(v);
+    const isChecked =
+      !ownerActiveFilters[col] || ownerActiveFilters[col].includes(v);
     listEl.innerHTML += `
       <div class="filter-item">
         <input type="checkbox" value="${escapeHTML(v)}" ${isChecked ? "checked" : ""} class="owner-col-cb">
@@ -387,7 +464,9 @@ function openOwnerHeaderFilter(e, col) {
 }
 
 function searchOwnerFilterList() {
-  const q = document.getElementById("ownerFilterSearchInput").value.toLowerCase();
+  const q = document
+    .getElementById("ownerFilterSearchInput")
+    .value.toLowerCase();
   document.querySelectorAll("#ownerFilterList .filter-item").forEach((item) => {
     const lbl = item.querySelector("label").innerText.toLowerCase();
     item.style.display = lbl.includes(q) ? "flex" : "none";
@@ -395,7 +474,9 @@ function searchOwnerFilterList() {
 }
 
 function applyOwnerColumnFilter() {
-  const checked = Array.from(document.querySelectorAll(".owner-col-cb:checked")).map((cb) => cb.value);
+  const checked = Array.from(
+    document.querySelectorAll(".owner-col-cb:checked"),
+  ).map((cb) => cb.value);
   ownerActiveFilters[activeOwnerCol] = checked;
   document.getElementById("ownerFilterPopup").style.display = "none";
   renderOwnerTableRows();
@@ -416,7 +497,9 @@ function sortOwnerColumn(direction) {
     let vb = getOwnerRowValue(b, activeOwnerCol);
 
     if (activeOwnerCol === "total_amount" || activeOwnerCol === "paid") {
-      return direction === "asc" ? parseFloat(va) - parseFloat(vb) : parseFloat(vb) - parseFloat(va);
+      return direction === "asc"
+        ? parseFloat(va) - parseFloat(vb)
+        : parseFloat(vb) - parseFloat(va);
     }
     return direction === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
   });
@@ -485,10 +568,17 @@ function exportSelectedOwnerExcel() {
   const rows = [headers];
 
   ownerData.items.forEach((item, idx) => {
-    const isPaid = String(item.status || "").trim().toLowerCase() === "paid";
+    const isPaid =
+      String(item.status || "")
+        .trim()
+        .toLowerCase() === "paid";
     const tot = parseFloat(item.total_amount) || parseFloat(item.amount) || 0;
     const paidVal = parseFloat(item.qc_entry) || 0;
-    const combinedSite = formatCombinedSite(item.site, item.company, item.customer);
+    const combinedSite = formatCombinedSite(
+      item.site,
+      item.company,
+      item.customer,
+    );
 
     rows.push([
       idx + 1,
@@ -507,7 +597,9 @@ function exportSelectedOwnerExcel() {
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws["!autofilter"] = { ref: ws["!ref"] };
-  const safeTitle = selectedOwnerKey.substring(0, 31).replace(/[:\\\/\?\*\[\]]/g, "_");
+  const safeTitle = selectedOwnerKey
+    .substring(0, 31)
+    .replace(/[:\\\/\?\*\[\]]/g, "_");
   XLSX.utils.book_append_sheet(wb, ws, safeTitle);
   XLSX.writeFile(wb, `${safeTitle}_Debit_Notes.xlsx`);
 }
@@ -540,9 +632,16 @@ function exportAllOwnersExcel() {
     const rows = [headers];
 
     ownerData.items.forEach((item, idx) => {
-      const isPaid = String(item.status || "").trim().toLowerCase() === "paid";
+      const isPaid =
+        String(item.status || "")
+          .trim()
+          .toLowerCase() === "paid";
       const tot = parseFloat(item.total_amount) || parseFloat(item.amount) || 0;
-      const combinedSite = formatCombinedSite(item.site, item.company, item.customer);
+      const combinedSite = formatCombinedSite(
+        item.site,
+        item.company,
+        item.customer,
+      );
 
       const paidVal = parseFloat(item.qc_entry) || 0;
       rows.push([
@@ -564,14 +663,19 @@ function exportAllOwnersExcel() {
     ws["!autofilter"] = { ref: ws["!ref"] };
 
     // Excel sheet name limit 31 characters & no special characters
-    let sheetName = owner.substring(0, 31).replace(/[:\\\/\?\*\[\]]/g, "_") || "Sheet";
+    let sheetName =
+      owner.substring(0, 31).replace(/[:\\\/\?\*\[\]]/g, "_") || "Sheet";
     if (wb.SheetNames.includes(sheetName)) {
-      sheetName = sheetName.substring(0, 28) + "_" + Math.floor(Math.random() * 100);
+      sheetName =
+        sheetName.substring(0, 28) + "_" + Math.floor(Math.random() * 100);
     }
 
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
 
-  XLSX.writeFile(wb, `Debit_Notes_All_Owners_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.writeFile(
+    wb,
+    `Debit_Notes_All_Owners_${new Date().toISOString().slice(0, 10)}.xlsx`,
+  );
   showStatus("✓ All Owners Exported", "saved");
 }

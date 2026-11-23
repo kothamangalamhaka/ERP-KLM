@@ -392,7 +392,10 @@ router.post("/api/save-template", async (req, res) => {
   try {
     const { company_id, template } = req.body;
     if (!company_id || !template) {
-      return res.json({ success: false, message: "company_id and template required" });
+      return res.json({
+        success: false,
+        message: "company_id and template required",
+      });
     }
     await pool.query(
       `INSERT INTO qt_company_templates (company_id, template, updated_at)

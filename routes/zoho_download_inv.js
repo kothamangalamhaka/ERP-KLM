@@ -57,15 +57,11 @@ router.get("/invoice-vendors", (req, res) => {
 
 function createImapConnection() {
   if (!process.env.EMAIL_USER) {
-    throw new Error(
-      "EMAIL_USER is not configured in .env"
-    );
+    throw new Error("EMAIL_USER is not configured in .env");
   }
 
   if (!process.env.EMAIL_PASS) {
-    throw new Error(
-      "EMAIL_PASS is not configured in .env"
-    );
+    throw new Error("EMAIL_PASS is not configured in .env");
   }
 
   return new Imap({
@@ -104,18 +100,11 @@ function createImapConnection() {
 function getTodayDateString() {
   const now = new Date();
 
-  const year =
-    now.getFullYear();
+  const year = now.getFullYear();
 
-  const month =
-    String(
-      now.getMonth() + 1
-    ).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
 
-  const day =
-    String(
-      now.getDate()
-    ).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -129,18 +118,11 @@ function dateToLocalDateString(date) {
     return "";
   }
 
-  const year =
-    date.getFullYear();
+  const year = date.getFullYear();
 
-  const month =
-    String(
-      date.getMonth() + 1
-    ).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
 
-  const day =
-    String(
-      date.getDate()
-    ).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -166,46 +148,33 @@ function sanitizeFilename(filename) {
 
 async function getBillNumber(invoiceNo) {
   try {
-    const result =
-      await pool.query(
-        `
+    const result = await pool.query(
+      `
           SELECT bill_no
           FROM invoice_records
           WHERE invoice_no ILIKE $1
           LIMIT 1
         `,
-        [`%${invoiceNo}%`]
-      );
+      [`%${invoiceNo}%`],
+    );
 
-    if (
-      result.rows.length === 0
-    ) {
+    if (result.rows.length === 0) {
       return null;
     }
 
-    const billNo =
-      result.rows[0].bill_no;
+    const billNo = result.rows[0].bill_no;
 
-    if (
-      billNo === null ||
-      billNo === undefined
-    ) {
+    if (billNo === null || billNo === undefined) {
       return null;
     }
 
-    const cleaned =
-      String(billNo)
-        .replace(/[\/\\]/g, "")
-        .trim();
+    const cleaned = String(billNo)
+      .replace(/[\/\\]/g, "")
+      .trim();
 
     return cleaned || null;
-
   } catch (error) {
-
-    console.error(
-      "Database lookup error:",
-      error
-    );
+    console.error("Database lookup error:", error);
 
     return null;
   }
@@ -217,35 +186,24 @@ async function getBillNumber(invoiceNo) {
  * ============================================================
  */
 
-function isMatchingInvoice(
-  attachment,
-  vendor
-) {
-
+function isMatchingInvoice(attachment, vendor) {
   if (!attachment) {
     return false;
   }
 
-  const filename =
-    attachment.filename;
+  const filename = attachment.filename;
 
   if (!filename) {
     return false;
   }
 
-  const upperFilename =
-    filename.toUpperCase();
+  const upperFilename = filename.toUpperCase();
 
-  const upperPrefix =
-    vendor.prefix.toUpperCase();
+  const upperPrefix = vendor.prefix.toUpperCase();
 
   return (
-    upperFilename.startsWith(
-      upperPrefix
-    ) &&
-    filename
-      .toLowerCase()
-      .endsWith(".pdf")
+    upperFilename.startsWith(upperPrefix) &&
+    filename.toLowerCase().endsWith(".pdf")
   );
 }
 
@@ -290,7 +248,7 @@ async function processEmail(
   vendor,
   useBillNumber,
   countOnly = false,
-  dateFilter = null
+  dateFilter = null,
 ) {
   const parsed = await simpleParser(stream);
 
@@ -363,348 +321,227 @@ function fetchInvoicesFromMailbox(
   useBillNumber = false,
   countOnly = false,
   dateMode = "today",
-  customDate = null
+  customDate = null,
 ) {
   const dateFilter = resolveDateFilter(dateMode, customDate);
 
-  return new Promise(
-    (resolve, reject) => {
+  return new Promise((resolve, reject) => {
+    let settled = false;
 
-      let settled = false;
-
-      const finish = (
-        error,
-        files = []
-      ) => {
-
-        if (settled) {
-          return;
-        }
-
-        settled = true;
-
-        if (error) {
-          reject(error);
-        } else {
-          resolve(files);
-        }
-      };
-
-      let imap;
-
-      try {
-        imap =
-          createImapConnection();
-      } catch (error) {
-        finish(error);
+    const finish = (error, files = []) => {
+      if (settled) {
         return;
       }
 
-      /*
-       * --------------------------------------------------------
-       * IMAP ERROR
-       * --------------------------------------------------------
-       */
+      settled = true;
 
-      imap.once(
-        "error",
-        (error) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(files);
+      }
+    };
 
-          console.error(
-            "IMAP error:",
-            error
-          );
+    let imap;
 
-          finish(error);
+    try {
+      imap = createImapConnection();
+    } catch (error) {
+      finish(error);
+      return;
+    }
+
+    /*
+     * --------------------------------------------------------
+     * IMAP ERROR
+     * --------------------------------------------------------
+     */
+
+    imap.once("error", (error) => {
+      console.error("IMAP error:", error);
+
+      finish(error);
+    });
+
+    /*
+     * --------------------------------------------------------
+     * IMAP READY
+     * --------------------------------------------------------
+     */
+
+    imap.once("ready", () => {
+      imap.openBox("INBOX", true, (openError) => {
+        if (openError) {
+          try {
+            imap.end();
+          } catch (_) {}
+
+          finish(openError);
+
+          return;
         }
-      );
 
-      /*
-       * --------------------------------------------------------
-       * IMAP READY
-       * --------------------------------------------------------
-       */
+        const searchSince = new Date(dateFilter.start);
+        searchSince.setHours(0, 0, 0, 0);
 
-      imap.once(
-        "ready",
-        () => {
+        imap.search(
+          [
+            ["SINCE", searchSince],
 
-          imap.openBox(
-            "INBOX",
-            true,
-            (openError) => {
+            ["FROM", vendor.email],
+          ],
 
-              if (openError) {
+          (searchError, results) => {
+            if (searchError) {
+              try {
+                imap.end();
+              } catch (_) {}
+
+              finish(searchError);
+
+              return;
+            }
+
+            if (!results || results.length === 0) {
+              try {
+                imap.end();
+              } catch (_) {}
+
+              finish(null, []);
+
+              return;
+            }
+
+            /*
+             * ------------------------------------------------
+             * FETCH FULL EMAILS
+             * ------------------------------------------------
+             */
+
+            const fetch = imap.fetch(results, {
+              bodies: "",
+            });
+
+            const allFiles = [];
+
+            const messagePromises = [];
+
+            fetch.on("message", (message) => {
+              const messagePromise = new Promise((resolveMessage) => {
+                let bodyFound = false;
+
+                message.on("body", (stream) => {
+                  bodyFound = true;
+
+                  processEmail(
+                    stream,
+                    vendor,
+                    useBillNumber,
+                    countOnly,
+                    dateFilter,
+                  )
+                    .then((files) => {
+                      if (files && files.length) {
+                        allFiles.push(...files);
+                      }
+
+                      resolveMessage();
+                    })
+                    .catch((error) => {
+                      console.error("Email processing error:", error);
+
+                      /*
+                       * Don't let one malformed
+                       * email stop the whole batch.
+                       */
+                      resolveMessage();
+                    });
+                });
+
+                message.once("end", () => {
+                  /*
+                   * If no body event was received,
+                   * don't leave the Promise hanging.
+                   */
+                  if (!bodyFound) {
+                    resolveMessage();
+                  }
+                });
+
+                message.once("error", (error) => {
+                  console.error("Message error:", error);
+
+                  resolveMessage();
+                });
+              });
+
+              messagePromises.push(messagePromise);
+            });
+
+            fetch.once("error", (fetchError) => {
+              try {
+                imap.end();
+              } catch (_) {}
+
+              finish(fetchError);
+            });
+
+            fetch.once("end", async () => {
+              try {
+                await Promise.all(messagePromises);
+
+                /*
+                 * Remove duplicates.
+                 *
+                 * For Bill downloads, duplicate invoice
+                 * emails should not create duplicate files.
+                 */
+                const uniqueFiles = [];
+
+                const seen = new Set();
+
+                for (const file of allFiles) {
+                  const key = file.name;
+
+                  if (seen.has(key)) {
+                    continue;
+                  }
+
+                  seen.add(key);
+
+                  uniqueFiles.push(file);
+                }
 
                 try {
                   imap.end();
                 } catch (_) {}
 
-                finish(
-                  openError
-                );
+                finish(null, uniqueFiles);
+              } catch (error) {
+                try {
+                  imap.end();
+                } catch (_) {}
 
-                return;
+                finish(error);
               }
+            });
+          },
+        );
+      });
+    });
 
-              const searchSince = new Date(dateFilter.start);
-              searchSince.setHours(0, 0, 0, 0);
+    /*
+     * ----------------------------------------------------------
+     * CONNECT
+     * ----------------------------------------------------------
+     */
 
-              imap.search(
-                [
-                  [
-                    "SINCE",
-                    searchSince,
-                  ],
-
-                  [
-                    "FROM",
-                    vendor.email,
-                  ],
-                ],
-
-                (searchError, results) => {
-
-                  if (searchError) {
-
-                    try {
-                      imap.end();
-                    } catch (_) {}
-
-                    finish(
-                      searchError
-                    );
-
-                    return;
-                  }
-
-                  if (
-                    !results ||
-                    results.length === 0
-                  ) {
-
-                    try {
-                      imap.end();
-                    } catch (_) {}
-
-                    finish(
-                      null,
-                      []
-                    );
-
-                    return;
-                  }
-
-                  /*
-                   * ------------------------------------------------
-                   * FETCH FULL EMAILS
-                   * ------------------------------------------------
-                   */
-
-                  const fetch =
-                    imap.fetch(
-                      results,
-                      {
-                        bodies: "",
-                      }
-                    );
-
-                  const allFiles = [];
-
-                  const messagePromises = [];
-
-                  fetch.on(
-                    "message",
-                    (message) => {
-
-                      const messagePromise =
-                        new Promise(
-                          (resolveMessage) => {
-
-                            let bodyFound =
-                              false;
-
-                            message.on(
-                              "body",
-                              (stream) => {
-
-                                bodyFound =
-                                  true;
-
-                                processEmail(
-                                  stream,
-                                  vendor,
-                                  useBillNumber,
-                                  countOnly,
-                                  dateFilter
-                                )
-                                  .then(
-                                    (files) => {
-
-                                      if (
-                                        files &&
-                                        files.length
-                                      ) {
-                                        allFiles.push(
-                                          ...files
-                                        );
-                                      }
-
-                                      resolveMessage();
-                                    }
-                                  )
-                                  .catch(
-                                    (error) => {
-
-                                      console.error(
-                                        "Email processing error:",
-                                        error
-                                      );
-
-                                      /*
-                                       * Don't let one malformed
-                                       * email stop the whole batch.
-                                       */
-                                      resolveMessage();
-                                    }
-                                  );
-                              }
-                            );
-
-                            message.once(
-                              "end",
-                              () => {
-
-                                /*
-                                 * If no body event was received,
-                                 * don't leave the Promise hanging.
-                                 */
-                                if (
-                                  !bodyFound
-                                ) {
-                                  resolveMessage();
-                                }
-                              }
-                            );
-
-                            message.once(
-                              "error",
-                              (error) => {
-
-                                console.error(
-                                  "Message error:",
-                                  error
-                                );
-
-                                resolveMessage();
-                              }
-                            );
-                          }
-                        );
-
-                      messagePromises.push(
-                        messagePromise
-                      );
-                    }
-                  );
-
-                  fetch.once(
-                    "error",
-                    (fetchError) => {
-
-                      try {
-                        imap.end();
-                      } catch (_) {}
-
-                      finish(
-                        fetchError
-                      );
-                    }
-                  );
-
-                  fetch.once(
-                    "end",
-                    async () => {
-
-                      try {
-
-                        await Promise.all(
-                          messagePromises
-                        );
-
-                        /*
-                         * Remove duplicates.
-                         *
-                         * For Bill downloads, duplicate invoice
-                         * emails should not create duplicate files.
-                         */
-                        const uniqueFiles =
-                          [];
-
-                        const seen =
-                          new Set();
-
-                        for (
-                          const file
-                          of allFiles
-                        ) {
-
-                          const key =
-                            file.name;
-
-                          if (
-                            seen.has(key)
-                          ) {
-                            continue;
-                          }
-
-                          seen.add(key);
-
-                          uniqueFiles.push(
-                            file
-                          );
-                        }
-
-                        try {
-                          imap.end();
-                        } catch (_) {}
-
-                        finish(
-                          null,
-                          uniqueFiles
-                        );
-
-                      } catch (error) {
-
-                        try {
-                          imap.end();
-                        } catch (_) {}
-
-                        finish(
-                          error
-                        );
-                      }
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
-
-      /*
-       * ----------------------------------------------------------
-       * CONNECT
-       * ----------------------------------------------------------
-       */
-
-      try {
-        imap.connect();
-      } catch (error) {
-        finish(error);
-      }
+    try {
+      imap.connect();
+    } catch (error) {
+      finish(error);
     }
-  );
+  });
 }
 
 /*
@@ -713,33 +550,22 @@ function fetchInvoicesFromMailbox(
  * ============================================================
  */
 
-function getVendor(
-  req,
-  res
-) {
-
-  const {
-    vendorKey
-  } = req.body || {};
+function getVendor(req, res) {
+  const { vendorKey } = req.body || {};
 
   if (!vendorKey) {
-
     res.status(400).json({
-      error:
-        "Vendor key is required.",
+      error: "Vendor key is required.",
     });
 
     return null;
   }
 
-  const vendor =
-    VENDORS[vendorKey];
+  const vendor = VENDORS[vendorKey];
 
   if (!vendor) {
-
     res.status(400).json({
-      error:
-        "Invalid Vendor Selected.",
+      error: "Invalid Vendor Selected.",
     });
 
     return null;
@@ -754,50 +580,45 @@ function getVendor(
  * ============================================================
  */
 
-router.post(
-  "/invoice-download",
-  async (req, res) => {
-    try {
-      const vendor = getVendor(req, res);
-      if (!vendor) return;
+router.post("/invoice-download", async (req, res) => {
+  try {
+    const vendor = getVendor(req, res);
+    if (!vendor) return;
 
-      const countOnly = Boolean(req.body && req.body.countOnly);
-      const dateMode = (req.body && req.body.dateMode) || "today";
-      const customDate = (req.body && req.body.customDate) || null;
+    const countOnly = Boolean(req.body && req.body.countOnly);
+    const dateMode = (req.body && req.body.dateMode) || "today";
+    const customDate = (req.body && req.body.customDate) || null;
 
-      console.log(
-        `[Invoice] Searching invoices for ${vendor.label} (mode=${dateMode}, custom=${customDate}, countOnly=${countOnly})`
-      );
+    console.log(
+      `[Invoice] Searching invoices for ${vendor.label} (mode=${dateMode}, custom=${customDate}, countOnly=${countOnly})`,
+    );
 
-      const files = await fetchInvoicesFromMailbox(
-        vendor,
-        countOnly ? true : false,
-        countOnly,
-        dateMode,
-        customDate
-      );
+    const files = await fetchInvoicesFromMailbox(
+      vendor,
+      countOnly ? true : false,
+      countOnly,
+      dateMode,
+      customDate,
+    );
 
-      const billMatchedCount = files.filter((f) => f.billMatched).length;
+    const billMatchedCount = files.filter((f) => f.billMatched).length;
 
-      console.log(
-        `[Invoice] Found ${files.length} invoice file(s)`
-      );
+    console.log(`[Invoice] Found ${files.length} invoice file(s)`);
 
-      return res.json({
-        count: files.length,
-        billMatchedCount,
-        files: countOnly ? [] : files,
+    return res.json({
+      count: files.length,
+      billMatchedCount,
+      files: countOnly ? [] : files,
+    });
+  } catch (error) {
+    console.error("Invoice download route error:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: error.message || "Failed to download invoices.",
       });
-    } catch (error) {
-      console.error("Invoice download route error:", error);
-      if (!res.headersSent) {
-        return res.status(500).json({
-          error: error.message || "Failed to download invoices.",
-        });
-      }
     }
   }
-);
+});
 
 /*
 - ============================================================
@@ -805,57 +626,41 @@ router.post(
 - ============================================================
  */
 
-router.post(
-  "/invoice-bill-download",
-  async (req, res) => {
-    try {
-      const vendor = getVendor(req, res);
-      if (!vendor) return;
+router.post("/invoice-bill-download", async (req, res) => {
+  try {
+    const vendor = getVendor(req, res);
+    if (!vendor) return;
 
-      const dateMode = (req.body && req.body.dateMode) || "today";
-      const customDate = (req.body && req.body.customDate) || null;
+    const dateMode = (req.body && req.body.dateMode) || "today";
+    const customDate = (req.body && req.body.customDate) || null;
 
-      console.log(
-        `[Bill] Searching bills for ${vendor.label} (mode=${dateMode}, custom=${customDate})`
-      );
+    console.log(
+      `[Bill] Searching bills for ${vendor.label} (mode=${dateMode}, custom=${customDate})`,
+    );
 
-      const files = await fetchInvoicesFromMailbox(
-        vendor,
-        true,
-        false,
-        dateMode,
-        customDate
-      );
+    const files = await fetchInvoicesFromMailbox(
+      vendor,
+      true,
+      false,
+      dateMode,
+      customDate,
+    );
 
-      console.log(
-        `[Bill] Found ${files.length} bill file(s)`
-      );
+    console.log(`[Bill] Found ${files.length} bill file(s)`);
 
-      return res.json({
-        count: files.length,
-        files,
+    return res.json({
+      count: files.length,
+      files,
+    });
+  } catch (error) {
+    console.error("Bill download route error:", error);
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: error.message || "Failed to download bills.",
       });
-    } catch (error) {
-      console.error(
-        "Bill download route error:",
-        error
-      );
-
-      if (!res.headersSent) {
-        return res.status(500).json({
-          error:
-            error.message ||
-            "Failed to download bills.",
-        });
-      }
     }
   }
-);
-
-/*
- * ============================================================
- * EXPORT
- * ============================================================
- */
+});
 
 module.exports = router;

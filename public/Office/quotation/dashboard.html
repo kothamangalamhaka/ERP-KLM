@@ -58,7 +58,9 @@
         padding: 22px;
         margin: 0;
         color: var(--text);
-        transition: background 0.2s ease, color 0.2s ease;
+        transition:
+          background 0.2s ease,
+          color 0.2s ease;
       }
 
       .container {
@@ -230,11 +232,20 @@
             placeholder="Search Quotation..."
             oninput="filterQtList(this.value)"
           />
-          <a href="index.html" class="btn btn-primary">+ Create New Quotation</a>
-          <button class="btn btn-theme" id="themeBtn" onclick="toggleDashTheme()" title="Toggle Theme">
+          <a href="index.html" class="btn btn-primary"
+            >+ Create New Quotation</a
+          >
+          <button
+            class="btn btn-theme"
+            id="themeBtn"
+            onclick="toggleDashTheme()"
+            title="Toggle Theme"
+          >
             <i class="fas fa-moon"></i>
           </button>
-          <button class="btn btn-logout" onclick="window.qtSession.logoutQT()">Logout</button>
+          <button class="btn btn-logout" onclick="window.qtSession.logoutQT()">
+            Logout
+          </button>
         </div>
       </div>
 
@@ -264,7 +275,8 @@
       let allQuotations = [];
 
       function toggleDashTheme() {
-        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const current =
+          document.documentElement.getAttribute("data-theme") || "dark";
         const next = current === "dark" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", next);
         try {
@@ -276,7 +288,8 @@
       function updateDashThemeIcon() {
         const btn = document.getElementById("themeBtn");
         if (!btn) return;
-        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const current =
+          document.documentElement.getAttribute("data-theme") || "dark";
         btn.innerHTML =
           current === "dark"
             ? '<i class="fas fa-sun"></i>'
@@ -423,7 +436,10 @@
               await new Promise((r) => setTimeout(r, 700));
               if (frameWin && typeof frameWin.downloadPDF === "function") {
                 await frameWin.downloadPDF();
-                showDashToast("PDF Generated & Downloaded Successfully!", false);
+                showDashToast(
+                  "PDF Generated & Downloaded Successfully!",
+                  false,
+                );
               } else {
                 showDashToast("PDF engine not ready", false);
               }

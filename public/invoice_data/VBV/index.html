@@ -177,26 +177,76 @@
       }
 
       /* Category Headers */
-      .th-vehicle { background-color: #1e293b; color: white; }
-      .th-vehicle:hover { background-color: #334155; }
-      .th-ts { background-color: #166534; color: white; }
-      .th-ts:hover { background-color: #15803d; }
-      .th-inv { background-color: #1e40af; color: white; }
-      .th-inv:hover { background-color: #1d4ed8; }
-      .th-bill { background-color: #6b21a8; color: white; }
-      .th-bill:hover { background-color: #7e22ce; }
-      .th-driver { background-color: #a16207; color: white; }
-      .th-driver:hover { background-color: #854d0e; }
-      .th-diff { background-color: #be123c; color: white; }
-      .th-diff:hover { background-color: #9f1239; }
-      .th-amt { background-color: #059669; color: white; }
-      .th-amt:hover { background-color: #047857; }
-      .th-inv-red { background-color: #b91c1c; color: white; }
-      .th-inv-red:hover { background-color: #991b1b; }
-      .th-extra { background-color: #334155; color: white; }
-      .th-extra:hover { background-color: #475569; }
-      .th-gen { background-color: #1e293b; color: white; }
-      .th-gen:hover { background-color: #334155; }
+      .th-vehicle {
+        background-color: #1e293b;
+        color: white;
+      }
+      .th-vehicle:hover {
+        background-color: #334155;
+      }
+      .th-ts {
+        background-color: #166534;
+        color: white;
+      }
+      .th-ts:hover {
+        background-color: #15803d;
+      }
+      .th-inv {
+        background-color: #1e40af;
+        color: white;
+      }
+      .th-inv:hover {
+        background-color: #1d4ed8;
+      }
+      .th-bill {
+        background-color: #6b21a8;
+        color: white;
+      }
+      .th-bill:hover {
+        background-color: #7e22ce;
+      }
+      .th-driver {
+        background-color: #a16207;
+        color: white;
+      }
+      .th-driver:hover {
+        background-color: #854d0e;
+      }
+      .th-diff {
+        background-color: #be123c;
+        color: white;
+      }
+      .th-diff:hover {
+        background-color: #9f1239;
+      }
+      .th-amt {
+        background-color: #059669;
+        color: white;
+      }
+      .th-amt:hover {
+        background-color: #047857;
+      }
+      .th-inv-red {
+        background-color: #b91c1c;
+        color: white;
+      }
+      .th-inv-red:hover {
+        background-color: #991b1b;
+      }
+      .th-extra {
+        background-color: #334155;
+        color: white;
+      }
+      .th-extra:hover {
+        background-color: #475569;
+      }
+      .th-gen {
+        background-color: #1e293b;
+        color: white;
+      }
+      .th-gen:hover {
+        background-color: #334155;
+      }
 
       .filter-icon {
         font-size: 9px;
@@ -307,15 +357,23 @@
         font-size: 11px;
       }
 
-      .btn-apply-filter { background: #2563eb; color: white; }
-      .btn-clear-filter { background: #e2e8f0; color: #475569; }
+      .btn-apply-filter {
+        background: #2563eb;
+        color: white;
+      }
+      .btn-clear-filter {
+        background: #e2e8f0;
+        color: #475569;
+      }
 
       /* 🟢 Edit Modal Styles */
       .modal-overlay {
         display: none;
         position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         background: rgba(15, 23, 42, 0.7);
         z-index: 2000;
         justify-content: center;
@@ -394,8 +452,24 @@
         padding-top: 12px;
       }
 
-      .btn-save { background: #10b981; color: white; border: none; padding: 7px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-      .btn-cancel { background: #ef4444; color: white; border: none; padding: 7px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+      .btn-save {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 7px 18px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .btn-cancel {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 7px 18px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+      }
 
       .loader {
         display: none;
@@ -438,7 +512,7 @@
           id="searchInput"
           placeholder="🔍 Search Plate, Site, Owner..."
           onkeyup="filterData()"
-          style="width: 210px; text-transform: uppercase; margin-left: 5px;"
+          style="width: 210px; text-transform: uppercase; margin-left: 5px"
         />
       </div>
 
@@ -446,13 +520,19 @@
         <!-- 🟢 Load Mode Switcher -->
         <div class="form-group">
           <label>Mode:</label>
-          <select id="selMode" onchange="toggleLoadMode()" style="background: #334155; font-weight: 600;">
+          <select
+            id="selMode"
+            onchange="toggleLoadMode()"
+            style="background: #334155; font-weight: 600"
+          >
             <option value="single">Single Month</option>
             <option value="batch" selected>Batch Range</option>
           </select>
         </div>
 
-        <div style="width: 1px; height: 18px; background: #475569; margin: 0 2px;"></div>
+        <div
+          style="width: 1px; height: 18px; background: #475569; margin: 0 2px"
+        ></div>
 
         <!-- From Month & Year -->
         <div class="form-group">
@@ -471,7 +551,7 @@
             <option value="November">Nov</option>
             <option value="December">Dec</option>
           </select>
-          <input type="number" id="fromY" value="2026" style="width: 55px;" />
+          <input type="number" id="fromY" value="2026" style="width: 55px" />
         </div>
 
         <!-- To Month & Year -->
@@ -491,15 +571,21 @@
             <option value="November">Nov</option>
             <option value="December">Dec</option>
           </select>
-          <input type="number" id="toY" value="2026" style="width: 55px;" />
+          <input type="number" id="toY" value="2026" style="width: 55px" />
         </div>
 
-        <button class="btn-fetch" onclick="loadVirtualBatchData()">Fetch Data</button>
+        <button class="btn-fetch" onclick="loadVirtualBatchData()">
+          Fetch Data
+        </button>
 
-        <div style="width: 1px; height: 18px; background: #475569; margin: 0 4px;"></div>
+        <div
+          style="width: 1px; height: 18px; background: #475569; margin: 0 4px"
+        ></div>
 
         <!-- 🟢 Export Excel Button -->
-        <button class="btn-export" onclick="exportFilteredToExcel()">📊 Export Excel</button>
+        <button class="btn-export" onclick="exportFilteredToExcel()">
+          📊 Export Excel
+        </button>
       </div>
     </div>
 
@@ -552,19 +638,29 @@
         </button>
       </div>
       <div class="excel-filter-search">
-        <input type="text" id="filterSearchInput" placeholder="Search values..." />
+        <input
+          type="text"
+          id="filterSearchInput"
+          placeholder="Search values..."
+        />
       </div>
       <div
         class="filter-item"
-        style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;"
+        style="border-bottom: 1px solid #e2e8f0; background: #f8fafc"
       >
         <input type="checkbox" id="filterSelectAll" checked />
-        <label for="filterSelectAll" style="font-weight: 700;">(Select All)</label>
+        <label for="filterSelectAll" style="font-weight: 700"
+          >(Select All)</label
+        >
       </div>
       <div class="excel-filter-list" id="filterChecklist"></div>
       <div class="excel-filter-actions">
-        <button class="btn-apply-filter" onclick="applyExcelFilter()">Apply</button>
-        <button class="btn-clear-filter" onclick="closeExcelFilter()">Cancel</button>
+        <button class="btn-apply-filter" onclick="applyExcelFilter()">
+          Apply
+        </button>
+        <button class="btn-clear-filter" onclick="closeExcelFilter()">
+          Cancel
+        </button>
       </div>
     </div>
 
@@ -630,7 +726,10 @@
           </tr>
           <!-- 🟢 Filterable Column Header Row -->
           <tr>
-            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'report_date')">
+            <th
+              class="th-vehicle"
+              onclick="openExcelFilterMenu(event, 'report_date')"
+            >
               Month <span class="filter-icon" data-key="report_date">▼</span>
             </th>
             <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'site')">
@@ -642,13 +741,23 @@
             <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'vat')">
               VAT <span class="filter-icon" data-key="vat">▼</span>
             </th>
-            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'owner')">
+            <th
+              class="th-vehicle"
+              onclick="openExcelFilterMenu(event, 'owner')"
+            >
               Owner Name <span class="filter-icon" data-key="owner">▼</span>
             </th>
-            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'vehicle_type')">
-              Vehicle Type <span class="filter-icon" data-key="vehicle_type">▼</span>
+            <th
+              class="th-vehicle"
+              onclick="openExcelFilterMenu(event, 'vehicle_type')"
+            >
+              Vehicle Type
+              <span class="filter-icon" data-key="vehicle_type">▼</span>
             </th>
-            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'plate')">
+            <th
+              class="th-vehicle"
+              onclick="openExcelFilterMenu(event, 'plate')"
+            >
               Plate No <span class="filter-icon" data-key="plate">▼</span>
             </th>
 
@@ -666,17 +775,29 @@
               OT <span class="filter-icon" data-key="inv_ot">▼</span>
             </th>
 
-            <th class="th-bill" onclick="openExcelFilterMenu(event, 'bill_db_nr')">
+            <th
+              class="th-bill"
+              onclick="openExcelFilterMenu(event, 'bill_db_nr')"
+            >
               NR <span class="filter-icon" data-key="bill_db_nr">▼</span>
             </th>
-            <th class="th-bill" onclick="openExcelFilterMenu(event, 'bill_db_ot')">
+            <th
+              class="th-bill"
+              onclick="openExcelFilterMenu(event, 'bill_db_ot')"
+            >
               OT <span class="filter-icon" data-key="bill_db_ot">▼</span>
             </th>
 
-            <th class="th-driver" onclick="openExcelFilterMenu(event, 'driver_ot')">
+            <th
+              class="th-driver"
+              onclick="openExcelFilterMenu(event, 'driver_ot')"
+            >
               OT <span class="filter-icon" data-key="driver_ot">▼</span>
             </th>
-            <th class="th-driver" onclick="openExcelFilterMenu(event, 'driver_amount')">
+            <th
+              class="th-driver"
+              onclick="openExcelFilterMenu(event, 'driver_amount')"
+            >
               AMT <span class="filter-icon" data-key="driver_amount">▼</span>
             </th>
 
@@ -689,48 +810,90 @@
             <th class="th-diff" onclick="openExcelFilterMenu(event, 'diff_st')">
               IDN <span class="filter-icon" data-key="diff_st">▼</span>
             </th>
-            <th class="th-diff" onclick="openExcelFilterMenu(event, 'diff_clear')">
+            <th
+              class="th-diff"
+              onclick="openExcelFilterMenu(event, 'diff_clear')"
+            >
               Clear <span class="filter-icon" data-key="diff_clear">▼</span>
             </th>
-            <th class="th-diff" onclick="openExcelFilterMenu(event, 'vbill_notes')">
-              V.Bill Notes <span class="filter-icon" data-key="vbill_notes">▼</span>
+            <th
+              class="th-diff"
+              onclick="openExcelFilterMenu(event, 'vbill_notes')"
+            >
+              V.Bill Notes
+              <span class="filter-icon" data-key="vbill_notes">▼</span>
             </th>
 
-            <th class="th-amt" onclick="openExcelFilterMenu(event, 'bill_nrate')">
+            <th
+              class="th-amt"
+              onclick="openExcelFilterMenu(event, 'bill_nrate')"
+            >
               NR Rate <span class="filter-icon" data-key="bill_nrate">▼</span>
             </th>
-            <th class="th-amt" onclick="openExcelFilterMenu(event, 'bill_otrate')">
+            <th
+              class="th-amt"
+              onclick="openExcelFilterMenu(event, 'bill_otrate')"
+            >
               OT Rate <span class="filter-icon" data-key="bill_otrate">▼</span>
             </th>
-            <th class="th-amt" onclick="openExcelFilterMenu(event, 'bill_rent')">
+            <th
+              class="th-amt"
+              onclick="openExcelFilterMenu(event, 'bill_rent')"
+            >
               Rent <span class="filter-icon" data-key="bill_rent">▼</span>
             </th>
             <th class="th-amt" onclick="openExcelFilterMenu(event, 'rent_vat')">
               VAT <span class="filter-icon" data-key="rent_vat">▼</span>
             </th>
-            <th class="th-amt" onclick="openExcelFilterMenu(event, 'rent_total')">
+            <th
+              class="th-amt"
+              onclick="openExcelFilterMenu(event, 'rent_total')"
+            >
               Total <span class="filter-icon" data-key="rent_total">▼</span>
             </th>
 
-            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_subtotal')">
-              Subtotal <span class="filter-icon" data-key="inv_subtotal">▼</span>
+            <th
+              class="th-inv-red"
+              onclick="openExcelFilterMenu(event, 'inv_subtotal')"
+            >
+              Subtotal
+              <span class="filter-icon" data-key="inv_subtotal">▼</span>
             </th>
-            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_deduct')">
-              Deductions <span class="filter-icon" data-key="inv_deduct">▼</span>
+            <th
+              class="th-inv-red"
+              onclick="openExcelFilterMenu(event, 'inv_deduct')"
+            >
+              Deductions
+              <span class="filter-icon" data-key="inv_deduct">▼</span>
             </th>
-            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_total')">
+            <th
+              class="th-inv-red"
+              onclick="openExcelFilterMenu(event, 'inv_total')"
+            >
               Total <span class="filter-icon" data-key="inv_total">▼</span>
             </th>
-            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'deduct_reason')">
+            <th
+              class="th-inv-red"
+              onclick="openExcelFilterMenu(event, 'deduct_reason')"
+            >
               Reason <span class="filter-icon" data-key="deduct_reason">▼</span>
             </th>
-            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'crn_no')">
+            <th
+              class="th-inv-red"
+              onclick="openExcelFilterMenu(event, 'crn_no')"
+            >
               CRN No <span class="filter-icon" data-key="crn_no">▼</span>
             </th>
-            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_no')">
+            <th
+              class="th-inv-red"
+              onclick="openExcelFilterMenu(event, 'inv_no')"
+            >
               Invoice No <span class="filter-icon" data-key="inv_no">▼</span>
             </th>
-            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'bill_no')">
+            <th
+              class="th-inv-red"
+              onclick="openExcelFilterMenu(event, 'bill_no')"
+            >
               Bill No <span class="filter-icon" data-key="bill_no">▼</span>
             </th>
 
@@ -740,15 +903,27 @@
             <th class="th-extra" onclick="openExcelFilterMenu(event, 'erp')">
               ERP <span class="filter-icon" data-key="erp">▼</span>
             </th>
-            <th class="th-extra" onclick="openExcelFilterMenu(event, 'payment_status')">
-              Payment Status <span class="filter-icon" data-key="payment_status">▼</span>
+            <th
+              class="th-extra"
+              onclick="openExcelFilterMenu(event, 'payment_status')"
+            >
+              Payment Status
+              <span class="filter-icon" data-key="payment_status">▼</span>
             </th>
-            <th class="th-extra" onclick="openExcelFilterMenu(event, 'accounts_note')">
-              Accounts Note <span class="filter-icon" data-key="accounts_note">▼</span>
+            <th
+              class="th-extra"
+              onclick="openExcelFilterMenu(event, 'accounts_note')"
+            >
+              Accounts Note
+              <span class="filter-icon" data-key="accounts_note">▼</span>
             </th>
 
-            <th class="th-gen" onclick="openExcelFilterMenu(event, 'driver_name')">
-              Driver Name <span class="filter-icon" data-key="driver_name">▼</span>
+            <th
+              class="th-gen"
+              onclick="openExcelFilterMenu(event, 'driver_name')"
+            >
+              Driver Name
+              <span class="filter-icon" data-key="driver_name">▼</span>
             </th>
             <th class="th-gen" onclick="openExcelFilterMenu(event, 'field_co')">
               Field Co <span class="filter-icon" data-key="field_co">▼</span>
@@ -771,21 +946,48 @@
 
     <!-- 🟢 Master Security Code Prompt Modal -->
     <div id="masterPrompt" class="modal-overlay">
-      <div class="modal-content" style="width: 340px; text-align: center;">
-        <div class="modal-header" style="justify-content: center; color: #b91c1c;">🔒 Security Verification</div>
-        <p style="font-size: 12px; color: #475569; margin: 0 0 15px 0;">
+      <div class="modal-content" style="width: 340px; text-align: center">
+        <div
+          class="modal-header"
+          style="justify-content: center; color: #b91c1c"
+        >
+          🔒 Security Verification
+        </div>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 15px 0">
           Enter Master Security Code to enable editing:
         </p>
         <input
           type="password"
           id="masterSecurityCode"
           placeholder="Master Code"
-          style="width: 100%; box-sizing: border-box; padding: 8px 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; text-align: center; outline: none;"
+          style="
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 10px;
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+            outline: none;
+          "
           onkeypress="if (event.key === 'Enter') submitMasterPrompt();"
         />
-        <div style="display: flex; gap: 10px; justify-content: center;">
-          <button class="btn-cancel" style="padding: 6px 16px;" onclick="closeMasterPrompt()">Cancel</button>
-          <button class="btn-save" style="padding: 6px 16px; background-color: #2563eb;" onclick="submitMasterPrompt()">Submit</button>
+        <div style="display: flex; gap: 10px; justify-content: center">
+          <button
+            class="btn-cancel"
+            style="padding: 6px 16px"
+            onclick="closeMasterPrompt()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-save"
+            style="padding: 6px 16px; background-color: #2563eb"
+            onclick="submitMasterPrompt()"
+          >
+            Submit
+          </button>
         </div>
       </div>
     </div>
@@ -795,36 +997,107 @@
       <div class="modal-content">
         <div class="modal-header" id="editModalTitle">Edit Record</div>
 
-        <div style="margin-bottom: 12px; font-weight: bold; color: #1e40af;">Invoice & Bill Summary</div>
+        <div style="margin-bottom: 12px; font-weight: bold; color: #1e40af">
+          Invoice & Bill Summary
+        </div>
         <div class="grid-3">
-          <div class="form-control"><label>Invoice No</label><input type="text" id="mdl_inv_no" /></div>
-          <div class="form-control"><label>Invoice Subtotal</label><input type="number" id="mdl_inv_amount" /></div>
-          <div class="form-control"><label>Bill No</label><input type="text" id="mdl_bill_no" /></div>
-          <div class="form-control"><label>Inv NR</label><input type="number" id="mdl_inv_nr" /></div>
-          <div class="form-control"><label>Inv OT</label><input type="number" id="mdl_inv_ot" /></div>
-          <div class="form-control"><label style="color: #b91c1c;">Deduct :: Invoice</label><input type="number" id="mdl_inv_deduct" /></div>
-          <div class="form-control" style="grid-column: 1 / 3;"><label style="color: #b91c1c;">Deduction Reason</label><input type="text" id="mdl_deduct_reason" placeholder="Enter reason for deduction..." /></div>
-          <div class="form-control"><label style="color: #0f766e;">CRN No</label><input type="text" id="mdl_crn_no" placeholder="Credit Note No..." /></div>
+          <div class="form-control">
+            <label>Invoice No</label><input type="text" id="mdl_inv_no" />
+          </div>
+          <div class="form-control">
+            <label>Invoice Subtotal</label
+            ><input type="number" id="mdl_inv_amount" />
+          </div>
+          <div class="form-control">
+            <label>Bill No</label><input type="text" id="mdl_bill_no" />
+          </div>
+          <div class="form-control">
+            <label>Inv NR</label><input type="number" id="mdl_inv_nr" />
+          </div>
+          <div class="form-control">
+            <label>Inv OT</label><input type="number" id="mdl_inv_ot" />
+          </div>
+          <div class="form-control">
+            <label style="color: #b91c1c">Deduct :: Invoice</label
+            ><input type="number" id="mdl_inv_deduct" />
+          </div>
+          <div class="form-control" style="grid-column: 1 / 3">
+            <label style="color: #b91c1c">Deduction Reason</label
+            ><input
+              type="text"
+              id="mdl_deduct_reason"
+              placeholder="Enter reason for deduction..."
+            />
+          </div>
+          <div class="form-control">
+            <label style="color: #0f766e">CRN No</label
+            ><input
+              type="text"
+              id="mdl_crn_no"
+              placeholder="Credit Note No..."
+            />
+          </div>
         </div>
 
-        <div style="margin-bottom: 12px; font-weight: bold; color: #6b21a8;">Supplier & Driver</div>
+        <div style="margin-bottom: 12px; font-weight: bold; color: #6b21a8">
+          Supplier & Driver
+        </div>
         <div class="grid-2">
-          <div class="form-control"><label>Supplier NR</label><input type="number" id="mdl_bill_db_nr" /></div>
-          <div class="form-control"><label>Supplier OT</label><input type="number" id="mdl_bill_db_ot" /></div>
-          <div class="form-control"><label>Driver OT</label><input type="number" id="mdl_driver_ot" /></div>
-          <div class="form-control"><label>Driver Amount</label><input type="number" id="mdl_driver_amount" /></div>
+          <div class="form-control">
+            <label>Supplier NR</label
+            ><input type="number" id="mdl_bill_db_nr" />
+          </div>
+          <div class="form-control">
+            <label>Supplier OT</label
+            ><input type="number" id="mdl_bill_db_ot" />
+          </div>
+          <div class="form-control">
+            <label>Driver OT</label><input type="number" id="mdl_driver_ot" />
+          </div>
+          <div class="form-control">
+            <label>Driver Amount</label
+            ><input type="number" id="mdl_driver_amount" />
+          </div>
         </div>
 
-        <div style="margin-bottom: 12px; font-weight: bold; color: #334155;">Extra Details & Notes</div>
+        <div style="margin-bottom: 12px; font-weight: bold; color: #334155">
+          Extra Details & Notes
+        </div>
         <div class="grid-2">
-          <div class="form-control"><label>V.Bill Notes</label><textarea id="mdl_vbill_notes" rows="2"></textarea></div>
-          <div class="form-control"><label>Accounts Note</label><textarea id="mdl_accounts_note" rows="2"></textarea></div>
-          <div class="form-control"><label>PWAS</label><input type="text" id="mdl_pwas" /></div>
-          <div class="form-control"><label>ERP</label><input type="text" id="mdl_erp" /></div>
-          <div class="form-control"><label>Payment Status</label><input type="text" id="mdl_payment_status" /></div>
-          <div class="form-control" style="justify-content: center;">
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; color: #be123c;">
-              <input type="checkbox" id="mdl_diff_clear" style="width: 16px; height: 16px; cursor: pointer;" />
+          <div class="form-control">
+            <label>V.Bill Notes</label
+            ><textarea id="mdl_vbill_notes" rows="2"></textarea>
+          </div>
+          <div class="form-control">
+            <label>Accounts Note</label
+            ><textarea id="mdl_accounts_note" rows="2"></textarea>
+          </div>
+          <div class="form-control">
+            <label>PWAS</label><input type="text" id="mdl_pwas" />
+          </div>
+          <div class="form-control">
+            <label>ERP</label><input type="text" id="mdl_erp" />
+          </div>
+          <div class="form-control">
+            <label>Payment Status</label
+            ><input type="text" id="mdl_payment_status" />
+          </div>
+          <div class="form-control" style="justify-content: center">
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 12px;
+                cursor: pointer;
+                color: #be123c;
+              "
+            >
+              <input
+                type="checkbox"
+                id="mdl_diff_clear"
+                style="width: 16px; height: 16px; cursor: pointer"
+              />
               Mark Difference as Cleared
             </label>
           </div>
@@ -832,15 +1105,27 @@
 
         <div class="btn-group">
           <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
-          <button class="btn-save" onclick="saveRowEdits()">💾 Save Changes</button>
+          <button class="btn-save" onclick="saveRowEdits()">
+            💾 Save Changes
+          </button>
         </div>
       </div>
     </div>
 
     <script>
       const months = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
       ];
 
       let masterData = [];
@@ -884,7 +1169,9 @@
       }
 
       function cleanPlate(p) {
-        return String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return String(p || "")
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "");
       }
 
       function safeDate(dStr, fallback) {
@@ -904,12 +1191,17 @@
 
       function getDayName(dayNum, monthStr, year) {
         const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
-        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dateObj.getDay()];
+        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+          dateObj.getDay()
+        ];
       }
 
       async function ensureSpecialRules() {
         try {
-          const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+          const token =
+            localStorage.getItem("timesheetToken") ||
+            localStorage.getItem("invoiceToken") ||
+            "";
           const srRes = await fetch("/timesheet/api/special-rules", {
             headers: { Authorization: "Bearer " + token },
           });
@@ -924,7 +1216,8 @@
 
       function processDataLogic(data, monthStr, yearStr) {
         const mIdx = months.indexOf(monthStr);
-        const shortDate = monthStr.substring(0, 3) + " " + String(yearStr).substring(2, 4);
+        const shortDate =
+          monthStr.substring(0, 3) + " " + String(yearStr).substring(2, 4);
         const monthStart = new Date(yearStr, mIdx, 1, 0, 0, 0, 0);
         const monthEnd = new Date(yearStr, mIdx + 1, 0, 23, 59, 59, 999);
         const daysInMonth = monthEnd.getDate();
@@ -939,7 +1232,9 @@
 
           if (!pClean) return;
 
-          let vOwners = (data.owners || []).filter((o) => cleanPlate(o.plate_no) === pClean);
+          let vOwners = (data.owners || []).filter(
+            (o) => cleanPlate(o.plate_no) === pClean,
+          );
           let activeOwners = vOwners.filter((o) => {
             let st = safeDate(o.work_start_date, "2000-01-01");
             let ed = safeDate(o.work_end_date, "2099-01-01");
@@ -951,14 +1246,28 @@
           if (activeOwners.length === 0 && vOwners.length > 0) {
             activeOwners = vOwners.filter((o) => o.status === "Running");
             if (activeOwners.length === 0) {
-              activeOwners = [[...vOwners].sort((a, b) => safeDate(b.work_start_date || "2000-01-01") - safeDate(a.work_start_date || "2000-01-01"))[0]];
+              activeOwners = [
+                [...vOwners].sort(
+                  (a, b) =>
+                    safeDate(b.work_start_date || "2000-01-01") -
+                    safeDate(a.work_start_date || "2000-01-01"),
+                )[0],
+              ];
             }
           }
 
-          let owner = activeOwners.length > 0 ? activeOwners[0].owner_name || v.owner_name || "N/A" : v.owner_name || "N/A";
-          let vat = activeOwners.length > 0 ? activeOwners[0].vat || v.vat || "No" : v.vat || "No";
+          let owner =
+            activeOwners.length > 0
+              ? activeOwners[0].owner_name || v.owner_name || "N/A"
+              : v.owner_name || "N/A";
+          let vat =
+            activeOwners.length > 0
+              ? activeOwners[0].vat || v.vat || "No"
+              : v.vat || "No";
 
-          let vSites = (data.sites || []).filter((s) => cleanPlate(s.plate_no) === pClean);
+          let vSites = (data.sites || []).filter(
+            (s) => cleanPlate(s.plate_no) === pClean,
+          );
           let strictlyActiveSites = vSites.filter((s) => {
             let st = safeDate(s.work_start_date, "2000-01-01");
             let ed = safeDate(s.work_end_date, "2099-01-01");
@@ -967,19 +1276,30 @@
             return st <= monthEnd && ed >= monthStart;
           });
 
-          let vTimesheets = (data.timesheets || []).filter((ts) => cleanPlate(ts.plate_no) === pClean);
-          let vInvoices = (data.invoices || []).filter((i) => cleanPlate(i.plate_no) === pClean);
-          let vDrivers = (data.drivers || []).filter((d) => cleanPlate(d.plate_no) === pClean);
-          let vRates = (data.rates || []).filter((r) => cleanPlate(r.plate_no) === pClean);
+          let vTimesheets = (data.timesheets || []).filter(
+            (ts) => cleanPlate(ts.plate_no) === pClean,
+          );
+          let vInvoices = (data.invoices || []).filter(
+            (i) => cleanPlate(i.plate_no) === pClean,
+          );
+          let vDrivers = (data.drivers || []).filter(
+            (d) => cleanPlate(d.plate_no) === pClean,
+          );
+          let vRates = (data.rates || []).filter(
+            (r) => cleanPlate(r.plate_no) === pClean,
+          );
 
           let hasMonthTimesheetActivity = vTimesheets.some((ts) => {
             let tm = parseFloat(ts.calc_time) || 0;
-            let bd = String(ts.bd || "").trim().toUpperCase();
+            let bd = String(ts.bd || "")
+              .trim()
+              .toUpperCase();
             let wrkStart = String(ts.wrk_start || "").trim();
             return tm > 0 || bd !== "" || wrkStart !== "";
           });
 
-          if (strictlyActiveSites.length === 0 && !hasMonthTimesheetActivity) return;
+          if (strictlyActiveSites.length === 0 && !hasMonthTimesheetActivity)
+            return;
 
           let activeSites = strictlyActiveSites;
           if (activeSites.length === 0 && hasMonthTimesheetActivity) {
@@ -989,7 +1309,11 @@
               return ed <= monthEnd;
             });
 
-            let lastSiteLog = [...endedPastSites].sort((a, b) => safeDate(b.work_end_date || "2000-01-01") - safeDate(a.work_end_date || "2000-01-01"))[0];
+            let lastSiteLog = [...endedPastSites].sort(
+              (a, b) =>
+                safeDate(b.work_end_date || "2000-01-01") -
+                safeDate(a.work_end_date || "2000-01-01"),
+            )[0];
             let naLabel = "N/A";
             let statusType = "";
             if (lastSiteLog && lastSiteLog.site_name) {
@@ -999,24 +1323,44 @@
                 let d = safeDate(lastSiteLog.work_end_date, "");
                 if (!isNaN(d.getTime())) {
                   let dy = String(d.getDate()).padStart(2, "0");
-                  let mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  let mNames = [
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ];
                   lastDateStr = ` - ${dy}-${mNames[d.getMonth()]}-${d.getFullYear()}`;
                 }
               }
               naLabel = `Prev: ${prevSite}${lastDateStr}`;
-              statusType = String(lastSiteLog.status || "").trim().toLowerCase();
+              statusType = String(lastSiteLog.status || "")
+                .trim()
+                .toLowerCase();
             }
 
-            activeSites = [{
-              site_name: naLabel,
-              work_start_date: monthStart.toISOString().split("T")[0],
-              work_end_date: monthEnd.toISOString().split("T")[0],
-              rate: lastSiteLog ? lastSiteLog.rate || "-" : "-",
-              field_co: lastSiteLog ? lastSiteLog.field_co || "-" : "-",
-              site_co: lastSiteLog ? lastSiteLog.site_co || "-" : "-",
-              vehicle_type: lastSiteLog && lastSiteLog.vehicle_type ? lastSiteLog.vehicle_type : vehicle_type,
-              siteStatusType: statusType,
-            }];
+            activeSites = [
+              {
+                site_name: naLabel,
+                work_start_date: monthStart.toISOString().split("T")[0],
+                work_end_date: monthEnd.toISOString().split("T")[0],
+                rate: lastSiteLog ? lastSiteLog.rate || "-" : "-",
+                field_co: lastSiteLog ? lastSiteLog.field_co || "-" : "-",
+                site_co: lastSiteLog ? lastSiteLog.site_co || "-" : "-",
+                vehicle_type:
+                  lastSiteLog && lastSiteLog.vehicle_type
+                    ? lastSiteLog.vehicle_type
+                    : vehicle_type,
+                siteStatusType: statusType,
+              },
+            ];
           }
 
           let siteDataMap = {};
@@ -1046,14 +1390,19 @@
               let dStart = safeDate(d.work_start_date, "2000-01-01");
               let dEnd = safeDate(d.work_end_date, "2099-01-01");
               if (dStart <= overlapEnd && dEnd >= overlapStart) {
-                if (d.driver_name && d.driver_name.trim() !== "" && d.driver_name.trim() !== "-") {
+                if (
+                  d.driver_name &&
+                  d.driver_name.trim() !== "" &&
+                  d.driver_name.trim() !== "-"
+                ) {
                   activeDrivers.push(d.driver_name.trim());
                 }
               }
             });
 
             let uniqueDrivers = [...new Set(activeDrivers)];
-            let driverString = uniqueDrivers.length > 0 ? uniqueDrivers.join(" / ") : "-";
+            let driverString =
+              uniqueDrivers.length > 0 ? uniqueDrivers.join(" / ") : "-";
 
             function formatRateValue(rateVal) {
               if (!rateVal || rateVal === "-") return "-";
@@ -1071,7 +1420,12 @@
                 driver_name: driverString,
                 field_co: s.field_co || "-",
                 site_co: s.site_co || "-",
-                vehicle_type: s.vehicle_type && s.vehicle_type.trim() !== "" && s.vehicle_type !== "-" ? s.vehicle_type : vehicle_type,
+                vehicle_type:
+                  s.vehicle_type &&
+                  s.vehicle_type.trim() !== "" &&
+                  s.vehicle_type !== "-"
+                    ? s.vehicle_type
+                    : vehicle_type,
               };
             }
           });
@@ -1084,7 +1438,11 @@
               return ed < targetDate;
             });
 
-            let lastSiteLog = [...endedBeforeDate].sort((a, b) => safeDate(b.work_end_date || "2000-01-01") - safeDate(a.work_end_date || "2000-01-01"))[0];
+            let lastSiteLog = [...endedBeforeDate].sort(
+              (a, b) =>
+                safeDate(b.work_end_date || "2000-01-01") -
+                safeDate(a.work_end_date || "2000-01-01"),
+            )[0];
             if (lastSiteLog && lastSiteLog.site_name) {
               let prevSite = lastSiteLog.site_name.trim();
               let lastDateStr = "";
@@ -1092,11 +1450,27 @@
                 let d = safeDate(lastSiteLog.work_end_date, "");
                 if (!isNaN(d.getTime())) {
                   let dy = String(d.getDate()).padStart(2, "0");
-                  let mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  let mNames = [
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ];
                   lastDateStr = ` - ${dy}-${mNames[d.getMonth()]}-${d.getFullYear()}`;
                 }
               }
-              return { name: `Prev: ${prevSite}${lastDateStr}`, log: lastSiteLog };
+              return {
+                name: `Prev: ${prevSite}${lastDateStr}`,
+                log: lastSiteLog,
+              };
             }
             return { name: "N/A", log: null };
           }
@@ -1134,22 +1508,48 @@
                   field_co: lastLog ? lastLog.field_co || "-" : "-",
                   site_co: lastLog ? lastLog.site_co || "-" : "-",
                   displayName: currentSite,
-                  siteStatusType: lastLog ? String(lastLog.status || "").trim().toLowerCase() : "",
-                  vehicle_type: lastLog && lastLog.vehicle_type ? lastLog.vehicle_type : vehicle_type,
+                  siteStatusType: lastLog
+                    ? String(lastLog.status || "")
+                        .trim()
+                        .toLowerCase()
+                    : "",
+                  vehicle_type:
+                    lastLog && lastLog.vehicle_type
+                      ? lastLog.vehicle_type
+                      : vehicle_type,
                 };
               }
             }
 
-            let formattedDate = checkDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, " ");
+            let formattedDate = checkDate
+              .toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+              .replace(/ /g, " ");
             let siteForRule = currentSite.split("&")[0].trim().toUpperCase();
-            let specialRule = specialRulesCache.find((r) => r.is_active && (r.sites.includes("ALL") || r.sites.includes(siteForRule)) && r.dates.includes(formattedDate));
+            let specialRule = specialRulesCache.find(
+              (r) =>
+                r.is_active &&
+                (r.sites.includes("ALL") || r.sites.includes(siteForRule)) &&
+                r.dates.includes(formattedDate),
+            );
 
             let ts = vTimesheets.find((r) => parseInt(r.record_date) === i);
             let tm = ts ? parseFloat(ts.calc_time) || 0 : 0;
-            let bd = ts ? String(ts.bd || "").trim().toUpperCase() : "";
+            let bd = ts
+              ? String(ts.bd || "")
+                  .trim()
+                  .toUpperCase()
+              : "";
             let hasData = tm > 0 || bd !== "" || (ts && ts.wrk_start);
 
-            if (!hasData && specialRule && specialRule.rule_type !== "FULL_OT") {
+            if (
+              !hasData &&
+              specialRule &&
+              specialRule.rule_type !== "FULL_OT"
+            ) {
               bd = specialRule.rule_type;
               hasData = true;
             }
@@ -1158,24 +1558,33 @@
 
             let dayName = getDayName(i, monthStr, yearStr);
             let isFullOT = dayName === "Fri" || i === 31;
-            if (specialRule && specialRule.rule_type === "FULL_OT") isFullOT = true;
+            if (specialRule && specialRule.rule_type === "FULL_OT")
+              isFullOT = true;
 
-            let nHr = 0, otHr = 0;
+            let nHr = 0,
+              otHr = 0;
             if (bd === "ID" || bd === "NP") {
               if (isFullOT) otHr = 10;
               else nHr = 10;
             } else if (bd === "B" || bd === "H") {
-              nHr = 0; otHr = 0;
+              nHr = 0;
+              otHr = 0;
             } else if (tm > 0) {
               if (isFullOT) otHr = tm;
               else {
-                if (tm > 10) { nHr = 10; otHr = tm - 10; }
-                else nHr = tm;
+                if (tm > 10) {
+                  nHr = 10;
+                  otHr = tm - 10;
+                } else nHr = tm;
               }
             }
 
             if (!siteDataMap[currentSite]) {
-              siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0, ts_31st_shift: 0 };
+              siteDataMap[currentSite] = {
+                ts_nr: 0,
+                ts_ot: 0,
+                ts_31st_shift: 0,
+              };
             }
             siteDataMap[currentSite].ts_nr += nHr;
             siteDataMap[currentSite].ts_ot += otHr;
@@ -1197,56 +1606,103 @@
             (data.plateChanges || []).forEach((pl) => {
               let oP = cleanPlate(pl.old_plate_no);
               let nP = cleanPlate(pl.new_plate_no);
-              if (oP === pClean && !relatedCleanPlates.includes(nP)) relatedCleanPlates.push(nP);
-              if (nP === pClean && !relatedCleanPlates.includes(oP)) relatedCleanPlates.push(oP);
+              if (oP === pClean && !relatedCleanPlates.includes(nP))
+                relatedCleanPlates.push(nP);
+              if (nP === pClean && !relatedCleanPlates.includes(oP))
+                relatedCleanPlates.push(oP);
             });
 
             let vInvoices = (data.invoices || []).filter((i) => {
               let rawP = String(i.plate_no || "").toUpperCase();
-              let pParts = rawP.split(/➔|→|->/).map((p) => cleanPlate(p)).filter(Boolean);
-              return pParts.some((cp) => relatedCleanPlates.includes(cp)) || relatedCleanPlates.includes(cleanPlate(rawP));
+              let pParts = rawP
+                .split(/➔|→|->/)
+                .map((p) => cleanPlate(p))
+                .filter(Boolean);
+              return (
+                pParts.some((cp) => relatedCleanPlates.includes(cp)) ||
+                relatedCleanPlates.includes(cleanPlate(rawP))
+              );
             });
 
-            let sortedBilling = [...(data.billing || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
+            let sortedBilling = [...(data.billing || [])].sort(
+              (a, b) => (b.id || 0) - (a.id || 0),
+            );
             function matchPlateWithAliases(targetPlate) {
               let raw = String(targetPlate || "").toUpperCase();
-              let parts = raw.split(/➔|→|->/).map((p) => cleanPlate(p)).filter(Boolean);
-              return parts.some((cp) => relatedCleanPlates.includes(cp)) || relatedCleanPlates.includes(cleanPlate(raw));
+              let parts = raw
+                .split(/➔|→|->/)
+                .map((p) => cleanPlate(p))
+                .filter(Boolean);
+              return (
+                parts.some((cp) => relatedCleanPlates.includes(cp)) ||
+                relatedCleanPlates.includes(cleanPlate(raw))
+              );
             }
 
-            let billData = sortedBilling.find((b) => matchPlateWithAliases(b.plate_no) && (b.site_name || "").trim() === sName);
+            let billData = sortedBilling.find(
+              (b) =>
+                matchPlateWithAliases(b.plate_no) &&
+                (b.site_name || "").trim() === sName,
+            );
             if (!billData && sName.startsWith("Prev:")) {
-              billData = sortedBilling.find((b) => matchPlateWithAliases(b.plate_no) && (b.site_name || "").trim().startsWith("Prev:"));
+              billData = sortedBilling.find(
+                (b) =>
+                  matchPlateWithAliases(b.plate_no) &&
+                  (b.site_name || "").trim().startsWith("Prev:"),
+              );
             }
             if (!billData && sName !== "N/A") {
-              billData = sortedBilling.find((b) => matchPlateWithAliases(b.plate_no) && (!b.site_name || b.site_name === "N/A"));
+              billData = sortedBilling.find(
+                (b) =>
+                  matchPlateWithAliases(b.plate_no) &&
+                  (!b.site_name || b.site_name === "N/A"),
+              );
             }
 
             let bill_db_nr = billData ? parseFloat(billData.nhr) || 0 : 0;
             let bill_db_ot = billData ? parseFloat(billData.othr) || 0 : 0;
             let driver_ot = billData ? parseFloat(billData.driver_ot) || 0 : 0;
-            let driver_amount = billData ? parseFloat(billData.driver_amount) || 0 : 0;
+            let driver_amount = billData
+              ? parseFloat(billData.driver_amount) || 0
+              : 0;
             let bill_nrate = billData ? parseFloat(billData.nrate) || 0 : 0;
             let bill_otrate = billData ? parseFloat(billData.otrate) || 0 : 0;
             let bill_rent = billData ? parseFloat(billData.rent) || 0 : 0;
             let rent_vat = billData ? parseFloat(billData.vat_amount) || 0 : 0;
             let rent_total = billData ? parseFloat(billData.total) || 0 : 0;
 
-            let totalTsHrs = (parseFloat(ts_nr) || 0) + (parseFloat(ts_ot) || 0);
-            if ((sName === "N/A" || displaySiteName.startsWith("Prev:")) && totalTsHrs === 0) return;
+            let totalTsHrs =
+              (parseFloat(ts_nr) || 0) + (parseFloat(ts_ot) || 0);
+            if (
+              (sName === "N/A" || displaySiteName.startsWith("Prev:")) &&
+              totalTsHrs === 0
+            )
+              return;
 
-            let invData = vInvoices.find((i) => (i.site_name || "").trim() === sName);
+            let invData = vInvoices.find(
+              (i) => (i.site_name || "").trim() === sName,
+            );
             if (!invData && sName.startsWith("Prev:")) {
-              invData = vInvoices.find((i) => (i.site_name || "").trim().startsWith("Prev:"));
+              invData = vInvoices.find((i) =>
+                (i.site_name || "").trim().startsWith("Prev:"),
+              );
             }
             if (!invData && sName !== "N/A") {
-              invData = vInvoices.find((i) => !i.site_name || i.site_name === "N/A");
+              invData = vInvoices.find(
+                (i) => !i.site_name || i.site_name === "N/A",
+              );
             }
 
             let inv_nr_raw = invData ? invData.bill_nr : null;
-            let inv_nr = inv_nr_raw !== null && inv_nr_raw !== "" ? parseFloat(inv_nr_raw) : "";
+            let inv_nr =
+              inv_nr_raw !== null && inv_nr_raw !== ""
+                ? parseFloat(inv_nr_raw)
+                : "";
             let inv_ot_raw = invData ? invData.bill_ot : null;
-            let inv_ot = inv_ot_raw !== null && inv_ot_raw !== "" ? parseFloat(inv_ot_raw) : "";
+            let inv_ot =
+              inv_ot_raw !== null && inv_ot_raw !== ""
+                ? parseFloat(inv_ot_raw)
+                : "";
             let inv_no = invData ? invData.invoice_no || "" : "";
             let bill_no = invData ? invData.bill_no || "" : "";
             let accounts_note = invData ? invData.accounts_note || "" : "";
@@ -1254,11 +1710,17 @@
             let erp = invData ? invData.erp || "" : "";
             let payment_status = invData ? invData.payment_status || "" : "";
             let diff_clear = invData ? invData.diff_clear || "No" : "No";
-            let vbill_notes = billData && billData.remark ? billData.remark : "";
-            let inv_amount = invData ? parseFloat(invData.invoice_amount) || 0 : 0;
-            let inv_deduct = invData && invData.inv_deduct !== null && invData.inv_deduct !== ""
-              ? parseFloat(invData.inv_deduct) || 0
+            let vbill_notes =
+              billData && billData.remark ? billData.remark : "";
+            let inv_amount = invData
+              ? parseFloat(invData.invoice_amount) || 0
               : 0;
+            let inv_deduct =
+              invData &&
+              invData.inv_deduct !== null &&
+              invData.inv_deduct !== ""
+                ? parseFloat(invData.inv_deduct) || 0
+                : 0;
             let deduct_reason = invData ? invData.deduct_reason || "" : "";
             let calculated_total = 0;
             if (inv_amount > 0 || inv_deduct > 0) {
@@ -1270,7 +1732,9 @@
             let calc_inv_nr = parseFloat(inv_nr) || 0;
             let calc_inv_ot = parseFloat(inv_ot) || 0;
 
-            let diff_nr = "", diff_ot = "", diff_st = "";
+            let diff_nr = "",
+              diff_ot = "",
+              diff_st = "";
             let sNameUpper = sName.toUpperCase();
 
             if (!sNameUpper.startsWith("Z")) {
@@ -1281,7 +1745,8 @@
                 if (daysInMonth === 31) {
                   let nonFridayDays = 0;
                   for (let d = 1; d <= 31; d++) {
-                    if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                    if (getDayName(d, monthStr, yearStr) !== "Fri")
+                      nonFridayDays++;
                   }
                   if (nonFridayDays < 27) {
                     let shift_amt = siteDataMap[sName].ts_31st_shift || 0;
@@ -1306,7 +1771,9 @@
             }
 
             if (diff_clear === "Yes") {
-              diff_nr = ""; diff_ot = ""; diff_st = "";
+              diff_nr = "";
+              diff_ot = "";
+              diff_st = "";
             }
 
             let effectivePlate = originalPlate;
@@ -1319,10 +1786,28 @@
             if (vPlateLogs.length > 0) {
               for (let pl of vPlateLogs) {
                 if (!pl.change_date) continue;
-                let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+                let [cYear, cMonth, cDay] = pl.change_date
+                  .split("-")
+                  .map(Number);
                 let cDate = new Date(cYear, cMonth - 1, cDay);
-                let curMonthStart = new Date(parseInt(yearStr), mIdx, 1, 0, 0, 0, 0);
-                let curMonthEnd = new Date(parseInt(yearStr), mIdx + 1, 0, 23, 59, 59, 999);
+                let curMonthStart = new Date(
+                  parseInt(yearStr),
+                  mIdx,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                );
+                let curMonthEnd = new Date(
+                  parseInt(yearStr),
+                  mIdx + 1,
+                  0,
+                  23,
+                  59,
+                  59,
+                  999,
+                );
 
                 if (cYear === parseInt(yearStr) && cMonth - 1 === mIdx) {
                   effectivePlate = `${pl.old_plate_no} ➔ ${pl.new_plate_no}`;
@@ -1334,8 +1819,12 @@
               }
             }
 
-            let display_inv_nr = inv_nr_raw !== null && inv_nr_raw !== "" ? calc_inv_nr.toString() : "";
-            let display_inv_ot = calc_inv_nr > 0 || calc_inv_ot > 0 ? calc_inv_ot.toString() : "";
+            let display_inv_nr =
+              inv_nr_raw !== null && inv_nr_raw !== ""
+                ? calc_inv_nr.toString()
+                : "";
+            let display_inv_ot =
+              calc_inv_nr > 0 || calc_inv_ot > 0 ? calc_inv_ot.toString() : "";
 
             processedArray.push({
               report_date: shortDate,
@@ -1355,15 +1844,19 @@
               bill_db_nr: bill_db_nr > 0 ? bill_db_nr.toString() : "",
               bill_db_ot: bill_db_ot > 0 ? bill_db_ot.toString() : "",
               driver_ot: driver_ot > 0 ? driver_ot.toString() : "",
-              driver_amount: driver_amount !== 0 ? driver_amount.toFixed(2) : "",
-              bill_nrate: bill_nrate > 0 ? parseFloat(bill_nrate).toFixed(2) : "",
-              bill_otrate: bill_otrate > 0 ? parseFloat(bill_otrate).toFixed(2) : "",
+              driver_amount:
+                driver_amount !== 0 ? driver_amount.toFixed(2) : "",
+              bill_nrate:
+                bill_nrate > 0 ? parseFloat(bill_nrate).toFixed(2) : "",
+              bill_otrate:
+                bill_otrate > 0 ? parseFloat(bill_otrate).toFixed(2) : "",
               bill_rent: bill_rent > 0 ? bill_rent.toFixed(2) : "",
               rent_vat: rent_vat > 0 ? rent_vat.toFixed(2) : "",
               rent_total: rent_total > 0 ? rent_total.toFixed(2) : "",
               inv_subtotal: inv_amount > 0 ? inv_amount.toFixed(2) : "",
               inv_deduct: inv_deduct !== 0 ? inv_deduct.toFixed(2) : "",
-              inv_total: calculated_total > 0 ? calculated_total.toFixed(2) : "",
+              inv_total:
+                calculated_total > 0 ? calculated_total.toFixed(2) : "",
               deduct_reason: deduct_reason,
               diff_nr,
               diff_ot,
@@ -1384,7 +1877,8 @@
                 if (daysInMonth !== 31) return calc_ts_nr;
                 let nonFridayDays = 0;
                 for (let d = 1; d <= 31; d++) {
-                  if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                  if (getDayName(d, monthStr, yearStr) !== "Fri")
+                    nonFridayDays++;
                 }
                 if (nonFridayDays >= 27) return calc_ts_nr;
                 let shift = siteDataMap[sName].ts_31st_shift || 0;
@@ -1396,7 +1890,8 @@
                 if (daysInMonth !== 31) return calc_ts_ot;
                 let nonFridayDays = 0;
                 for (let d = 1; d <= 31; d++) {
-                  if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                  if (getDayName(d, monthStr, yearStr) !== "Fri")
+                    nonFridayDays++;
                 }
                 if (nonFridayDays >= 27) return calc_ts_ot;
                 let shift = siteDataMap[sName].ts_31st_shift || 0;
@@ -1416,7 +1911,10 @@
           else if (s.includes("MASAR")) rank = 4;
           else if (s.includes("WE1")) rank = 5;
 
-          let base = s.replace(/HAKA|ALJODA|AL\sJODA|MASAR\s*WHEELS|MASAR|WE1/g, "").replace(/\s+/g, " ").trim();
+          let base = s
+            .replace(/HAKA|ALJODA|AL\sJODA|MASAR\s*WHEELS|MASAR|WE1/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
           return { base, rank };
         }
 
@@ -1433,7 +1931,10 @@
       }
 
       async function fetchBatchReportDataAPI(monthQueries) {
-        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        const token =
+          localStorage.getItem("timesheetToken") ||
+          localStorage.getItem("invoiceToken") ||
+          "";
         try {
           const res = await fetch("/payment/master-report-data-batch", {
             method: "POST",
@@ -1458,10 +1959,15 @@
             const monthData = {
               ...data,
               timesheets: (data.timesheets || []).filter(
-                (row) => row.month === query.m && String(row.year) === String(query.y)
+                (row) =>
+                  row.month === query.m && String(row.year) === String(query.y),
               ),
-              invoices: (data.invoices || []).filter((row) => row.month === fullMonth),
-              billing: (data.billing || []).filter((row) => row.billing_month === fullMonth),
+              invoices: (data.invoices || []).filter(
+                (row) => row.month === fullMonth,
+              ),
+              billing: (data.billing || []).filter(
+                (row) => row.billing_month === fullMonth,
+              ),
             };
             return processDataLogic(monthData, query.m, query.y);
           });
@@ -1508,7 +2014,9 @@
 
         // Reset previous filters
         headerFilters = {};
-        document.querySelectorAll(".filter-icon").forEach((el) => el.classList.remove("filter-active"));
+        document
+          .querySelectorAll(".filter-icon")
+          .forEach((el) => el.classList.remove("filter-active"));
 
         const totalMonths = monthQueries.length;
         masterData = [];
@@ -1540,7 +2048,10 @@
         }
 
         // 🟢 2 വർക്കേഴ്സ് ഒരേ സമയം റൺ ചെയ്യുന്നു (ഡാറ്റാബേസ് ഹാങ് ആവാതെ മാക്സിമം സ്പീഡ്)
-        const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, totalMonths) }, () => fetchWorker());
+        const workers = Array.from(
+          { length: Math.min(CONCURRENCY_LIMIT, totalMonths) },
+          () => fetchWorker(),
+        );
         await Promise.all(workers);
 
         loader.innerHTML = `⚡ Finalizing Virtual Viewport...`;
@@ -1553,7 +2064,10 @@
 
       // 🟢 Filter Data (Combines Search Input + Header Column Filters + Sorting)
       function filterData() {
-        const keyword = document.getElementById("searchInput").value.trim().toUpperCase();
+        const keyword = document
+          .getElementById("searchInput")
+          .value.trim()
+          .toUpperCase();
 
         filteredData = masterData.filter((row) => {
           let matchKeyword =
@@ -1567,7 +2081,9 @@
           let passesHeaders = true;
           for (const key in headerFilters) {
             if (headerFilters[key] && headerFilters[key].length > 0) {
-              const cellVal = String(row[key] !== undefined && row[key] !== null ? row[key] : "");
+              const cellVal = String(
+                row[key] !== undefined && row[key] !== null ? row[key] : "",
+              );
               if (!headerFilters[key].includes(cellVal)) {
                 passesHeaders = false;
                 break;
@@ -1583,7 +2099,12 @@
             let valB = String(b[sortConfig.key] || "").toLowerCase();
             let numA = parseFloat(valA);
             let numB = parseFloat(valB);
-            if (!isNaN(numA) && !isNaN(numB) && valA.match(/^[\d.]+$/) && valB.match(/^[\d.]+$/)) {
+            if (
+              !isNaN(numA) &&
+              !isNaN(numB) &&
+              valA.match(/^[\d.]+$/) &&
+              valB.match(/^[\d.]+$/)
+            ) {
               return sortConfig.dir === "asc" ? numA - numB : numB - numA;
             }
             if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
@@ -1592,7 +2113,8 @@
           });
         }
 
-        document.getElementById("statsInfo").innerText = `${filteredData.length} Rows`;
+        document.getElementById("statsInfo").innerText =
+          `${filteredData.length} Rows`;
         renderVirtualViewport();
       }
 
@@ -1624,12 +2146,14 @@
           const row = filteredData[i];
           const isVatYes = row.vat && row.vat.toLowerCase().includes("yes");
           const vatDisplay = isVatYes ? "Yes" : "";
-          const vatStyle = isVatYes ? "background-color: #fef08a; color: #854d0e; font-weight: 700;" : "";
+          const vatStyle = isVatYes
+            ? "background-color: #fef08a; color: #854d0e; font-weight: 700;"
+            : "";
 
           html += `
             <tr ondblclick="openRowEditModal(${i})" title="Double-click to Edit this Row">
               <td style="font-weight: 600; text-align: center; color: #b91c1c; font-size: 11px;">${row.report_date}</td>
-              <td style="font-weight: 600; text-align: left; padding-left: 8px; color: ${row.site.startsWith('Prev:') ? (row.site_status.includes('replace') ? '#ea580c' : '#dc2626') : 'inherit'};">${row.site}</td>
+              <td style="font-weight: 600; text-align: left; padding-left: 8px; color: ${row.site.startsWith("Prev:") ? (row.site_status.includes("replace") ? "#ea580c" : "#dc2626") : "inherit"};">${row.site}</td>
               <td style="font-weight: 700; color: #0f172a;">${row.rate}</td>
               <td style="${vatStyle}">${vatDisplay}</td>
               <td style="text-align: left; padding-left: 6px;">${row.owner}</td>
@@ -1690,12 +2214,13 @@
 
         let allOptions = new Set();
         masterData.forEach((row) => {
-          let val = row[key] !== undefined && row[key] !== null ? String(row[key]) : "";
+          let val =
+            row[key] !== undefined && row[key] !== null ? String(row[key]) : "";
           allOptions.add(val);
         });
 
         let allDataArr = Array.from(allOptions).sort((a, b) =>
-          a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+          a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
         );
 
         let previouslySelected = headerFilters[key] || [];
@@ -1712,13 +2237,15 @@
             `<div class="filter-item filter-row-item">
               <input type="checkbox" id="${id}" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb" />
               <label for="${id}">${displayVal}</label>
-            </div>`
+            </div>`,
           );
         });
 
         let thRect = event.currentTarget.getBoundingClientRect();
         menu.style.top = thRect.bottom + window.scrollY + 2 + "px";
-        menu.style.left = Math.min(thRect.left + window.scrollX, window.innerWidth - 240) + "px";
+        menu.style.left =
+          Math.min(thRect.left + window.scrollX, window.innerWidth - 240) +
+          "px";
         menu.style.display = "block";
         document.getElementById("filterSearchInput").value = "";
         document.getElementById("filterSearchInput").focus();
@@ -1763,23 +2290,32 @@
         filterData();
       }
 
-      document.getElementById("filterSelectAll")?.addEventListener("change", function () {
-        let isChecked = this.checked;
-        document.querySelectorAll(".col-filter-cb").forEach((cb) => {
-          if (cb.parentElement.style.display !== "none") cb.checked = isChecked;
+      document
+        .getElementById("filterSelectAll")
+        ?.addEventListener("change", function () {
+          let isChecked = this.checked;
+          document.querySelectorAll(".col-filter-cb").forEach((cb) => {
+            if (cb.parentElement.style.display !== "none")
+              cb.checked = isChecked;
+          });
         });
-      });
 
-      document.getElementById("filterSearchInput")?.addEventListener("keyup", function () {
-        let keyword = this.value.toLowerCase();
-        document.querySelectorAll(".filter-row-item").forEach((item) => {
-          if (item.textContent.toLowerCase().includes(keyword)) item.style.display = "";
-          else item.style.display = "none";
+      document
+        .getElementById("filterSearchInput")
+        ?.addEventListener("keyup", function () {
+          let keyword = this.value.toLowerCase();
+          document.querySelectorAll(".filter-row-item").forEach((item) => {
+            if (item.textContent.toLowerCase().includes(keyword))
+              item.style.display = "";
+            else item.style.display = "none";
+          });
         });
-      });
 
       document.addEventListener("click", function (e) {
-        if (!e.target.closest(".excel-filter-menu") && !e.target.closest("th")) {
+        if (
+          !e.target.closest(".excel-filter-menu") &&
+          !e.target.closest("th")
+        ) {
           closeExcelFilter();
         }
       });
@@ -1799,7 +2335,10 @@
         const code = document.getElementById("masterSecurityCode").value.trim();
         if (!code) return;
 
-        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        const token =
+          localStorage.getItem("timesheetToken") ||
+          localStorage.getItem("invoiceToken") ||
+          "";
         try {
           const res = await fetch("/payment/verify-master-security", {
             method: "POST",
@@ -1834,35 +2373,48 @@
           pendingEditIndex = index;
           document.getElementById("masterSecurityCode").value = "";
           document.getElementById("masterPrompt").style.display = "flex";
-          setTimeout(() => document.getElementById("masterSecurityCode").focus(), 50);
+          setTimeout(
+            () => document.getElementById("masterSecurityCode").focus(),
+            50,
+          );
           return;
         }
 
         editingRowIndex = index;
         const row = filteredData[index];
 
-        document.getElementById("editModalTitle").innerText = `Edit: ${row.plate} | ${row.site} | ${row.report_date}`;
+        document.getElementById("editModalTitle").innerText =
+          `Edit: ${row.plate} | ${row.site} | ${row.report_date}`;
 
         document.getElementById("mdl_inv_no").value = row.inv_no || "";
-        document.getElementById("mdl_inv_amount").value = row.inv_subtotal || "";
+        document.getElementById("mdl_inv_amount").value =
+          row.inv_subtotal || "";
         document.getElementById("mdl_bill_no").value = row.bill_no || "";
         document.getElementById("mdl_inv_nr").value = row.inv_nr || "";
         document.getElementById("mdl_inv_ot").value = row.inv_ot || "";
         document.getElementById("mdl_inv_deduct").value = row.inv_deduct || "";
-        document.getElementById("mdl_deduct_reason").value = row.deduct_reason || "";
+        document.getElementById("mdl_deduct_reason").value =
+          row.deduct_reason || "";
         document.getElementById("mdl_crn_no").value = row.crn_no || "";
 
         document.getElementById("mdl_bill_db_nr").value = row.bill_db_nr || "";
         document.getElementById("mdl_bill_db_ot").value = row.bill_db_ot || "";
         document.getElementById("mdl_driver_ot").value = row.driver_ot || "";
-        document.getElementById("mdl_driver_amount").value = row.driver_amount || "";
-        document.getElementById("mdl_vbill_notes").value = row.vbill_notes !== "-" ? row.vbill_notes : "";
+        document.getElementById("mdl_driver_amount").value =
+          row.driver_amount || "";
+        document.getElementById("mdl_vbill_notes").value =
+          row.vbill_notes !== "-" ? row.vbill_notes : "";
 
-        document.getElementById("mdl_pwas").value = row.pwas !== "-" ? row.pwas : "";
-        document.getElementById("mdl_erp").value = row.erp !== "-" ? row.erp : "";
-        document.getElementById("mdl_payment_status").value = row.payment_status !== "-" ? row.payment_status : "";
-        document.getElementById("mdl_accounts_note").value = row.accounts_note !== "-" ? row.accounts_note : "";
-        document.getElementById("mdl_diff_clear").checked = row.diff_clear === "Yes";
+        document.getElementById("mdl_pwas").value =
+          row.pwas !== "-" ? row.pwas : "";
+        document.getElementById("mdl_erp").value =
+          row.erp !== "-" ? row.erp : "";
+        document.getElementById("mdl_payment_status").value =
+          row.payment_status !== "-" ? row.payment_status : "";
+        document.getElementById("mdl_accounts_note").value =
+          row.accounts_note !== "-" ? row.accounts_note : "";
+        document.getElementById("mdl_diff_clear").checked =
+          row.diff_clear === "Yes";
 
         document.getElementById("editModal").style.display = "flex";
       }
@@ -1875,14 +2427,19 @@
       async function saveRowEdits() {
         if (editingRowIndex === -1) return;
         const row = filteredData[editingRowIndex];
-        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        const token =
+          localStorage.getItem("timesheetToken") ||
+          localStorage.getItem("invoiceToken") ||
+          "";
 
         document.getElementById("loader").style.display = "block";
-        document.getElementById("loader").innerText = "Saving Data... Please Wait.";
+        document.getElementById("loader").innerText =
+          "Saving Data... Please Wait.";
 
         try {
           const getVal = (id) => document.getElementById(id).value.trim();
-          const getNum = (val) => val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val));
+          const getNum = (val) =>
+            val === "" ? null : isNaN(parseFloat(val)) ? null : parseFloat(val);
 
           const preciseMonth = `${row.raw_month} ${row.raw_year}`;
           const siteName = row.site;
@@ -1904,7 +2461,10 @@
           };
           await fetch("/py/payment/bulk-save-invoices", {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
             body: JSON.stringify({ records: [invData] }),
           });
 
@@ -1922,7 +2482,10 @@
           };
           await fetch("/payment/save-bulk-vbill-notes", {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
             body: JSON.stringify({ records: [vbillData] }),
           });
 
@@ -1932,18 +2495,38 @@
             let val = getVal("mdl_" + field) || "-";
             return fetch("/payment/save-text-note", {
               method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-              body: JSON.stringify({ plate_no: plateNo, month: preciseMonth, site_name: siteName, field: field, value: val }),
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify({
+                plate_no: plateNo,
+                month: preciseMonth,
+                site_name: siteName,
+                field: field,
+                value: val,
+              }),
             });
           });
 
-          let diffClearVal = document.getElementById("mdl_diff_clear").checked ? "Yes" : "No";
+          let diffClearVal = document.getElementById("mdl_diff_clear").checked
+            ? "Yes"
+            : "No";
           textPromises.push(
             fetch("/payment/save-text-note", {
               method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-              body: JSON.stringify({ plate_no: plateNo, month: preciseMonth, site_name: siteName, field: "diff_clear", value: diffClearVal }),
-            })
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify({
+                plate_no: plateNo,
+                month: preciseMonth,
+                site_name: siteName,
+                field: "diff_clear",
+                value: diffClearVal,
+              }),
+            }),
           );
 
           await Promise.all(textPromises);
@@ -1953,19 +2536,27 @@
           row.bill_no = invData.bill_no;
           row.inv_nr = invData.inv_nr !== null ? invData.inv_nr.toString() : "";
           row.inv_ot = invData.inv_ot !== null ? invData.inv_ot.toString() : "";
-          row.inv_subtotal = invData.inv_amount !== null ? invData.inv_amount.toFixed(2) : "";
+          row.inv_subtotal =
+            invData.inv_amount !== null ? invData.inv_amount.toFixed(2) : "";
           let dVal = invData.inv_deduct !== null ? invData.inv_deduct : 0; // 🟢 Use data from API payload
           row.inv_deduct = dVal !== 0 ? dVal.toFixed(2) : "";
           let invAmt = invData.inv_amount !== null ? invData.inv_amount : 0;
-          let calculatedTot = (invAmt > 0 || dVal > 0) ? ((invAmt - dVal) * 1.15) : 0; // 🟢 Robust calculation
+          let calculatedTot =
+            invAmt > 0 || dVal > 0 ? (invAmt - dVal) * 1.15 : 0; // 🟢 Robust calculation
           row.inv_total = calculatedTot > 0 ? calculatedTot.toFixed(2) : "";
           row.deduct_reason = invData.deduct_reason;
           row.crn_no = invData.crn_no;
 
-          row.bill_db_nr = vbillData.bill_nr !== null ? vbillData.bill_nr.toString() : "";
-          row.bill_db_ot = vbillData.bill_ot !== null ? vbillData.bill_ot.toString() : "";
-          row.driver_ot = vbillData.driver_ot !== null ? vbillData.driver_ot.toString() : "";
-          row.driver_amount = vbillData.driver_amount !== null ? vbillData.driver_amount.toFixed(2) : "";
+          row.bill_db_nr =
+            vbillData.bill_nr !== null ? vbillData.bill_nr.toString() : "";
+          row.bill_db_ot =
+            vbillData.bill_ot !== null ? vbillData.bill_ot.toString() : "";
+          row.driver_ot =
+            vbillData.driver_ot !== null ? vbillData.driver_ot.toString() : "";
+          row.driver_amount =
+            vbillData.driver_amount !== null
+              ? vbillData.driver_amount.toFixed(2)
+              : "";
           row.vbill_notes = vbillData.remark;
 
           row.pwas = getVal("mdl_pwas") || "-";
@@ -2003,27 +2594,91 @@
       function createExportSheetFromData(dataArray) {
         let aoa = [
           [
-            "VEHICLE INFO", "", "", "", "", "", "",
-            "Logsheet Collected", "",
-            "Bill Summary", "",
-            "To Supplier", "",
-            "For Driver", "",
-            "DIFFERENCE", "", "", "", "",
-            "AMOUNT", "", "", "", "",
-            "INVOICE", "", "", "", "", "", "",
-            "EXTRA DETAILS", "", "", "",
-            "GENERAL VEHICLE INFO", "", "",
-            "31 Considered as NR", ""
+            "VEHICLE INFO",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Logsheet Collected",
+            "",
+            "Bill Summary",
+            "",
+            "To Supplier",
+            "",
+            "For Driver",
+            "",
+            "DIFFERENCE",
+            "",
+            "",
+            "",
+            "",
+            "AMOUNT",
+            "",
+            "",
+            "",
+            "",
+            "INVOICE",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "EXTRA DETAILS",
+            "",
+            "",
+            "",
+            "GENERAL VEHICLE INFO",
+            "",
+            "",
+            "31 Considered as NR",
+            "",
           ],
           [
-            "Month", "Site", "Rate", "VAT", "Owner Name", "Vehicle Type", "Plate No",
-            "NR", "OT", "NR", "OT", "NR", "OT", "OT", "AMT",
-            "NR", "OT", "IDN", "Clear", "V.Bill Notes",
-            "NR Rate", "OT Rate", "Rent", "VAT", "Total",
-            "Subtotal", "Deductions", "Total", "Reason", "CRN No", "Invoice No", "Bill No",
-            "PWAS", "ERP", "Payment Status", "Accounts Note",
-            "Driver Name", "Field Co", "Site Co", "NR", "OT"
-          ]
+            "Month",
+            "Site",
+            "Rate",
+            "VAT",
+            "Owner Name",
+            "Vehicle Type",
+            "Plate No",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "OT",
+            "AMT",
+            "NR",
+            "OT",
+            "IDN",
+            "Clear",
+            "V.Bill Notes",
+            "NR Rate",
+            "OT Rate",
+            "Rent",
+            "VAT",
+            "Total",
+            "Subtotal",
+            "Deductions",
+            "Total",
+            "Reason",
+            "CRN No",
+            "Invoice No",
+            "Bill No",
+            "PWAS",
+            "ERP",
+            "Payment Status",
+            "Accounts Note",
+            "Driver Name",
+            "Field Co",
+            "Site Co",
+            "NR",
+            "OT",
+          ],
         ];
 
         dataArray.forEach((r) => {
@@ -2031,7 +2686,7 @@
             r.report_date,
             r.site,
             cleanExportRate(r.rate),
-            (r.vat && r.vat.toLowerCase().includes("yes")) ? "Yes" : "",
+            r.vat && r.vat.toLowerCase().includes("yes") ? "Yes" : "",
             r.owner,
             r.vehicle_type,
             r.plate,
@@ -2068,7 +2723,7 @@
             r.field_co,
             r.site_co,
             r.alt_nr,
-            r.alt_ot > 0 ? r.alt_ot : ""
+            r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
 
@@ -2083,7 +2738,7 @@
           { s: { r: 0, c: 25 }, e: { r: 0, c: 31 } }, // INVOICE (25..31 -> Subtotal, Deductions, Total, Reason, CRN No, Inv No, Bill No)
           { s: { r: 0, c: 32 }, e: { r: 0, c: 35 } }, // EXTRA DETAILS (32..35)
           { s: { r: 0, c: 36 }, e: { r: 0, c: 38 } }, // GENERAL VEHICLE INFO (36..38)
-          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }  // 31 Considered as NR (39..40)
+          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (39..40)
         ];
 
         return {
@@ -2091,7 +2746,7 @@
           aoa: aoa,
           merges: merges,
           is_analysis: false,
-          is_vbv: true
+          is_vbv: true,
         };
       }
 

@@ -50,9 +50,7 @@ async function handleLogin() {
       }
       localStorage.setItem("eq_user", JSON.stringify(data.user));
 
-      window.location.replace(
-        window.ownEquipmentSession.getLoginDestination(),
-      );
+      window.location.replace(window.ownEquipmentSession.getLoginDestination());
     } else {
       showAlert(data.message, "error");
     }
@@ -193,7 +191,11 @@ async function startEqFaceAuth(action) {
     }
 
     eqCamStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+      video: {
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        facingMode: "user",
+      },
       audio: false,
     });
     video.srcObject = eqCamStream;
@@ -305,22 +307,31 @@ async function handleEqFaceCapture(frame) {
           regFaceStatus.style.display = "block";
         }
       } else if (activeEqFaceAction === "reset") {
-        const resetRes = await fetch("/api/own-equipment/auth/reset-face-data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: eqRfTempCreds.username,
-            password: eqRfTempCreds.password,
-            faceDescriptor: data.descriptor,
-          }),
-        });
+        const resetRes = await fetch(
+          "/api/own-equipment/auth/reset-face-data",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: eqRfTempCreds.username,
+              password: eqRfTempCreds.password,
+              faceDescriptor: data.descriptor,
+            }),
+          },
+        );
         const resetData = await resetRes.json();
         eqRfTempCreds = null;
         if (resetData.success) {
           toggleView("login");
-          showAlert(resetData.message || "Face data updated successfully!", "success");
+          showAlert(
+            resetData.message || "Face data updated successfully!",
+            "success",
+          );
         } else {
-          showAlert(resetData.message || "Failed to update face data.", "error");
+          showAlert(
+            resetData.message || "Failed to update face data.",
+            "error",
+          );
         }
       }
     } catch (err) {
@@ -350,9 +361,7 @@ function closeEqUniversalFace() {
 // Normal page load + browser Back/Forward restore & Enter key listener
 window.addEventListener("pageshow", function () {
   if (localStorage.getItem("eq_token")) {
-    window.location.replace(
-      window.ownEquipmentSession.getLoginDestination(),
-    );
+    window.location.replace(window.ownEquipmentSession.getLoginDestination());
     return;
   }
   clearAuthForms();
@@ -360,9 +369,7 @@ window.addEventListener("pageshow", function () {
 
 document.addEventListener("DOMContentLoaded", () => {
   if (localStorage.getItem("eq_token")) {
-    window.location.replace(
-      window.ownEquipmentSession.getLoginDestination(),
-    );
+    window.location.replace(window.ownEquipmentSession.getLoginDestination());
     return;
   }
   ["loginUser", "loginPass"].forEach((id) => {

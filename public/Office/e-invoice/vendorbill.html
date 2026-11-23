@@ -2427,15 +2427,32 @@
 
             // OT Hour portion
             seqCount++;
-            const otSub = Number((parseFloat(row.rent || 0) - nSub).toFixed(2)) > 0
-              ? Number((parseFloat(row.rent || 0) - nSub).toFixed(2))
-              : Number((othr * otrate).toFixed(2));
-            const otVat = Number((parseFloat(row.vat_amount || row.vatVal || 0) - nVat).toFixed(2)) > 0
-              ? Number((parseFloat(row.vat_amount || row.vatVal || 0) - nVat).toFixed(2))
-              : Number((otSub * (vatPct / 100)).toFixed(2));
-            const otTot = Number((parseFloat(row.total || row.totalVal || 0) - nTot).toFixed(2)) > 0
-              ? Number((parseFloat(row.total || row.totalVal || 0) - nTot).toFixed(2))
-              : Number((otSub + otVat).toFixed(2));
+            const otSub =
+              Number((parseFloat(row.rent || 0) - nSub).toFixed(2)) > 0
+                ? Number((parseFloat(row.rent || 0) - nSub).toFixed(2))
+                : Number((othr * otrate).toFixed(2));
+            const otVat =
+              Number(
+                (parseFloat(row.vat_amount || row.vatVal || 0) - nVat).toFixed(
+                  2,
+                ),
+              ) > 0
+                ? Number(
+                    (
+                      parseFloat(row.vat_amount || row.vatVal || 0) - nVat
+                    ).toFixed(2),
+                  )
+                : Number((otSub * (vatPct / 100)).toFixed(2));
+            const otTot =
+              Number(
+                (parseFloat(row.total || row.totalVal || 0) - nTot).toFixed(2),
+              ) > 0
+                ? Number(
+                    (parseFloat(row.total || row.totalVal || 0) - nTot).toFixed(
+                      2,
+                    ),
+                  )
+                : Number((otSub + otVat).toFixed(2));
 
             activeBillItems.push({
               seq: String(seqCount),
@@ -2457,12 +2474,14 @@
                 ? parseFloat(row.rent)
                 : Number((qty * rate).toFixed(2));
             const vat =
-              parseFloat(row.vat_amount || row.vat || row.vatVal) !== undefined &&
+              parseFloat(row.vat_amount || row.vat || row.vatVal) !==
+                undefined &&
               parseFloat(row.vat_amount || row.vat || row.vatVal) > 0
                 ? parseFloat(row.vat_amount || row.vat || row.vatVal)
                 : Number((sub * (vatPct / 100)).toFixed(2));
             const tot =
-              parseFloat(row.total || row.totalVal) !== undefined && parseFloat(row.total || row.totalVal) > 0
+              parseFloat(row.total || row.totalVal) !== undefined &&
+              parseFloat(row.total || row.totalVal) > 0
                 ? parseFloat(row.total || row.totalVal)
                 : Number((sub + vat).toFixed(2));
 
@@ -2486,12 +2505,14 @@
                 ? parseFloat(row.rent)
                 : Number((qty * rate).toFixed(2));
             const vat =
-              parseFloat(row.vat_amount || row.vat || row.vatVal) !== undefined &&
+              parseFloat(row.vat_amount || row.vat || row.vatVal) !==
+                undefined &&
               parseFloat(row.vat_amount || row.vat || row.vatVal) > 0
                 ? parseFloat(row.vat_amount || row.vat || row.vatVal)
                 : Number((sub * (vatPct / 100)).toFixed(2));
             const tot =
-              parseFloat(row.total || row.totalVal) !== undefined && parseFloat(row.total || row.totalVal) > 0
+              parseFloat(row.total || row.totalVal) !== undefined &&
+              parseFloat(row.total || row.totalVal) > 0
                 ? parseFloat(row.total || row.totalVal)
                 : Number((sub + vat).toFixed(2));
 
@@ -3143,8 +3164,7 @@
         const seen = new Set();
         const parts = [];
         activeBillItems.forEach((it) => {
-          const isOT =
-            it.kind === "OT" || /^Over Time/i.test(it.vtype || "");
+          const isOT = it.kind === "OT" || /^Over Time/i.test(it.vtype || "");
           if (isOT || it.flat) return;
           const rate = parseFloat(it.rate) || 0;
           if (!rate) return;
@@ -3220,9 +3240,17 @@
             const c = calcEditedItem(it, e);
             const fields = [];
             if (e.qChanged)
-              fields.push({ label: "Qty", from: fmt4(it.qty), to: fmt4(e.qty) });
+              fields.push({
+                label: "Qty",
+                from: fmt4(it.qty),
+                to: fmt4(e.qty),
+              });
             if (e.rChanged)
-              fields.push({ label: "Rate", from: fmt4(it.rate), to: fmt4(e.rate) });
+              fields.push({
+                label: "Rate",
+                from: fmt4(it.rate),
+                to: fmt4(e.rate),
+              });
             if (e.vChanged)
               fields.push({
                 label: "VAT %",
@@ -3350,7 +3378,8 @@
             sfx: !!dI.dataset.sfx,
             vtype_ar: aI.value.trim(),
             qty: parseFloat(qI.value) || 0,
-            rate: rI.value === rI.dataset.orig ? null : parseFloat(rI.value) || 0,
+            rate:
+              rI.value === rI.dataset.orig ? null : parseFloat(rI.value) || 0,
             vat: parseFloat(vI.value) || 0,
             numChanged,
             qChanged: qI.value !== qI.dataset.orig,
@@ -3651,13 +3680,22 @@
 
         const ftParts = [];
         if (comp.address_line_ar)
-          ftParts.push(`<span dir="rtl" style="unicode-bidi:isolate;">${comp.address_line_ar.trim()}</span>`);
+          ftParts.push(
+            `<span dir="rtl" style="unicode-bidi:isolate;">${comp.address_line_ar.trim()}</span>`,
+          );
         if (comp.address_line_en)
-          ftParts.push(`<span dir="ltr" style="unicode-bidi:isolate;">${comp.address_line_en.trim()}</span>`);
+          ftParts.push(
+            `<span dir="ltr" style="unicode-bidi:isolate;">${comp.address_line_en.trim()}</span>`,
+          );
         if (comp.email)
-          ftParts.push(`<span dir="ltr" style="unicode-bidi:isolate;">${comp.email.trim()}</span>`);
+          ftParts.push(
+            `<span dir="ltr" style="unicode-bidi:isolate;">${comp.email.trim()}</span>`,
+          );
         document.getElementById("footerAddrContainer").innerHTML = ftParts
-          .map((p, i) => `<span style="white-space:nowrap;">${p}${i < ftParts.length - 1 ? " |" : ""}</span>`)
+          .map(
+            (p, i) =>
+              `<span style="white-space:nowrap;">${p}${i < ftParts.length - 1 ? " |" : ""}</span>`,
+          )
           .join(" ");
         document.getElementById("footerEmail").innerText = "";
 

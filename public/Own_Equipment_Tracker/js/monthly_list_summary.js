@@ -136,7 +136,7 @@ const colTitleMap = {
   kafil: "Kafil",
   owner: "Owner",
   inv: "Investor",
-  pl: "Profit or Loss"
+  pl: "Profit or Loss",
 };
 
 function getRowColValue(item, colKey) {
@@ -175,7 +175,10 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
       ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
       : [parseInt(currentSelectedMonth)];
 
-  const fInd = (k) => (activeSummaryFilters[k] !== undefined && activeSummaryFilters[k] !== null ? " 🔽" : "");
+  const fInd = (k) =>
+    activeSummaryFilters[k] !== undefined && activeSummaryFilters[k] !== null
+      ? " 🔽"
+      : "";
 
   monthsToRender.forEach((m) => {
     const monthLogs = logs.filter((l) => l.month === m);
@@ -205,20 +208,20 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
                         </tr>
                         <tr>
                             <th>SN</th>
-                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('plate_no', event)" title="Right-click to filter">Plate no${fInd('plate_no')}</th>
-                            <th class="col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('maint', event)" title="Right-click to filter">EQ Maintenance Cost${fInd('maint')}</th>
-                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('netSal', event)" title="Right-click to filter">Net Salary${fInd('netSal')}</th>
-                            <th class="col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('rent', event)" title="Right-click to filter">Santook Rent${fInd('rent')}</th>
-                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('debt', event)" title="Right-click to filter">Debt${fInd('debt')}</th>
-                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('pwas', event)" title="Right-click to filter">PWAS${fInd('pwas')}</th>
-                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('other', event)" title="Right-click to filter">Other${fInd('other')}</th>
-                            <th class="bg-op-exp col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('totOpExp', event)" title="Right-click to filter">Total Operational Expenses${fInd('totOpExp')}</th>
-                            <th class="bg-op-rev col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('opRev', event)" title="Right-click to filter">Operational revenue${fInd('opRev')}</th>
-                            <th class="bg-net-op col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('netOpRev', event)" title="Right-click to filter">Net OP Revenue${fInd('netOpRev')}</th>
-                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('kafil', event)" title="Right-click to filter">Kafil${fInd('kafil')}</th>
-                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('owner', event)" title="Right-click to filter">Owner${fInd('owner')}</th>
-                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('inv', event)" title="Right-click to filter">Investor${fInd('inv')}</th>
-                            <th class="bg-pl pl-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('pl', event)" title="Right-click to filter">Profit or Loss${fInd('pl')}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('plate_no', event)" title="Right-click to filter">Plate no${fInd("plate_no")}</th>
+                            <th class="col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('maint', event)" title="Right-click to filter">EQ Maintenance Cost${fInd("maint")}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('netSal', event)" title="Right-click to filter">Net Salary${fInd("netSal")}</th>
+                            <th class="col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('rent', event)" title="Right-click to filter">Santook Rent${fInd("rent")}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('debt', event)" title="Right-click to filter">Debt${fInd("debt")}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('pwas', event)" title="Right-click to filter">PWAS${fInd("pwas")}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('other', event)" title="Right-click to filter">Other${fInd("other")}</th>
+                            <th class="bg-op-exp col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('totOpExp', event)" title="Right-click to filter">Total Operational Expenses${fInd("totOpExp")}</th>
+                            <th class="bg-op-rev col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('opRev', event)" title="Right-click to filter">Operational revenue${fInd("opRev")}</th>
+                            <th class="bg-net-op col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('netOpRev', event)" title="Right-click to filter">Net OP Revenue${fInd("netOpRev")}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('kafil', event)" title="Right-click to filter">Kafil${fInd("kafil")}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('owner', event)" title="Right-click to filter">Owner${fInd("owner")}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('inv', event)" title="Right-click to filter">Investor${fInd("inv")}</th>
+                            <th class="bg-pl pl-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('pl', event)" title="Right-click to filter">Profit or Loss${fInd("pl")}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -294,14 +297,27 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
       processedRows.push({
         eq_id: eq.id,
         plate_no: (eq.plate_no || "").trim(),
-        maint, netSal, rent, debt, pwas, other,
-        totOpExp, opRev, netOpRev, kafil, owner, inv, pl
+        maint,
+        netSal,
+        rent,
+        debt,
+        pwas,
+        other,
+        totOpExp,
+        opRev,
+        netOpRev,
+        kafil,
+        owner,
+        inv,
+        pl,
       });
     });
 
     // 1. Column Filter Check
     const filteredRows = processedRows.filter((rowItem) => {
-      for (const [colKey, selectedVals] of Object.entries(activeSummaryFilters)) {
+      for (const [colKey, selectedVals] of Object.entries(
+        activeSummaryFilters,
+      )) {
         if (selectedVals === null || selectedVals === undefined) continue;
         const val = getRowColValue(rowItem, colKey);
         if (!selectedVals.includes(val)) return false;
@@ -417,9 +433,10 @@ function openColumnFilterMenu(colKey, x, y) {
   const valueSet = new Set();
   let hasBlank = false;
 
-  let activeMonths = selectedMonth === "ALL" || !selectedMonth
-    ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    : [parseInt(selectedMonth)];
+  let activeMonths =
+    selectedMonth === "ALL" || !selectedMonth
+      ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+      : [parseInt(selectedMonth)];
 
   activeMonths.forEach((m) => {
     const monthLogs = rawLogsCache.filter((l) => l.month === m);
@@ -436,12 +453,28 @@ function openColumnFilterMenu(colKey, x, y) {
       const other = Number(log.other_expense || 0);
       const opRev = Number(log.op_revenue || 0);
       const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
-      const compObj = (companyMappingData[eqPlateClean] && companyMappingData[eqPlateClean][m]) || {};
-      const compName = typeof compObj === "object" ? compObj.company || "Not Work" : compObj || "Not Work";
-      let kafilPctVal = (log.kafil_pct !== null && log.kafil_pct !== undefined)
-        ? Number(log.kafil_pct)
-        : (Number(log.kafil_comm || 0) > 0 ? 0 : ((compName !== "Not Work" && compName !== "We1" && !compName.includes("&")) ? 3 : 0));
-      let kafil = (kafilPctVal > 0 && opRev > 0) ? Number(((opRev * kafilPctVal) / 100).toFixed(1)) : Number(log.kafil_comm || 0);
+      const compObj =
+        (companyMappingData[eqPlateClean] &&
+          companyMappingData[eqPlateClean][m]) ||
+        {};
+      const compName =
+        typeof compObj === "object"
+          ? compObj.company || "Not Work"
+          : compObj || "Not Work";
+      let kafilPctVal =
+        log.kafil_pct !== null && log.kafil_pct !== undefined
+          ? Number(log.kafil_pct)
+          : Number(log.kafil_comm || 0) > 0
+            ? 0
+            : compName !== "Not Work" &&
+                compName !== "We1" &&
+                !compName.includes("&")
+              ? 3
+              : 0;
+      let kafil =
+        kafilPctVal > 0 && opRev > 0
+          ? Number(((opRev * kafilPctVal) / 100).toFixed(1))
+          : Number(log.kafil_comm || 0);
       const totOpExp = maint + netSal + rent + debt + pwas + other;
       const netOpRev = opRev - totOpExp;
       const owner = Number(log.owner_comm || 0);
@@ -450,14 +483,29 @@ function openColumnFilterMenu(colKey, x, y) {
 
       const rowItem = {
         plate_no: (eq.plate_no || "").trim(),
-        maint, netSal, rent, debt, pwas, other,
-        totOpExp, opRev, netOpRev, kafil, owner, inv, pl
+        maint,
+        netSal,
+        rent,
+        debt,
+        pwas,
+        other,
+        totOpExp,
+        opRev,
+        netOpRev,
+        kafil,
+        owner,
+        inv,
+        pl,
       };
 
       // മറ്റു കോളങ്ങളിലെ ആക്ടീവ് ഫിൽറ്ററുകൾ പാസ്സാകുന്ന വരികൾ മാത്രം ലിസ്റ്റിൽ ഉൾപ്പെടുത്തുന്നു
       let passesOtherFilters = true;
       for (const [fCol, selectedVals] of Object.entries(activeSummaryFilters)) {
-        if (selectedVals === null || selectedVals === undefined || fCol === colKey)
+        if (
+          selectedVals === null ||
+          selectedVals === undefined ||
+          fCol === colKey
+        )
           continue;
         if (!selectedVals.includes(getRowColValue(rowItem, fCol))) {
           passesOtherFilters = false;
@@ -477,12 +525,17 @@ function openColumnFilterMenu(colKey, x, y) {
 
   let sortedValues = [];
   if (colKey === "plate_no") {
-    sortedValues = Array.from(valueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    sortedValues = Array.from(valueSet).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
   } else {
     sortedValues = Array.from(valueSet).sort((a, b) => Number(a) - Number(b));
   }
 
-  const selectedList = activeSummaryFilters[colKey] !== undefined ? activeSummaryFilters[colKey] : null;
+  const selectedList =
+    activeSummaryFilters[colKey] !== undefined
+      ? activeSummaryFilters[colKey]
+      : null;
 
   let html = `
     <li>
@@ -492,7 +545,8 @@ function openColumnFilterMenu(colKey, x, y) {
   `;
 
   if (hasBlank) {
-    const isChecked = selectedList === null || selectedList.includes("__BLANK__");
+    const isChecked =
+      selectedList === null || selectedList.includes("__BLANK__");
     html += `
       <li class="col-filter-item" data-text="(blanks)">
         <input type="checkbox" class="col-filter-chk" value="__BLANK__" id="col_chk_blank" ${isChecked ? "checked" : ""} onchange="onSingleColumnCheckChange()" />
@@ -517,8 +571,10 @@ function openColumnFilterMenu(colKey, x, y) {
   menu.style.display = "block";
   const menuW = 250;
   const menuH = 340;
-  const posX = x + menuW > window.innerWidth ? window.innerWidth - menuW - 15 : x;
-  const posY = y + menuH > window.innerHeight ? window.innerHeight - menuH - 15 : y;
+  const posX =
+    x + menuW > window.innerWidth ? window.innerWidth - menuW - 15 : x;
+  const posY =
+    y + menuH > window.innerHeight ? window.innerHeight - menuH - 15 : y;
   menu.style.left = `${posX}px`;
   menu.style.top = `${posY}px`;
 }
@@ -529,7 +585,9 @@ function closeColumnFilterMenu() {
 }
 
 function toggleSelectAllColumnItems(master) {
-  const visible = Array.from(document.querySelectorAll(".col-filter-item")).filter((li) => li.style.display !== "none");
+  const visible = Array.from(
+    document.querySelectorAll(".col-filter-item"),
+  ).filter((li) => li.style.display !== "none");
   visible.forEach((li) => {
     const chk = li.querySelector(".col-filter-chk");
     if (chk) chk.checked = master.checked;
@@ -547,7 +605,10 @@ function syncSelectAllColumnState() {
 }
 
 function searchColumnFilterItems() {
-  const q = document.getElementById("columnFilterSearch").value.trim().toLowerCase();
+  const q = document
+    .getElementById("columnFilterSearch")
+    .value.trim()
+    .toLowerCase();
   document.querySelectorAll(".col-filter-item").forEach((li) => {
     const txt = li.getAttribute("data-text") || "";
     li.style.display = txt.includes(q) ? "flex" : "none";

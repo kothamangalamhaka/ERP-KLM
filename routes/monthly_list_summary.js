@@ -7,25 +7,29 @@ router.get("/data", async (req, res) => {
   try {
     const [equipments, logs, compHelper] = await Promise.all([
       pool.query(`SELECT id, plate_no FROM equipments ORDER BY id ASC`),
-      pool.query(`SELECT * FROM equipment_monthly_logs WHERE year = $1`, [year]),
-      pool.query(
-        `SELECT DISTINCT ON (UPPER(TRIM(plate_no)), EXTRACT(MONTH FROM date)::int)
+      pool.query(`SELECT * FROM equipment_monthly_logs WHERE year = $1`, [
+        year,
+      ]),
+      pool
+        .query(
+          `SELECT DISTINCT ON (UPPER(TRIM(plate_no)), EXTRACT(MONTH FROM date)::int)
            UPPER(TRIM(plate_no)) as plate_no,
            EXTRACT(MONTH FROM date)::int as month,
            company, site_name
          FROM billing_records
          WHERE EXTRACT(YEAR FROM date)::int = $1
          ORDER BY UPPER(TRIM(plate_no)), EXTRACT(MONTH FROM date)::int, id DESC`,
-        [year]
-      ).catch(() => ({ rows: [] }))
+          [year],
+        )
+        .catch(() => ({ rows: [] })),
     ]);
 
     const companies = {};
-    compHelper.rows.forEach(r => {
+    compHelper.rows.forEach((r) => {
       if (!companies[r.plate_no]) companies[r.plate_no] = {};
       companies[r.plate_no][r.month] = {
         company: r.company || "Not Work",
-        site: r.site_name || ""
+        site: r.site_name || "",
       };
     });
 

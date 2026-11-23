@@ -966,9 +966,18 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        background: radial-gradient(circle at 20% 25%, rgba(2, 132, 199, 0.35), transparent 45%),
-                    radial-gradient(circle at 80% 75%, rgba(139, 92, 246, 0.3), transparent 45%),
-                    rgba(15, 23, 42, 0.78);
+        background:
+          radial-gradient(
+            circle at 20% 25%,
+            rgba(2, 132, 199, 0.35),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 75%,
+            rgba(139, 92, 246, 0.3),
+            transparent 45%
+          ),
+          rgba(15, 23, 42, 0.78);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         z-index: 99999;
@@ -983,8 +992,9 @@
         -webkit-backdrop-filter: blur(20px);
         padding: 34px 30px;
         border-radius: 16px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        box-shadow:
+          0 25px 50px -12px rgba(0, 0, 0, 0.6),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
         text-align: center;
         border: 1px solid rgba(255, 255, 255, 0.18);
         width: 330px;
@@ -1035,7 +1045,9 @@
         font-size: 14px;
         letter-spacing: 0.4px;
         box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
       }
       .security-box button:hover {
         transform: translateY(-1px);
@@ -2203,16 +2215,24 @@
         sel.innerHTML = '<option value="">-- Choose Company --</option>';
         if (data.success && data.companies.length > 0) {
           const getCompanyMeta = (c) => {
-            const raw = `${c.short_code || ""} ${c.company_name_en || ""}`.toUpperCase();
+            const raw =
+              `${c.short_code || ""} ${c.company_name_en || ""}`.toUpperCase();
             if (raw.includes("HAK")) return { rank: 1, label: "Haka" };
-            if (raw.includes("JOD") || raw.includes("AJC")) return { rank: 2, label: "Al Joda" };
-            if (raw.includes("MW") || raw.includes("MASAR")) return { rank: 3, label: "Masar Wheels" };
-            if (raw.includes("WE1") || raw.includes("WEFAQ") || raw.includes("TRACK")) return { rank: 4, label: "We1 Track Co" };
+            if (raw.includes("JOD") || raw.includes("AJC"))
+              return { rank: 2, label: "Al Joda" };
+            if (raw.includes("MW") || raw.includes("MASAR"))
+              return { rank: 3, label: "Masar Wheels" };
+            if (
+              raw.includes("WE1") ||
+              raw.includes("WEFAQ") ||
+              raw.includes("TRACK")
+            )
+              return { rank: 4, label: "We1 Track Co" };
             return { rank: 99, label: c.short_code || c.company_name_en };
           };
 
           companiesList = [...data.companies].sort(
-            (a, b) => getCompanyMeta(a).rank - getCompanyMeta(b).rank
+            (a, b) => getCompanyMeta(a).rank - getCompanyMeta(b).rank,
           );
 
           companiesList.forEach((c) => {

@@ -314,7 +314,10 @@
           box-sizing: border-box;
         "
       >
-        <h3 id="bioSetupTitle" style="margin-top: 0; text-align: center; color: #111">
+        <h3
+          id="bioSetupTitle"
+          style="margin-top: 0; text-align: center; color: #111"
+        >
           Verify Credentials
         </h3>
         <p
@@ -408,7 +411,12 @@
           autoplay
           muted
           playsinline
-          style="border-radius: 8px; transform: scaleX(-1); max-width: 100%; background: #000;"
+          style="
+            border-radius: 8px;
+            transform: scaleX(-1);
+            max-width: 100%;
+            background: #000;
+          "
         ></video>
         <canvas
           id="tsUniversalCanvas"
@@ -438,7 +446,9 @@
       // 🟢 Base64URL Helpers for WebAuthn (Windows Hello / Mobile Face ID)
       function base64urlToBuffer(base64url) {
         const padding = "=".repeat((4 - (base64url.length % 4)) % 4);
-        const base64 = (base64url + padding).replace(/-/g, "+").replace(/_/g, "/");
+        const base64 = (base64url + padding)
+          .replace(/-/g, "+")
+          .replace(/_/g, "/");
         const rawData = atob(base64);
         const outputArray = new Uint8Array(rawData.length);
         for (let i = 0; i < rawData.length; ++i) {
@@ -453,7 +463,10 @@
         for (let i = 0; i < bytes.byteLength; i++) {
           binary += String.fromCharCode(bytes[i]);
         }
-        return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        return btoa(binary)
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
       }
 
       // 🟢 GET INTENDED REDIRECT URL
@@ -485,8 +498,12 @@
         const handleEnter = (e) => {
           if (e.key === "Enter") login();
         };
-        document.getElementById("logUsername").addEventListener("keydown", handleEnter);
-        document.getElementById("logPassword").addEventListener("keydown", handleEnter);
+        document
+          .getElementById("logUsername")
+          .addEventListener("keydown", handleEnter);
+        document
+          .getElementById("logPassword")
+          .addEventListener("keydown", handleEnter);
       });
 
       function switchSection(id) {
@@ -496,8 +513,12 @@
         setTimeout(() => {
           document.getElementById(id).classList.add("active-section");
         }, 50);
-        document.querySelectorAll(".message").forEach((msg) => (msg.innerText = ""));
-        document.querySelectorAll(".loader").forEach((ldr) => (ldr.style.display = "none"));
+        document
+          .querySelectorAll(".message")
+          .forEach((msg) => (msg.innerText = ""));
+        document
+          .querySelectorAll(".loader")
+          .forEach((ldr) => (ldr.style.display = "none"));
       }
 
       // ==========================================
@@ -528,7 +549,8 @@
           const optData = await optRes.json();
           if (!optData.success) {
             loader.style.display = "none";
-            msgDiv.innerText = optData.message || "Failed to initialize biometric.";
+            msgDiv.innerText =
+              optData.message || "Failed to initialize biometric.";
             msgDiv.style.color = "#dc3545";
             return;
           }
@@ -543,15 +565,21 @@
             }));
           }
 
-          const assertion = await navigator.credentials.get({ publicKey: options });
+          const assertion = await navigator.credentials.get({
+            publicKey: options,
+          });
 
           const credentialPayload = {
             id: assertion.id,
             rawId: bufferToBase64url(assertion.rawId),
             type: assertion.type,
             response: {
-              authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
-              clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+              authenticatorData: bufferToBase64url(
+                assertion.response.authenticatorData,
+              ),
+              clientDataJSON: bufferToBase64url(
+                assertion.response.clientDataJSON,
+              ),
               signature: bufferToBase64url(assertion.response.signature),
               userHandle: assertion.response.userHandle
                 ? bufferToBase64url(assertion.response.userHandle)
@@ -633,7 +661,8 @@
 
         if (bioSetupMode === "webauthn") {
           if (!window.PublicKeyCredential || !window.isSecureContext) {
-            msg.innerText = "Open via HTTPS (fefei.tail129892.ts.net) to register Windows Hello.";
+            msg.innerText =
+              "Open via HTTPS (fefei.tail129892.ts.net) to register Windows Hello.";
             msg.style.color = "#dc3545";
             return;
           }
@@ -656,22 +685,30 @@
             options.challenge = base64urlToBuffer(options.challenge);
             options.user.id = base64urlToBuffer(options.user.id);
             if (Array.isArray(options.excludeCredentials)) {
-              options.excludeCredentials = options.excludeCredentials.map((c) => ({
-                ...c,
-                id: base64urlToBuffer(c.id),
-              }));
+              options.excludeCredentials = options.excludeCredentials.map(
+                (c) => ({
+                  ...c,
+                  id: base64urlToBuffer(c.id),
+                }),
+              );
             }
 
-            const cred = await navigator.credentials.create({ publicKey: options });
+            const cred = await navigator.credentials.create({
+              publicKey: options,
+            });
 
             const credentialPayload = {
               id: cred.id,
               rawId: bufferToBase64url(cred.rawId),
               type: cred.type,
               response: {
-                attestationObject: bufferToBase64url(cred.response.attestationObject),
+                attestationObject: bufferToBase64url(
+                  cred.response.attestationObject,
+                ),
                 clientDataJSON: bufferToBase64url(cred.response.clientDataJSON),
-                transports: cred.response.getTransports ? cred.response.getTransports() : ["internal"],
+                transports: cred.response.getTransports
+                  ? cred.response.getTransports()
+                  : ["internal"],
               },
             };
 
@@ -688,7 +725,8 @@
               closeResetFaceModal();
               switchSection("loginSection");
               const logMsg = document.getElementById("logMessage");
-              logMsg.innerText = "✓ Windows Hello registered! Click 🛡️ to login.";
+              logMsg.innerText =
+                "✓ Windows Hello registered! Click 🛡️ to login.";
               logMsg.style.color = "#10b981";
             } else {
               msg.innerText = verData.message || "Failed to save biometric.";
@@ -717,7 +755,8 @@
 
           if (data.success) {
             rfTempCreds = { username: u, password: p };
-            document.getElementById("resetFaceVerifyModal").style.display = "none";
+            document.getElementById("resetFaceVerifyModal").style.display =
+              "none";
             startTsFaceAuth("reset");
           } else {
             msg.innerText = data.message || "Invalid credentials.";
@@ -750,7 +789,9 @@
 
         try {
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error("Camera API blocked on insecure HTTP. Use HTTPS or enable insecure origin flag.");
+            throw new Error(
+              "Camera API blocked on insecure HTTP. Use HTTPS or enable insecure origin flag.",
+            );
           }
 
           if (tsCamStream) {
@@ -759,13 +800,18 @@
           }
 
           tsCamStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: "user" },
+            video: {
+              width: { ideal: 320 },
+              height: { ideal: 240 },
+              facingMode: "user",
+            },
             audio: false,
           });
           video.srcObject = tsCamStream;
           await video.play();
 
-          instruction.innerText = "Scanning face... Look straight at the camera";
+          instruction.innerText =
+            "Scanning face... Look straight at the camera";
           instruction.style.color = "#10b981";
 
           if (tsCaptureTimer) clearTimeout(tsCaptureTimer);
@@ -778,7 +824,8 @@
         } catch (err) {
           closeUniversalFace();
           const msgDiv = document.getElementById("logMessage");
-          msgDiv.innerText = "Camera Error: " + (err.message || "Access denied or busy.");
+          msgDiv.innerText =
+            "Camera Error: " + (err.message || "Access denied or busy.");
           msgDiv.style.color = "#dc3545";
         }
       }
@@ -797,7 +844,9 @@
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 image: imageData,
-                face_trust_token: localStorage.getItem("timesheet_face_trust_token"),
+                face_trust_token: localStorage.getItem(
+                  "timesheet_face_trust_token",
+                ),
               }),
             });
             const data = await res.json();
@@ -817,7 +866,10 @@
             msgDiv.innerText = "Error connecting to server.";
             msgDiv.style.color = "#dc3545";
           }
-        } else if (activeFaceAction === "register" || activeFaceAction === "reset") {
+        } else if (
+          activeFaceAction === "register" ||
+          activeFaceAction === "reset"
+        ) {
           try {
             const res = await fetch("/py/face-encode", {
               method: "POST",
@@ -834,8 +886,10 @@
 
             if (activeFaceAction === "register") {
               registeredFaceDescriptor = data.descriptor;
-              document.getElementById("regFaceBtn").style.backgroundColor = "#10b981";
-              document.getElementById("regFaceBtn").innerText = "✓ Face ID Captured";
+              document.getElementById("regFaceBtn").style.backgroundColor =
+                "#10b981";
+              document.getElementById("regFaceBtn").innerText =
+                "✓ Face ID Captured";
               document.getElementById("regFaceStatus").style.display = "block";
             } else if (activeFaceAction === "reset") {
               const resetRes = await fetch("/timesheet/reset-face-data", {
@@ -851,8 +905,13 @@
               alert(resetData.message);
               if (resetData.success) {
                 if (resetData.faceTrustToken) {
-                  localStorage.setItem("timesheet_face_trust_token", resetData.faceTrustToken);
-                  const tsFaceBtn = document.querySelector('button[onclick="startTsFaceAuth(\'login\')"]');
+                  localStorage.setItem(
+                    "timesheet_face_trust_token",
+                    resetData.faceTrustToken,
+                  );
+                  const tsFaceBtn = document.querySelector(
+                    "button[onclick=\"startTsFaceAuth('login')\"]",
+                  );
                   if (tsFaceBtn) tsFaceBtn.style.display = "inline-block";
                 }
                 switchSection("loginSection");
@@ -1054,9 +1113,13 @@
         }
       }
 
-      const tsFaceBtn = document.querySelector('button[onclick="startTsFaceAuth(\'login\')"]');
+      const tsFaceBtn = document.querySelector(
+        "button[onclick=\"startTsFaceAuth('login')\"]",
+      );
       if (tsFaceBtn) {
-        tsFaceBtn.style.display = localStorage.getItem("timesheet_face_trust_token")
+        tsFaceBtn.style.display = localStorage.getItem(
+          "timesheet_face_trust_token",
+        )
           ? "inline-block"
           : "none";
       }
@@ -1071,11 +1134,19 @@
           /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
           hostname.endsWith(".local");
 
-        if (isLocalNetwork || !window.PublicKeyCredential || !window.isSecureContext) {
-          const helloLoginBtn = document.querySelector('button[onclick="loginWithWindowsHello()"]');
+        if (
+          isLocalNetwork ||
+          !window.PublicKeyCredential ||
+          !window.isSecureContext
+        ) {
+          const helloLoginBtn = document.querySelector(
+            'button[onclick="loginWithWindowsHello()"]',
+          );
           if (helloLoginBtn) helloLoginBtn.style.display = "none";
 
-          const helloSetupLink = document.querySelector('div[onclick="openBiometricSetupModal(\'webauthn\')"]');
+          const helloSetupLink = document.querySelector(
+            "div[onclick=\"openBiometricSetupModal('webauthn')\"]",
+          );
           if (helloSetupLink) helloSetupLink.style.display = "none";
         }
       })();

@@ -581,7 +581,11 @@
           >
             📑 AKS Export
           </button>
-          <button class="btn btn-blue" onclick="loadSummaryData()" title="Refresh">
+          <button
+            class="btn btn-blue"
+            onclick="loadSummaryData()"
+            title="Refresh"
+          >
             🔄
           </button>
           <button
@@ -1690,9 +1694,7 @@
         document.getElementById("filterSearchInput").value = "";
 
         // Cascading / Connected Filter: മറ്റു കോളങ്ങളിലെ ആക്ടീവ് ഫിൽറ്ററുകൾ പാസ്സാകുന്ന വരികൾ മാത്രം എടുക്കുന്നു
-        const searchTerm = (
-          document.getElementById("searchPlate")?.value || ""
-        )
+        const searchTerm = (document.getElementById("searchPlate")?.value || "")
           .trim()
           .toLowerCase();
 
@@ -1857,9 +1859,7 @@
 
       function toggleSumMonthCheck(monChk, yr, mon) {
         document
-          .querySelectorAll(
-            `.sum-col-chk[data-yr="${yr}"][data-mon="${mon}"]`,
-          )
+          .querySelectorAll(`.sum-col-chk[data-yr="${yr}"][data-mon="${mon}"]`)
           .forEach((c) => (c.checked = monChk.checked));
       }
 
@@ -1902,7 +1902,9 @@
                   Number(item.mtc_during_purchase || 0) +
                   Number(item.total_insurance || 0)
                 : Number(item[currentSummaryFilterCol] || 0);
-            return dir === "asc" ? getNum(a) - getNum(b) : getNum(b) - getNum(a);
+            return dir === "asc"
+              ? getNum(a) - getNum(b)
+              : getNum(b) - getNum(a);
           }
 
           if (currentSummaryFilterCol.startsWith("month_mtc_")) {

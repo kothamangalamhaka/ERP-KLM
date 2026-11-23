@@ -56,7 +56,9 @@
         margin: 0;
         padding: 0;
         font-size: 13px;
-        transition: background-color 0.2s ease, color 0.2s ease;
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease;
       }
 
       /* Compact Corporate Ribbon */
@@ -112,7 +114,9 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        transition: opacity 0.15s ease, transform 0.1s ease;
+        transition:
+          opacity 0.15s ease,
+          transform 0.1s ease;
       }
 
       .ribbon button:hover {
@@ -176,16 +180,18 @@
         background-color: var(--surface);
         box-shadow: var(--shadow);
       }
-      
+
       /* Fixed Width Column Styles */
-      .col-sn, .action-col {
+      .col-sn,
+      .action-col {
         width: 50px !important;
         min-width: 50px !important;
         max-width: 50px !important;
         text-align: center;
       }
-      th.col-plate, td.col-plate {
-        width: 100px !important; 
+      th.col-plate,
+      td.col-plate {
+        width: 100px !important;
         white-space: nowrap;
         text-align: center;
       }
@@ -494,16 +500,18 @@
         border-collapse: collapse;
         white-space: nowrap;
       }
-      
+
       /* New Fixed Width Column Styles */
-      .col-sn, .action-col {
+      .col-sn,
+      .action-col {
         width: 50px !important;
         min-width: 50px !important;
         max-width: 50px !important;
         text-align: center;
       }
-      th.col-plate, td.col-plate {
-        width: 100px !important; 
+      th.col-plate,
+      td.col-plate {
+        width: 100px !important;
         white-space: nowrap;
         text-align: center;
       }
@@ -767,7 +775,9 @@
         style="width: 165px; margin-right: 4px"
       />
 
-      <label style="font-weight: 600; font-size: 12px; color: var(--text-muted)">Month:</label>
+      <label style="font-weight: 600; font-size: 12px; color: var(--text-muted)"
+        >Month:</label
+      >
       <select id="monthSelect">
         <option value="01">January</option>
         <option value="02">February</option>
@@ -807,7 +817,12 @@
           <button class="btn-save-all" onclick="saveAll()">Save All</button>
           <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
         </div>
-        <button class="btn-theme" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+        <button
+          class="btn-theme"
+          id="themeToggleBtn"
+          onclick="toggleTheme()"
+          title="Switch Light/Dark Theme"
+        >
           🌙 Dark
         </button>
         <button class="btn-danger" onclick="logout()">🚪 Logout</button>
@@ -821,7 +836,7 @@
           <tr>
             <th class="col-sn">SN</th>
             <th class="col-plate">Plate No</th>
-            <th style="text-align: left; padding-left: 10px;">Driver Name</th>
+            <th style="text-align: left; padding-left: 10px">Driver Name</th>
             <th class="col-money">Basic Salary</th>
             <th class="col-money">Over Time</th>
             <th class="col-money">Gross Salary</th>
@@ -830,7 +845,7 @@
             <th class="col-money">Advance / Paid</th>
             <th class="col-money">Payable</th>
             <th class="col-money">Status</th>
-            <th style="text-align: left; padding-left: 10px;">Remark</th>
+            <th style="text-align: left; padding-left: 10px">Remark</th>
             <th class="action-col">Action</th>
           </tr>
         </thead>
@@ -1004,7 +1019,8 @@
       }
 
       function toggleTheme() {
-        const current = document.documentElement.getAttribute("data-theme") || "light";
+        const current =
+          document.documentElement.getAttribute("data-theme") || "light";
         const next = current === "dark" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", next);
         localStorage.setItem("we1_theme", next);
@@ -1173,7 +1189,6 @@
           tbody.innerHTML = `<tr><td colspan="13" class="text-center" style="color:red;">Error loading data.</td></tr>`;
         }
       }
-
 
       function searchDriver() {
         const input = document

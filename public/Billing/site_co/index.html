@@ -674,7 +674,12 @@
       .auth-modal {
         position: fixed;
         inset: 0;
-        background: radial-gradient(circle at top left, #0f172a 0%, #1e293b 45%, #020617 100%);
+        background: radial-gradient(
+          circle at top left,
+          #0f172a 0%,
+          #1e293b 45%,
+          #020617 100%
+        );
         display: flex;
         align-items: center;
         justify-content: center;
@@ -951,7 +956,10 @@
             New Site Coordinator?
             <a
               href="#"
-              onclick="event.preventDefault(); toggleAuthMode('signup');"
+              onclick="
+                event.preventDefault();
+                toggleAuthMode('signup');
+              "
             >
               Sign Up
             </a>
@@ -959,8 +967,18 @@
         </div>
 
         <div id="signupForm" style="display: none">
-          <input type="text" id="signupName" placeholder="Full Name" autocomplete="off" />
-          <input type="text" id="signupUsername" placeholder="Username" autocomplete="off" />
+          <input
+            type="text"
+            id="signupName"
+            placeholder="Full Name"
+            autocomplete="off"
+          />
+          <input
+            type="text"
+            id="signupUsername"
+            placeholder="Username"
+            autocomplete="off"
+          />
           <input type="password" id="signupPassword" placeholder="Password" />
 
           <button onclick="executeViewBillSignup()">Request Access</button>
@@ -969,7 +987,10 @@
             Already have an account?
             <a
               href="#"
-              onclick="event.preventDefault(); toggleAuthMode('login');"
+              onclick="
+                event.preventDefault();
+                toggleAuthMode('login');
+              "
             >
               Login
             </a>
@@ -2111,7 +2132,7 @@
         renderReportTable(filteredData);
       }
 
-            /*
+      /*
        * Owner + Site Company anusarichu ororo card aayi thirikkunnu.
        * Ooro card-um separate aayi Copy HQ / Download cheyyaam.
        */
@@ -2160,7 +2181,7 @@
        * Each card stores the original rows internally.
        * This allows Cancel to restore the exact original values.
        */
-      
+
       function renderCardsView(rows, append = false, companyTitle = "") {
         const container = document.getElementById("cardsContainer");
 
@@ -3585,7 +3606,9 @@
         const card = btn.closest(".bill-card");
         if (!row || !card) return;
 
-        const removedPlate = row.getAttribute("data-plate") || row.getAttribute("data-master-plate");
+        const removedPlate =
+          row.getAttribute("data-plate") ||
+          row.getAttribute("data-master-plate");
         const removedSite = row.getAttribute("data-site");
         if (Array.isArray(card._originalRows) && removedPlate) {
           card._originalRows = card._originalRows.filter(
@@ -3618,7 +3641,6 @@
         }
         showToast("Row removed from card");
       }
-
 
       /*
        * ============================================================
@@ -4295,14 +4317,18 @@
           .querySelectorAll(
             ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, .action-column-cell, tfoot td:nth-last-child(-n+5)",
           )
-          .forEach((el) => el.style.setProperty("display", "none", "important"));
+          .forEach((el) =>
+            el.style.setProperty("display", "none", "important"),
+          );
 
         const vatColumnsHidden = hideZeroVatColumnsForExport(card);
 
         // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
         card
           .querySelectorAll(".site-column-cell")
-          .forEach((el) => el.style.setProperty("display", "none", "important"));
+          .forEach((el) =>
+            el.style.setProperty("display", "none", "important"),
+          );
 
         // ഡൗൺലോഡ് സമയത്ത് colspan 6 എന്നത് 5 ആക്കി മാറ്റാൻ
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
@@ -4392,12 +4418,16 @@
           .querySelectorAll(
             ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, .action-column-cell, tfoot td:nth-last-child(-n+5)",
           )
-          .forEach((el) => el.style.setProperty("display", "none", "important"));
+          .forEach((el) =>
+            el.style.setProperty("display", "none", "important"),
+          );
 
         // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
         card
           .querySelectorAll(".site-column-cell")
-          .forEach((el) => el.style.setProperty("display", "none", "important"));
+          .forEach((el) =>
+            el.style.setProperty("display", "none", "important"),
+          );
 
         const vatColumnsHidden = hideZeroVatColumnsForExport(card);
 

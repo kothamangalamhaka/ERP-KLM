@@ -1,981 +1,1471 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Non-VAT Customers Documents & Bills</title>
-  <script>
-    (function() {
-      const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      document.documentElement.setAttribute('data-theme', saved);
-    })();
-  </script>
-  <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css">
-  <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css">
-  <style>
-    :root {
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      --card-hover-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
-      --badge-uploaded-bg: #dcfce7;
-      --badge-uploaded-text: #15803d;
-      --badge-uploaded-border: #86efac;
-      --table-header-bg: #0f172a;
-      --table-header-color: #ffffff;
-    }
-    [data-theme="dark"] {
-      --bg: #0b1329;
-      --surface: #131f37;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --border: #233554;
-      --primary: #3b82f6;
-      --primary-hover: #60a5fa;
-      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      --card-hover-shadow: 0 10px 24px rgba(59, 130, 246, 0.25);
-      --badge-uploaded-bg: #064e3b;
-      --badge-uploaded-text: #6ee7b7;
-      --badge-uploaded-border: #047857;
-      --table-header-bg: #080d1a;
-      --table-header-color: #f8fafc;
-    }
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      padding: 12px 18px;
-      min-height: 100vh;
-    }
-    .header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding: 6px 4px;
-    }
-    .header-bar h5 {
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-    }
-    .header-btn {
-      padding: 4px 12px;
-      font-size: 12px;
-      border-radius: 6px;
-      height: 32px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-    }
-    .theme-toggle-btn {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 4px 10px;
-      font-size: 13px;
-      border-radius: 6px;
-      cursor: pointer;
-      height: 32px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Non-VAT Customers Documents & Bills</title>
+    <script>
+      (function () {
+        const saved =
+          localStorage.getItem("theme") ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+        document.documentElement.setAttribute("data-theme", saved);
+      })();
+    </script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        --card-hover-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+        --badge-uploaded-bg: #dcfce7;
+        --badge-uploaded-text: #15803d;
+        --badge-uploaded-border: #86efac;
+        --table-header-bg: #0f172a;
+        --table-header-color: #ffffff;
+      }
+      [data-theme="dark"] {
+        --bg: #0b1329;
+        --surface: #131f37;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: #233554;
+        --primary: #3b82f6;
+        --primary-hover: #60a5fa;
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        --card-hover-shadow: 0 10px 24px rgba(59, 130, 246, 0.25);
+        --badge-uploaded-bg: #064e3b;
+        --badge-uploaded-text: #6ee7b7;
+        --badge-uploaded-border: #047857;
+        --table-header-bg: #080d1a;
+        --table-header-color: #f8fafc;
+      }
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        margin: 0;
+        padding: 12px 18px;
+        min-height: 100vh;
+      }
+      .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding: 6px 4px;
+      }
+      .header-bar h5 {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+      .header-btn {
+        padding: 4px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+      }
+      .theme-toggle-btn {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 4px 10px;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    /* Grid Cards Layout */
-    .customers-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-      padding-bottom: 30px;
-    }
-    .customer-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: var(--card-shadow);
-      transition: all 0.2s ease-in-out;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-    .customer-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--card-hover-shadow);
-      border-color: var(--primary);
-    }
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
-    }
-    .card-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      margin: 0;
-      line-height: 1.3;
-      word-break: break-word;
-    }
-    .card-count-badge {
-      font-size: 11px;
-      font-weight: 700;
-      background: rgba(37, 99, 235, 0.12);
-      color: var(--primary);
-      padding: 3px 8px;
-      border-radius: 12px;
-      white-space: nowrap;
-    }
-    .card-info-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      margin-bottom: 6px;
-      color: var(--text-muted);
-    }
-    .card-info-row strong {
-      color: var(--text);
-    }
-    .card-sites-preview {
-      margin: 10px 0 0;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-      background: var(--bg);
-    }
-    .preview-mini-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 10.5px;
-      table-layout: fixed;
-    }
-    .preview-mini-table th {
-      background: rgba(15, 23, 42, 0.06);
-      color: var(--text-muted);
-      padding: 4px 6px;
-      font-size: 9.5px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-    [data-theme="dark"] .preview-mini-table th {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .preview-mini-table td {
-      padding: 4px 6px;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--text);
-    }
-    .preview-mini-table tr:last-child td {
-      border-bottom: none;
-    }
-    .doc-pill {
-      flex: 1;
-      text-align: center;
-      padding: 5px 6px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      text-decoration: none;
-    }
-    .doc-pill.uploaded {
-      background: var(--badge-uploaded-bg);
-      color: var(--badge-uploaded-text);
-      border: 1px solid var(--badge-uploaded-border);
-    }
-    .doc-pill.empty {
-      background: rgba(239, 68, 68, 0.08);
-      color: #dc2626;
-      border: 1px dashed rgba(239, 68, 68, 0.45);
-    }
-    [data-theme="dark"] .doc-pill.empty {
-      background: rgba(239, 68, 68, 0.14);
-      color: #fca5a5;
-      border-color: rgba(248, 113, 113, 0.4);
-    }
-    .doc-pill:hover {
-      filter: brightness(0.95);
-    }
+      /* Grid Cards Layout */
+      .customers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 16px;
+        padding-bottom: 30px;
+      }
+      .customer-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      .customer-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--card-hover-shadow);
+        border-color: var(--primary);
+      }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 10px;
+      }
+      .card-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0;
+        line-height: 1.3;
+        word-break: break-word;
+      }
+      .card-count-badge {
+        font-size: 11px;
+        font-weight: 700;
+        background: rgba(37, 99, 235, 0.12);
+        color: var(--primary);
+        padding: 3px 8px;
+        border-radius: 12px;
+        white-space: nowrap;
+      }
+      .card-info-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-bottom: 6px;
+        color: var(--text-muted);
+      }
+      .card-info-row strong {
+        color: var(--text);
+      }
+      .card-sites-preview {
+        margin: 10px 0 0;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      .preview-mini-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10.5px;
+        table-layout: fixed;
+      }
+      .preview-mini-table th {
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--text-muted);
+        padding: 4px 6px;
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      [data-theme="dark"] .preview-mini-table th {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .preview-mini-table td {
+        padding: 4px 6px;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--text);
+      }
+      .preview-mini-table tr:last-child td {
+        border-bottom: none;
+      }
+      .doc-pill {
+        flex: 1;
+        text-align: center;
+        padding: 5px 6px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        text-decoration: none;
+      }
+      .doc-pill.uploaded {
+        background: var(--badge-uploaded-bg);
+        color: var(--badge-uploaded-text);
+        border: 1px solid var(--badge-uploaded-border);
+      }
+      .doc-pill.empty {
+        background: rgba(239, 68, 68, 0.08);
+        color: #dc2626;
+        border: 1px dashed rgba(239, 68, 68, 0.45);
+      }
+      [data-theme="dark"] .doc-pill.empty {
+        background: rgba(239, 68, 68, 0.14);
+        color: #fca5a5;
+        border-color: rgba(248, 113, 113, 0.4);
+      }
+      .doc-pill:hover {
+        filter: brightness(0.95);
+      }
 
-    /* Sub-Table inside Modal */
-    .modal-xl {
-      max-width: 95vw;
-    }
-    .detail-table-wrapper {
-      max-height: 480px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
-    .detail-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      text-align: left;
-    }
-    .detail-table th {
-      position: sticky;
-      top: 0;
-      background: var(--table-header-bg);
-      color: var(--table-header-color);
-      padding: 8px 10px;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 2px solid var(--border);
-      white-space: nowrap;
-      z-index: 10;
-    }
-    .detail-table td {
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-      white-space: nowrap;
-    }
-    .detail-table tr:hover {
-      background: rgba(37, 99, 235, 0.04);
-    }
+      /* Sub-Table inside Modal */
+      .modal-xl {
+        max-width: 95vw;
+      }
+      .detail-table-wrapper {
+        max-height: 480px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        text-align: left;
+      }
+      .detail-table th {
+        position: sticky;
+        top: 0;
+        background: var(--table-header-bg);
+        color: var(--table-header-color);
+        padding: 8px 10px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+        z-index: 10;
+      }
+      .detail-table td {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+      .detail-table tr:hover {
+        background: rgba(37, 99, 235, 0.04);
+      }
 
-    /* Context Menu */
-    .context-menu {
-      display: none;
-      position: fixed;
-      z-index: 2000;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-      padding: 6px 0;
-      min-width: 150px;
-    }
-    .context-menu-item {
-      padding: 8px 14px;
-      cursor: pointer;
-      font-size: 12px;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .context-menu-item:hover {
-      background: var(--primary);
-      color: #ffffff;
-    }
+      /* Context Menu */
+      .context-menu {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        padding: 6px 0;
+        min-width: 150px;
+      }
+      .context-menu-item {
+        padding: 8px 14px;
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .context-menu-item:hover {
+        background: var(--primary);
+        color: #ffffff;
+      }
 
-    /* Floating Header Filter Popup for Modal Table */
-    .header-filter-popup {
-      display: none;
-      position: fixed;
-      z-index: 100000 !important;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
-      padding: 12px;
-      width: 250px !important;
-      max-width: 280px !important;
-      color: var(--text);
-      box-sizing: border-box;
-    }
-    .header-filter-popup #filterSearchInput {
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      font-size: 12px;
-      padding: 5px 8px;
-      border-radius: 6px;
-      width: 100%;
-      margin-bottom: 8px;
-      outline: none;
-    }
-    .header-filter-popup #filterSearchInput:focus {
-      border-color: var(--primary);
-    }
-    .header-filter-list {
-      max-height: 190px;
-      overflow-y: auto;
-      margin-bottom: 8px;
-      padding: 4px;
-    }
-    .header-filter-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      margin-bottom: 2px;
-      padding: 4px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      user-select: none;
-      transition: background-color 0.15s ease;
-    }
-    .header-filter-item:hover {
-      background-color: rgba(37, 99, 235, 0.08);
-    }
-    [data-theme="dark"] .header-filter-item:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-    }
-    .header-filter-check {
-      width: 14px !important;
-      height: 14px !important;
-      margin: 0 !important;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .header-filter-item span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
-    }
-    .filter-close-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 13px;
-      padding: 2px 4px;
-      line-height: 1;
-    }
-    .filter-close-btn:hover {
-      color: var(--text);
-    }
+      /* Floating Header Filter Popup for Modal Table */
+      .header-filter-popup {
+        display: none;
+        position: fixed;
+        z-index: 100000 !important;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+        padding: 12px;
+        width: 250px !important;
+        max-width: 280px !important;
+        color: var(--text);
+        box-sizing: border-box;
+      }
+      .header-filter-popup #filterSearchInput {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        font-size: 12px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        width: 100%;
+        margin-bottom: 8px;
+        outline: none;
+      }
+      .header-filter-popup #filterSearchInput:focus {
+        border-color: var(--primary);
+      }
+      .header-filter-list {
+        max-height: 190px;
+        overflow-y: auto;
+        margin-bottom: 8px;
+        padding: 4px;
+      }
+      .header-filter-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        margin-bottom: 2px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        user-select: none;
+        transition: background-color 0.15s ease;
+      }
+      .header-filter-item:hover {
+        background-color: rgba(37, 99, 235, 0.08);
+      }
+      [data-theme="dark"] .header-filter-item:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+      .header-filter-check {
+        width: 14px !important;
+        height: 14px !important;
+        margin: 0 !important;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .header-filter-item span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+      .filter-close-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 13px;
+        padding: 2px 4px;
+        line-height: 1;
+      }
+      .filter-close-btn:hover {
+        color: var(--text);
+      }
 
-    /* Classic Modern Common Docs Strip */
-    .common-docs-bar {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.03), rgba(37, 99, 235, 0.04));
-      border: 1px solid var(--border);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    }
-    [data-theme="dark"] .common-docs-bar {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(59, 130, 246, 0.07));
-    }
-    .common-multi-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-size: 11.5px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid rgba(37, 99, 235, 0.35);
-      background: rgba(37, 99, 235, 0.08);
-      color: var(--primary);
-      transition: all 0.18s ease;
-    }
-    .common-multi-btn:hover {
-      background: var(--primary);
-      color: #ffffff;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-    }
-    .common-multi-btn .count-pill {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 999px;
-      background: rgba(37, 99, 235, 0.15);
-    }
-    .common-multi-btn:hover .count-pill {
-      background: rgba(255, 255, 255, 0.22);
-      color: #ffffff;
-    }
-    .doc-name-display {
-      cursor: pointer;
-      font-weight: 600;
-      color: var(--primary);
-      padding: 4px 6px;
-      border-radius: 5px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: background 0.15s ease;
-    }
-    .doc-name-display:hover {
-      background: rgba(37, 99, 235, 0.09);
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="header-bar">
-    <h5 class="m-0"><i class="fa-solid fa-folder-open me-2 text-primary"></i>Non-VAT Customers Documents & Bills</h5>
-    <div class="d-flex align-items-center gap-2">
-      <select id="companyFilterSelect" class="form-select form-select-sm" style="width: 155px; height: 32px; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--text); border-color: var(--border);" onchange="handleCompanyFilter(this.value)">
-        <option value="ALL">All Companies</option>
-      </select>
-      <div class="position-relative">
-        <input type="text" id="ribbonSearch" class="form-control form-control-sm" placeholder="Search customer, CR, site, project..." style="width: 250px; height: 32px; font-size: 12px; padding-left: 28px; background: var(--surface); color: var(--text); border-color: var(--border);" oninput="handleSearch(this.value)">
-        <i class="fa-solid fa-magnifying-glass position-absolute" style="left: 9px; top: 9px; font-size: 12px; color: var(--text-muted);"></i>
+      /* Classic Modern Common Docs Strip */
+      .common-docs-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        background: linear-gradient(
+          135deg,
+          rgba(15, 23, 42, 0.03),
+          rgba(37, 99, 235, 0.04)
+        );
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+      [data-theme="dark"] .common-docs-bar {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.03),
+          rgba(59, 130, 246, 0.07)
+        );
+      }
+      .common-multi-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid rgba(37, 99, 235, 0.35);
+        background: rgba(37, 99, 235, 0.08);
+        color: var(--primary);
+        transition: all 0.18s ease;
+      }
+      .common-multi-btn:hover {
+        background: var(--primary);
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      }
+      .common-multi-btn .count-pill {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, 0.15);
+      }
+      .common-multi-btn:hover .count-pill {
+        background: rgba(255, 255, 255, 0.22);
+        color: #ffffff;
+      }
+      .doc-name-display {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--primary);
+        padding: 4px 6px;
+        border-radius: 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.15s ease;
+      }
+      .doc-name-display:hover {
+        background: rgba(37, 99, 235, 0.09);
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header-bar">
+      <h5 class="m-0">
+        <i class="fa-solid fa-folder-open me-2 text-primary"></i>Non-VAT
+        Customers Documents & Bills
+      </h5>
+      <div class="d-flex align-items-center gap-2">
+        <select
+          id="companyFilterSelect"
+          class="form-select form-select-sm"
+          style="
+            width: 155px;
+            height: 32px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--border);
+          "
+          onchange="handleCompanyFilter(this.value)"
+        >
+          <option value="ALL">All Companies</option>
+        </select>
+        <div class="position-relative">
+          <input
+            type="text"
+            id="ribbonSearch"
+            class="form-control form-control-sm"
+            placeholder="Search customer, CR, site, project..."
+            style="
+              width: 250px;
+              height: 32px;
+              font-size: 12px;
+              padding-left: 28px;
+              background: var(--surface);
+              color: var(--text);
+              border-color: var(--border);
+            "
+            oninput="handleSearch(this.value)"
+          />
+          <i
+            class="fa-solid fa-magnifying-glass position-absolute"
+            style="
+              left: 9px;
+              top: 9px;
+              font-size: 12px;
+              color: var(--text-muted);
+            "
+          ></i>
+        </div>
+        <button
+          class="btn btn-primary header-btn"
+          onclick="openAddCustomerModal()"
+        >
+          <i class="fa-solid fa-plus me-1"></i> Add Customer
+        </button>
+        <button
+          class="btn btn-outline-secondary header-btn"
+          onclick="toggleFullScreen()"
+          title="Full Screen"
+        >
+          <i class="fa-solid fa-expand" id="fsIcon"></i>
+        </button>
+        <button
+          class="theme-toggle-btn"
+          onclick="toggleTheme()"
+          title="Toggle Theme"
+        >
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
       </div>
-      <button class="btn btn-primary header-btn" onclick="openAddCustomerModal()"><i class="fa-solid fa-plus me-1"></i> Add Customer</button>
-      <button class="btn btn-outline-secondary header-btn" onclick="toggleFullScreen()" title="Full Screen"><i class="fa-solid fa-expand" id="fsIcon"></i></button>
-      <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
     </div>
-  </div>
 
-  <!-- Customers Card Grid Container -->
-  <div class="customers-grid" id="customersGrid"></div>
+    <!-- Customers Card Grid Container -->
+    <div class="customers-grid" id="customersGrid"></div>
 
-  <!-- Custom Right Click Context Menu -->
-  <div id="contextMenu" class="context-menu">
-    <div class="context-menu-item" onclick="triggerUpload()"><i class="fa-solid fa-upload"></i>Upload / Replace</div>
-  </div>
-  <input type="file" id="hiddenFileInput" style="display: none;" accept=".png,.jpg,.jpeg,.pdf">
-
-  <!-- Column Header Right Click Filter Popup for Inner Table -->
-  <div id="headerFilterPopup" class="header-filter-popup">
-    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom" style="border-color: var(--border)!important;">
-      <span class="fw-bold small d-flex align-items-center gap-1" id="filterPopupTitle"><i class="fa-solid fa-filter text-primary" style="font-size: 11px;"></i> Filter</span>
-      <button type="button" class="filter-close-btn" onclick="closeHeaderFilter()"><i class="fa-solid fa-xmark"></i></button>
+    <!-- Custom Right Click Context Menu -->
+    <div id="contextMenu" class="context-menu">
+      <div class="context-menu-item" onclick="triggerUpload()">
+        <i class="fa-solid fa-upload"></i>Upload / Replace
+      </div>
     </div>
-    <input type="text" id="filterSearchInput" placeholder="Search values..." oninput="filterCheckboxItems(this.value)">
-    <div class="d-flex justify-content-between mb-2 px-1">
-      <a href="javascript:void(0)" class="small fw-semibold text-primary text-decoration-none" onclick="toggleAllFilterCheckboxes(true)">Select All</a>
-      <a href="javascript:void(0)" class="small fw-semibold text-danger text-decoration-none" onclick="toggleAllFilterCheckboxes(false)">Clear</a>
-    </div>
-    <div id="filterCheckboxList" class="header-filter-list border rounded p-1" style="border-color: var(--border)!important; background: var(--bg);"></div>
-    <div class="d-flex justify-content-end gap-2 border-top pt-2" style="border-color: var(--border)!important;">
-      <button class="btn btn-sm btn-secondary py-1 px-2" style="font-size: 11px;" onclick="resetColumnFilter()">Reset</button>
-      <button class="btn btn-sm btn-primary py-1 px-3" style="font-size: 11px;" onclick="applyColumnFilter()">Apply</button>
-    </div>
-  </div>
+    <input
+      type="file"
+      id="hiddenFileInput"
+      style="display: none"
+      accept=".png,.jpg,.jpeg,.pdf"
+    />
 
-  <!-- Modal: Customer Full Details & Sites Table -->
-  <div class="modal fade" id="customerDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
-        <div class="modal-header border-bottom py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div>
+    <!-- Column Header Right Click Filter Popup for Inner Table -->
+    <div id="headerFilterPopup" class="header-filter-popup">
+      <div
+        class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom"
+        style="border-color: var(--border) !important"
+      >
+        <span
+          class="fw-bold small d-flex align-items-center gap-1"
+          id="filterPopupTitle"
+          ><i
+            class="fa-solid fa-filter text-primary"
+            style="font-size: 11px"
+          ></i>
+          Filter</span
+        >
+        <button
+          type="button"
+          class="filter-close-btn"
+          onclick="closeHeaderFilter()"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <input
+        type="text"
+        id="filterSearchInput"
+        placeholder="Search values..."
+        oninput="filterCheckboxItems(this.value)"
+      />
+      <div class="d-flex justify-content-between mb-2 px-1">
+        <a
+          href="javascript:void(0)"
+          class="small fw-semibold text-primary text-decoration-none"
+          onclick="toggleAllFilterCheckboxes(true)"
+          >Select All</a
+        >
+        <a
+          href="javascript:void(0)"
+          class="small fw-semibold text-danger text-decoration-none"
+          onclick="toggleAllFilterCheckboxes(false)"
+          >Clear</a
+        >
+      </div>
+      <div
+        id="filterCheckboxList"
+        class="header-filter-list border rounded p-1"
+        style="border-color: var(--border) !important; background: var(--bg)"
+      ></div>
+      <div
+        class="d-flex justify-content-end gap-2 border-top pt-2"
+        style="border-color: var(--border) !important"
+      >
+        <button
+          class="btn btn-sm btn-secondary py-1 px-2"
+          style="font-size: 11px"
+          onclick="resetColumnFilter()"
+        >
+          Reset
+        </button>
+        <button
+          class="btn btn-sm btn-primary py-1 px-3"
+          style="font-size: 11px"
+          onclick="applyColumnFilter()"
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal: Customer Full Details & Sites Table -->
+    <div class="modal fade" id="customerDetailModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div
+          class="modal-content"
+          style="
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+          "
+        >
+          <div
+            class="modal-header border-bottom py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2"
+          >
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <h5 class="modal-title m-0 fw-bold" id="detailCustomerName">
+                  Customer Name
+                </h5>
+                <button
+                  class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size: 11px; height: 22px"
+                  onclick="openEditMasterModal()"
+                  title="Edit Customer Name"
+                >
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <div class="common-docs-bar">
+                <div id="modalIshtimaraSlot"></div>
+                <div id="modalOtherDocSlot"></div>
+              </div>
+              <button
+                class="btn btn-sm btn-primary py-1 px-3"
+                onclick="openAddSiteForCurrentCustomer()"
+              >
+                <i class="fa-solid fa-plus me-1"></i> Add Site / Project
+              </button>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+          </div>
+          <div class="modal-body p-3">
+            <!-- Sites Sub Table -->
+            <div class="detail-table-wrapper">
+              <table class="detail-table" id="innerDetailTable">
+                <thead>
+                  <tr>
+                    <th style="width: 35px; text-align: center">SN</th>
+                    <th>Start Date</th>
+                    <th>Site Name</th>
+                    <th>Company</th>
+                    <th>Status</th>
+                    <th>Release Date</th>
+                    <th>Remark</th>
+                    <th title="Agreement">Agath</th>
+                    <th title="Request For Quotation">RFQ</th>
+                    <th title="Purchase Order">PO</th>
+                    <th title="Bills">Fatoora</th>
+                    <th title="Final confirmation">Final Conf</th>
+                    <th>Project Name</th>
+                    <th style="width: 50px; text-align: center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="detailSitesTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 0: Edit Customer Master (Name Only) -->
+    <div class="modal fade" id="editCustomerMasterModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div
+          class="modal-content"
+          style="
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+          "
+        >
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold">
+              <i class="fa-solid fa-pen-to-square text-primary me-2"></i>Edit
+              Customer Name
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-4">
+            <form id="editCustomerMasterForm">
+              <input type="hidden" id="edit_old_cust_name" />
+              <div class="mb-2">
+                <label class="form-label small fw-semibold"
+                  >Customer Name <span class="text-danger">*</span></label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="edit_cust_name"
+                  required
+                />
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer border-top">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button
+              class="btn btn-primary px-4 fw-semibold"
+              onclick="saveCustomerMasterChanges()"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Add / Edit Customer & Site Project Details -->
+    <div class="modal fade" id="siteEngagementModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div
+          class="modal-content"
+          style="
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+          "
+        >
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold" id="siteEngagementModalTitle">
+              Add Non-VAT Customer &amp; Site Details
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-4">
+            <form id="siteEngagementForm">
+              <input type="hidden" id="site_row_id" />
+
+              <div class="row g-3">
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label small fw-semibold"
+                    >Customer Name <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="site_cust_name"
+                    placeholder="Enter Customer / Owner Name"
+                    required
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label small fw-semibold"
+                    >Site Name <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="engagement_site"
+                    placeholder="Site name (eg: Bisha, Afif)"
+                    required
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label small fw-semibold">Company</label>
+                  <select
+                    class="form-select"
+                    id="engagement_company"
+                    onchange="checkNewCompany(this.value)"
+                  >
+                    <option value="Haka">Haka</option>
+                    <option value="Al Joda">Al Joda</option>
+                    <option value="Masar Wheels">Masar Wheels</option>
+                    <option value="We1">We1</option>
+                    <option value="__NEW__">+ Add New</option>
+                  </select>
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label small fw-semibold">Status</label>
+                  <select class="form-select" id="engagement_status">
+                    <option value="Active">Active</option>
+                    <option value="Released">Released</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row g-3 mt-1">
+                <div class="col-12 col-sm-6 col-md-4">
+                  <label class="form-label small fw-semibold">Start Date</label>
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="engagement_joining_date"
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-4">
+                  <label class="form-label small fw-semibold"
+                    >Release Date</label
+                  >
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="engagement_release_date"
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-4">
+                  <label class="form-label small fw-semibold">Remark</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="engagement_remark"
+                    placeholder="Remarks if any"
+                  />
+                </div>
+              </div>
+
+              <div class="row g-3 mt-1">
+                <div class="col-12">
+                  <label class="form-label small fw-semibold"
+                    >Project Name</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="engagement_project_name"
+                    maxlength="255"
+                    placeholder="Enter Full Project Name"
+                  />
+                </div>
+              </div>
+
+              <hr class="my-4" style="border-color: var(--border)" />
+
+              <div class="row g-3">
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label small fw-semibold" title="Agreement"
+                    >Agath Doc</label
+                  >
+                  <input
+                    type="file"
+                    class="form-control"
+                    id="engagement_file_agreement"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label
+                    class="form-label small fw-semibold"
+                    title="Request For Quotation"
+                    >RFQ Doc</label
+                  >
+                  <input
+                    type="file"
+                    class="form-control"
+                    id="engagement_file_rfq"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label small fw-semibold">PO Doc</label>
+                  <input
+                    type="file"
+                    class="form-control"
+                    id="engagement_file_po"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label
+                    class="form-label small fw-semibold"
+                    title="Final confirmation"
+                    >Final Conf Doc</label
+                  >
+                  <input
+                    type="file"
+                    class="form-control"
+                    id="engagement_file_last"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                  />
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer border-top">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button
+              class="btn btn-primary px-4 fw-semibold"
+              onclick="saveSiteEngagement()"
+            >
+              Save Site
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Bills Management Popup -->
+    <div class="modal fade" id="billModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div
+          class="modal-content"
+          style="
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+          "
+        >
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title">
+              <i class="fa-solid fa-file-invoice-dollar me-2 text-primary"></i
+              >Bills Management
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <ul class="nav nav-pills mb-3" id="billPills">
+              <li class="nav-item">
+                <button
+                  class="nav-link active"
+                  id="tabBtn_view"
+                  onclick="switchBillTab('view')"
+                >
+                  1. View Bills
+                </button>
+              </li>
+              <li class="nav-item">
+                <button
+                  class="nav-link"
+                  id="tabBtn_add"
+                  onclick="switchBillTab('add')"
+                >
+                  2. Add Bill
+                </button>
+              </li>
+              <li class="nav-item">
+                <button
+                  class="nav-link"
+                  id="tabBtn_download"
+                  onclick="switchBillTab('download')"
+                >
+                  3. Download Bill
+                </button>
+              </li>
+            </ul>
+            <div id="billTabContent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Multi-Document Popup (Ishtimara & Other Doc) -->
+    <div
+      class="modal fade"
+      id="commonMultiDocModal"
+      tabindex="-1"
+      style="z-index: 1060"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div
+          class="modal-content shadow-lg"
+          style="
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+          "
+        >
+          <div class="modal-header border-bottom py-2 px-3">
+            <h6 class="modal-title fw-bold m-0" id="commonMultiDocTitle">
+              <i class="fa-solid fa-folder-open text-primary me-2"></i>Documents
+            </h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-3">
+            <div
+              class="p-3 mb-3 rounded border"
+              style="
+                background: var(--bg);
+                border-color: var(--border) !important;
+              "
+            >
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-sm-5">
+                  <label
+                    class="form-label small fw-semibold mb-1"
+                    id="multiDocTitleLabel"
+                    >File Name</label
+                  >
+                  <input
+                    type="text"
+                    id="multiDocNewTitle"
+                    class="form-control form-control-sm"
+                    placeholder="Enter document name..."
+                    style="
+                      background: var(--surface);
+                      color: var(--text);
+                      border-color: var(--border);
+                    "
+                  />
+                </div>
+                <div class="col-12 col-sm-5">
+                  <label class="form-label small fw-semibold mb-1"
+                    >Select File (PDF / Image)</label
+                  >
+                  <input
+                    type="file"
+                    id="multiDocNewFile"
+                    class="form-control form-control-sm"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                    style="
+                      background: var(--surface);
+                      color: var(--text);
+                      border-color: var(--border);
+                    "
+                  />
+                </div>
+                <div class="col-12 col-sm-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary w-100 fw-semibold"
+                    onclick="uploadNewCommonMultiDoc()"
+                  >
+                    ⬆️ Upload
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="table-responsive border rounded"
+              style="border-color: var(--border) !important"
+            >
+              <table
+                class="table table-hover align-middle m-0"
+                style="
+                  color: var(--text);
+                  border-color: var(--border);
+                  font-size: 13px;
+                "
+              >
+                <thead>
+                  <tr
+                    style="
+                      background: var(--table-header-bg);
+                      color: var(--table-header-color);
+                      font-size: 11px;
+                      text-transform: uppercase;
+                    "
+                  >
+                    <th style="width: 45px; text-align: center">#</th>
+                    <th id="multiDocTableColHeader">
+                      File Name
+                      <span class="text-muted fw-normal" style="font-size: 10px"
+                        >(Tap to Open • Double-Tap to Edit)</span
+                      >
+                    </th>
+                    <th style="width: 150px">Uploaded</th>
+                    <th style="width: 110px; text-align: center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="commonMultiDocTbody"></tbody>
+              </table>
+            </div>
+            <input
+              type="file"
+              id="multiDocReplaceInput"
+              style="display: none"
+              accept=".png,.jpg,.jpeg,.pdf"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Document & Bill Preview Modal -->
+    <div
+      class="modal fade"
+      id="filePreviewModal"
+      tabindex="-1"
+      style="z-index: 1065"
+    >
+      <div
+        class="modal-dialog modal-lg modal-dialog-centered"
+        style="max-width: 720px"
+      >
+        <div
+          class="modal-content shadow-lg"
+          style="
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            height: 80vh;
+          "
+        >
+          <div
+            class="modal-header py-2 px-3 border-bottom d-flex justify-content-between align-items-center"
+          >
+            <h6 class="modal-title fw-bold m-0 fs-6" id="filePreviewTitle">
+              <i class="fa-solid fa-file-invoice text-primary me-2"></i>Document
+              Preview
+            </h6>
             <div class="d-flex align-items-center gap-2">
-              <h5 class="modal-title m-0 fw-bold" id="detailCustomerName">Customer Name</h5>
-              <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px; height: 22px;" onclick="openEditMasterModal()" title="Edit Customer Name"><i class="fa-solid fa-pen"></i></button>
+              <a
+                href="#"
+                id="previewOpenNewTab"
+                target="_blank"
+                class="btn btn-sm btn-outline-secondary py-1 px-2"
+                style="font-size: 11px"
+                ><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open
+                New Tab</a
+              >
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
             </div>
           </div>
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <div class="common-docs-bar">
-              <div id="modalIshtimaraSlot"></div>
-              <div id="modalOtherDocSlot"></div>
-            </div>
-            <button class="btn btn-sm btn-primary py-1 px-3" onclick="openAddSiteForCurrentCustomer()"><i class="fa-solid fa-plus me-1"></i> Add Site / Project</button>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-        </div>
-        <div class="modal-body p-3">
-          <!-- Sites Sub Table -->
-          <div class="detail-table-wrapper">
-            <table class="detail-table" id="innerDetailTable">
-              <thead>
-                <tr>
-                  <th style="width: 35px; text-align: center;">SN</th>
-                  <th>Start Date</th>
-                  <th>Site Name</th>
-                  <th>Company</th>
-                  <th>Status</th>
-                  <th>Release Date</th>
-                  <th>Remark</th>
-                  <th title="Agreement">Agath</th>
-                  <th title="Request For Quotation">RFQ</th>
-                  <th title="Purchase Order">PO</th>
-                  <th title="Bills">Fatoora</th>
-                  <th title="Final confirmation">Final Conf</th>
-                  <th>Project Name</th>
-                  <th style="width: 50px; text-align: center;">Action</th>
-                </tr>
-              </thead>
-              <tbody id="detailSitesTbody"></tbody>
-            </table>
-          </div>
+          <div
+            class="modal-body p-0"
+            id="filePreviewBody"
+            style="
+              height: calc(80vh - 50px);
+              overflow: hidden;
+              background: #1e293b;
+            "
+          ></div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Modal 0: Edit Customer Master (Name Only) -->
-  <div class="modal fade" id="editCustomerMasterModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
-        <div class="modal-header border-bottom">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Edit Customer Name</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body p-4">
-          <form id="editCustomerMasterForm">
-            <input type="hidden" id="edit_old_cust_name">
-            <div class="mb-2">
-              <label class="form-label small fw-semibold">Customer Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="edit_cust_name" required>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer border-top">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button class="btn btn-primary px-4 fw-semibold" onclick="saveCustomerMasterChanges()">Save Changes</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <script src="/node_xlsx_scripts/jquery-3.7.0.min.js"></script>
+    <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
+    <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
 
-  <!-- Modal: Add / Edit Customer & Site Project Details -->
-  <div class="modal fade" id="siteEngagementModal" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
-        <div class="modal-header border-bottom">
-          <h5 class="modal-title fw-bold" id="siteEngagementModalTitle">Add Non-VAT Customer &amp; Site Details</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body p-4">
-          <form id="siteEngagementForm">
-            <input type="hidden" id="site_row_id">
+    <script>
+      const API_BASE = "/py/non-vat-customers";
 
-            <div class="row g-3">
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">Customer Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="site_cust_name" placeholder="Enter Customer / Owner Name" required>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">Site Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="engagement_site" placeholder="Site name (eg: Bisha, Afif)" required>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">Company</label>
-                <select class="form-select" id="engagement_company" onchange="checkNewCompany(this.value)">
-                  <option value="Haka">Haka</option>
-                  <option value="Al Joda">Al Joda</option>
-                  <option value="Masar Wheels">Masar Wheels</option>
-                  <option value="We1">We1</option>
-                  <option value="__NEW__">+ Add New</option>
-                </select>
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">Status</label>
-                <select class="form-select" id="engagement_status">
-                  <option value="Active">Active</option>
-                  <option value="Released">Released</option>
-                </select>
-              </div>
-            </div>
+      let rawRecords = [];
+      let groupedCustomers = {};
+      let currentSearchTerm = "";
+      let currentCompanyFilter = "ALL";
+      let currentContextTarget = null;
+      let selectedActiveCustomerKey = null;
+      let currentBillRecord = null;
 
-            <div class="row g-3 mt-1">
-              <div class="col-12 col-sm-6 col-md-4">
-                <label class="form-label small fw-semibold">Start Date</label>
-                <input type="date" class="form-control" id="engagement_joining_date">
-              </div>
-              <div class="col-12 col-sm-6 col-md-4">
-                <label class="form-label small fw-semibold">Release Date</label>
-                <input type="date" class="form-control" id="engagement_release_date">
-              </div>
-              <div class="col-12 col-sm-6 col-md-4">
-                <label class="form-label small fw-semibold">Remark</label>
-                <input type="text" class="form-control" id="engagement_remark" placeholder="Remarks if any">
-              </div>
-            </div>
+      let innerActiveFilters = {};
+      let currentFilterKey = null;
+      let activeMultiDocCategory = null;
+      let replaceTargetDocId = null;
 
-            <div class="row g-3 mt-1">
-              <div class="col-12">
-                <label class="form-label small fw-semibold">Project Name</label>
-                <input type="text" class="form-control" id="engagement_project_name" maxlength="255" placeholder="Enter Full Project Name">
-              </div>
-            </div>
+      const innerColumnKeyMap = {
+        1: "joining_date",
+        2: "site",
+        3: "company",
+        4: "status",
+        5: "release_date",
+        6: "remark",
+        12: "project_name",
+      };
 
-            <hr class="my-4" style="border-color: var(--border);">
+      function toggleTheme() {
+        const current =
+          document.documentElement.getAttribute("data-theme") || "light";
+        const target = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", target);
+        localStorage.setItem("theme", target);
+        document.getElementById("themeIcon").className =
+          target === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon";
+      }
 
-            <div class="row g-3">
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold" title="Agreement">Agath Doc</label>
-                <input type="file" class="form-control" id="engagement_file_agreement" accept=".png,.jpg,.jpeg,.pdf">
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold" title="Request For Quotation">RFQ Doc</label>
-                <input type="file" class="form-control" id="engagement_file_rfq" accept=".png,.jpg,.jpeg,.pdf">
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">PO Doc</label>
-                <input type="file" class="form-control" id="engagement_file_po" accept=".png,.jpg,.jpeg,.pdf">
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold" title="Final confirmation">Final Conf Doc</label>
-                <input type="file" class="form-control" id="engagement_file_last" accept=".png,.jpg,.jpeg,.pdf">
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer border-top">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button class="btn btn-primary px-4 fw-semibold" onclick="saveSiteEngagement()">Save Site</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Bills Management Popup -->
-  <div class="modal fade" id="billModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
-        <div class="modal-header border-bottom">
-          <h5 class="modal-title"><i class="fa-solid fa-file-invoice-dollar me-2 text-primary"></i>Bills Management</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <ul class="nav nav-pills mb-3" id="billPills">
-            <li class="nav-item"><button class="nav-link active" id="tabBtn_view" onclick="switchBillTab('view')">1. View Bills</button></li>
-            <li class="nav-item"><button class="nav-link" id="tabBtn_add" onclick="switchBillTab('add')">2. Add Bill</button></li>
-            <li class="nav-item"><button class="nav-link" id="tabBtn_download" onclick="switchBillTab('download')">3. Download Bill</button></li>
-          </ul>
-          <div id="billTabContent"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Multi-Document Popup (Ishtimara & Other Doc) -->
-  <div class="modal fade" id="commonMultiDocModal" tabindex="-1" style="z-index: 1060;">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content shadow-lg" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px;">
-        <div class="modal-header border-bottom py-2 px-3">
-          <h6 class="modal-title fw-bold m-0" id="commonMultiDocTitle"><i class="fa-solid fa-folder-open text-primary me-2"></i>Documents</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body p-3">
-          <div class="p-3 mb-3 rounded border" style="background: var(--bg); border-color: var(--border)!important;">
-            <div class="row g-2 align-items-end">
-              <div class="col-12 col-sm-5">
-                <label class="form-label small fw-semibold mb-1" id="multiDocTitleLabel">File Name</label>
-                <input type="text" id="multiDocNewTitle" class="form-control form-control-sm" placeholder="Enter document name..." style="background: var(--surface); color: var(--text); border-color: var(--border);">
-              </div>
-              <div class="col-12 col-sm-5">
-                <label class="form-label small fw-semibold mb-1">Select File (PDF / Image)</label>
-                <input type="file" id="multiDocNewFile" class="form-control form-control-sm" accept=".png,.jpg,.jpeg,.pdf" style="background: var(--surface); color: var(--text); border-color: var(--border);">
-              </div>
-              <div class="col-12 col-sm-2">
-                <button type="button" class="btn btn-sm btn-primary w-100 fw-semibold" onclick="uploadNewCommonMultiDoc()">⬆️ Upload</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="table-responsive border rounded" style="border-color: var(--border)!important;">
-            <table class="table table-hover align-middle m-0" style="color: var(--text); border-color: var(--border); font-size: 13px;">
-              <thead>
-                <tr style="background: var(--table-header-bg); color: var(--table-header-color); font-size: 11px; text-transform: uppercase;">
-                  <th style="width: 45px; text-align: center;">#</th>
-                  <th id="multiDocTableColHeader">File Name <span class="text-muted fw-normal" style="font-size: 10px;">(Tap to Open • Double-Tap to Edit)</span></th>
-                  <th style="width: 150px;">Uploaded</th>
-                  <th style="width: 110px; text-align: center;">Action</th>
-                </tr>
-              </thead>
-              <tbody id="commonMultiDocTbody"></tbody>
-            </table>
-          </div>
-          <input type="file" id="multiDocReplaceInput" style="display:none;" accept=".png,.jpg,.jpeg,.pdf">
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Document & Bill Preview Modal -->
-  <div class="modal fade" id="filePreviewModal" tabindex="-1" style="z-index: 1065;">
-    <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 720px;">
-      <div class="modal-content shadow-lg" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; height: 80vh;">
-        <div class="modal-header py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
-          <h6 class="modal-title fw-bold m-0 fs-6" id="filePreviewTitle"><i class="fa-solid fa-file-invoice text-primary me-2"></i>Document Preview</h6>
-          <div class="d-flex align-items-center gap-2">
-            <a href="#" id="previewOpenNewTab" target="_blank" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 11px;"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open New Tab</a>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-        </div>
-        <div class="modal-body p-0" id="filePreviewBody" style="height: calc(80vh - 50px); overflow: hidden; background: #1e293b;"></div>
-      </div>
-    </div>
-  </div>
-
-  <script src="/node_xlsx_scripts/jquery-3.7.0.min.js"></script>
-  <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
-  <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
-
-  <script>
-    const API_BASE = '/py/non-vat-customers';
-
-    let rawRecords = [];
-    let groupedCustomers = {};
-    let currentSearchTerm = '';
-    let currentCompanyFilter = 'ALL';
-    let currentContextTarget = null;
-    let selectedActiveCustomerKey = null;
-    let currentBillRecord = null;
-
-    let innerActiveFilters = {};
-    let currentFilterKey = null;
-    let activeMultiDocCategory = null;
-    let replaceTargetDocId = null;
-
-    const innerColumnKeyMap = {
-      1: 'joining_date',
-      2: 'site',
-      3: 'company',
-      4: 'status',
-      5: 'release_date',
-      6: 'remark',
-      12: 'project_name'
-    };
-
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const target = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', target);
-      localStorage.setItem('theme', target);
-      document.getElementById('themeIcon').className = target === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-    }
-
-    function toggleFullScreen() {
-      const icon = document.getElementById('fsIcon');
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => console.log(err));
-        if (icon) icon.className = 'fa-solid fa-compress';
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-          if (icon) icon.className = 'fa-solid fa-expand';
+      function toggleFullScreen() {
+        const icon = document.getElementById("fsIcon");
+        if (!document.fullscreenElement) {
+          document.documentElement
+            .requestFullscreen()
+            .catch((err) => console.log(err));
+          if (icon) icon.className = "fa-solid fa-compress";
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+            if (icon) icon.className = "fa-solid fa-expand";
+          }
         }
       }
-    }
 
-    function formatDateDDMMMYY(val) {
-      if (!val) return '';
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return val;
-      const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mmm = mNames[d.getMonth()];
-      const yy = String(d.getFullYear()).slice(-2);
-      return `${dd} ${mmm} ${yy}`;
-    }
+      function formatDateDDMMMYY(val) {
+        if (!val) return "";
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return val;
+        const mNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mmm = mNames[d.getMonth()];
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${dd} ${mmm} ${yy}`;
+      }
 
-    async function loadCompanies() {
-      try {
-        const res = await fetch(`${API_BASE}/companies`);
-        const json = await res.json();
-        if (json.success) {
-          const select = document.getElementById('engagement_company');
-          if (!select) return;
-          select.innerHTML = '';
-          json.data.forEach(c => {
-            select.innerHTML += `<option value="${c}">${c}</option>`;
-          });
-          select.innerHTML += `<option value="__NEW__">+ Add New</option>`;
-        }
-      } catch (e) {}
-    }
-
-    async function checkNewCompany(val) {
-      if (val === '__NEW__') {
-        const { value: newComp } = await Swal.fire({
-          title: 'Add New Company',
-          input: 'text',
-          inputLabel: 'Company Name',
-          showCancelButton: true
-        });
-        if (newComp && newComp.trim()) {
-          const res = await fetch(`${API_BASE}/companies`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ company_name: newComp.trim() })
-          });
+      async function loadCompanies() {
+        try {
+          const res = await fetch(`${API_BASE}/companies`);
           const json = await res.json();
           if (json.success) {
-            await loadCompanies();
-            document.getElementById('engagement_company').value = json.name;
+            const select = document.getElementById("engagement_company");
+            if (!select) return;
+            select.innerHTML = "";
+            json.data.forEach((c) => {
+              select.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+            select.innerHTML += `<option value="__NEW__">+ Add New</option>`;
           }
-        } else {
-          document.getElementById('engagement_company').selectedIndex = 0;
+        } catch (e) {}
+      }
+
+      async function checkNewCompany(val) {
+        if (val === "__NEW__") {
+          const { value: newComp } = await Swal.fire({
+            title: "Add New Company",
+            input: "text",
+            inputLabel: "Company Name",
+            showCancelButton: true,
+          });
+          if (newComp && newComp.trim()) {
+            const res = await fetch(`${API_BASE}/companies`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ company_name: newComp.trim() }),
+            });
+            const json = await res.json();
+            if (json.success) {
+              await loadCompanies();
+              document.getElementById("engagement_company").value = json.name;
+            }
+          } else {
+            document.getElementById("engagement_company").selectedIndex = 0;
+          }
         }
       }
-    }
 
-    async function fetchTableData() {
-      try {
-        const res = await fetch(`${API_BASE}/records`);
-        const json = await res.json();
-        if (json.success) {
-          rawRecords = json.data || [];
-          groupCustomers();
-          populateCompanyFilterDropdown();
-          renderGrid();
-          if (selectedActiveCustomerKey && groupedCustomers[selectedActiveCustomerKey]) {
-            renderDetailModal(selectedActiveCustomerKey);
-          }
-        }
-      } catch (err) {
-        console.error('Fetch error:', err);
-      }
-    }
-
-    function getCompanyOrderRank(companyName) {
-      const c = (companyName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (c === 'haka') return 1;
-      if (c === 'aljoda') return 2;
-      if (c === 'masarwheels') return 3;
-      if (c === 'we1') return 4;
-      return 999;
-    }
-
-    function groupCustomers() {
-      groupedCustomers = {};
-      rawRecords.forEach(r => {
-        const name = (r.customer_name || 'Unnamed Customer').trim();
-        const key = name.toLowerCase();
-        if (!groupedCustomers[key]) {
-          groupedCustomers[key] = {
-            customer_name: name,
-            cr_no: r.cr_no || '',
-            ishtimara_docs: Array.isArray(r.ishtimara_docs) ? r.ishtimara_docs : [],
-            other_docs: Array.isArray(r.other_docs) ? r.other_docs : [],
-            sites: []
-          };
-        }
-        if (r.cr_no && !groupedCustomers[key].cr_no) groupedCustomers[key].cr_no = r.cr_no;
-        if (Array.isArray(r.ishtimara_docs) && r.ishtimara_docs.length > groupedCustomers[key].ishtimara_docs.length) {
-          groupedCustomers[key].ishtimara_docs = r.ishtimara_docs;
-        }
-        if (Array.isArray(r.other_docs) && r.other_docs.length > groupedCustomers[key].other_docs.length) {
-          groupedCustomers[key].other_docs = r.other_docs;
-        }
-
-        const hasSiteData = (r.site && r.site.trim()) || (r.project_name && r.project_name.trim()) || r.agreement_doc || r.rfq_doc || r.po_doc || r.last_doc;
-        if (hasSiteData) {
-          groupedCustomers[key].sites.push(r);
-        }
-      });
-    }
-
-    function populateCompanyFilterDropdown() {
-      const select = document.getElementById('companyFilterSelect');
-      if (!select) return;
-
-      const companyMap = new Map();
-      Object.values(groupedCustomers).forEach(cust => {
-        (cust.sites || []).forEach(s => {
-          const rawComp = (s.company || '').trim();
-          if (rawComp) {
-            const normKey = rawComp.toLowerCase();
-            if (!companyMap.has(normKey)) {
-              companyMap.set(normKey, rawComp);
+      async function fetchTableData() {
+        try {
+          const res = await fetch(`${API_BASE}/records`);
+          const json = await res.json();
+          if (json.success) {
+            rawRecords = json.data || [];
+            groupCustomers();
+            populateCompanyFilterDropdown();
+            renderGrid();
+            if (
+              selectedActiveCustomerKey &&
+              groupedCustomers[selectedActiveCustomerKey]
+            ) {
+              renderDetailModal(selectedActiveCustomerKey);
             }
           }
-        });
-      });
-
-      const sortedCompanies = Array.from(companyMap.entries()).sort((a, b) => {
-        const rankA = getCompanyOrderRank(a[1]);
-        const rankB = getCompanyOrderRank(b[1]);
-        if (rankA !== rankB) return rankA - rankB;
-        return a[1].localeCompare(b[1]);
-      });
-
-      const prevSelected = currentCompanyFilter;
-      select.innerHTML = `<option value="ALL">All Companies</option>`;
-      sortedCompanies.forEach(([normKey, displayName]) => {
-        select.innerHTML += `<option value="${normKey}">${displayName}</option>`;
-      });
-
-      if (prevSelected !== 'ALL' && companyMap.has(prevSelected)) {
-        select.value = prevSelected;
-      } else {
-        currentCompanyFilter = 'ALL';
-        select.value = 'ALL';
-      }
-    }
-
-    function handleCompanyFilter(val) {
-      currentCompanyFilter = val || 'ALL';
-      renderGrid();
-    }
-
-    function handleSearch(term) {
-      currentSearchTerm = (term || '').trim().toLowerCase();
-      renderGrid();
-    }
-
-    function renderGrid() {
-      const container = document.getElementById('customersGrid');
-      container.innerHTML = '';
-
-      const keys = Object.keys(groupedCustomers).sort((a, b) =>
-        groupedCustomers[a].customer_name.localeCompare(groupedCustomers[b].customer_name)
-      );
-
-      keys.forEach(k => {
-        const cust = groupedCustomers[k];
-
-        if (currentCompanyFilter !== 'ALL') {
-          const hasMatchingCompany = (cust.sites || []).some(
-            s => (s.company || '').trim().toLowerCase() === currentCompanyFilter
-          );
-          if (!hasMatchingCompany) return;
+        } catch (err) {
+          console.error("Fetch error:", err);
         }
+      }
 
-        const searchBlob = [
-          cust.customer_name,
-          cust.cr_no,
-          cust.sites.map(s => `${s.site} ${s.project_name} ${s.company}`).join(' ')
-        ].join(' ').toLowerCase();
+      function getCompanyOrderRank(companyName) {
+        const c = (companyName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (c === "haka") return 1;
+        if (c === "aljoda") return 2;
+        if (c === "masarwheels") return 3;
+        if (c === "we1") return 4;
+        return 999;
+      }
 
-        if (currentSearchTerm && !searchBlob.includes(currentSearchTerm)) return;
+      function groupCustomers() {
+        groupedCustomers = {};
+        rawRecords.forEach((r) => {
+          const name = (r.customer_name || "Unnamed Customer").trim();
+          const key = name.toLowerCase();
+          if (!groupedCustomers[key]) {
+            groupedCustomers[key] = {
+              customer_name: name,
+              cr_no: r.cr_no || "",
+              ishtimara_docs: Array.isArray(r.ishtimara_docs)
+                ? r.ishtimara_docs
+                : [],
+              other_docs: Array.isArray(r.other_docs) ? r.other_docs : [],
+              sites: [],
+            };
+          }
+          if (r.cr_no && !groupedCustomers[key].cr_no)
+            groupedCustomers[key].cr_no = r.cr_no;
+          if (
+            Array.isArray(r.ishtimara_docs) &&
+            r.ishtimara_docs.length >
+              groupedCustomers[key].ishtimara_docs.length
+          ) {
+            groupedCustomers[key].ishtimara_docs = r.ishtimara_docs;
+          }
+          if (
+            Array.isArray(r.other_docs) &&
+            r.other_docs.length > groupedCustomers[key].other_docs.length
+          ) {
+            groupedCustomers[key].other_docs = r.other_docs;
+          }
 
-        const card = document.createElement('div');
-        card.className = 'customer-card';
-        card.onclick = () => openCustomerDetailModal(k);
+          const hasSiteData =
+            (r.site && r.site.trim()) ||
+            (r.project_name && r.project_name.trim()) ||
+            r.agreement_doc ||
+            r.rfq_doc ||
+            r.po_doc ||
+            r.last_doc;
+          if (hasSiteData) {
+            groupedCustomers[key].sites.push(r);
+          }
+        });
+      }
 
-        const sortedCardSites = [...cust.sites].sort((a, b) => {
-          const rankA = getCompanyOrderRank(a.company);
-          const rankB = getCompanyOrderRank(b.company);
-          if (rankA !== rankB) return rankA - rankB;
-          const siteA = (a.site || '').toLowerCase();
-          const siteB = (b.site || '').toLowerCase();
-          return siteA.localeCompare(siteB);
+      function populateCompanyFilterDropdown() {
+        const select = document.getElementById("companyFilterSelect");
+        if (!select) return;
+
+        const companyMap = new Map();
+        Object.values(groupedCustomers).forEach((cust) => {
+          (cust.sites || []).forEach((s) => {
+            const rawComp = (s.company || "").trim();
+            if (rawComp) {
+              const normKey = rawComp.toLowerCase();
+              if (!companyMap.has(normKey)) {
+                companyMap.set(normKey, rawComp);
+              }
+            }
+          });
         });
 
-        let miniTableHtml = '';
-        if (sortedCardSites.length > 0) {
-          const rowsHtml = sortedCardSites.slice(0, 5).map(s => `
-            <tr>
-              <td style="font-weight: 600; color: #0284c7;">${s.company || '-'}</td>
-              <td style="font-weight: 500;">${s.site || '-'}</td>
-              <td style="color: var(--text-muted);">${formatDateDDMMMYY(s.joining_date) || '-'}</td>
-              <td style="color: var(--text-muted);">${formatDateDDMMMYY(s.release_date) || '-'}</td>
-            </tr>
-          `).join('');
+        const sortedCompanies = Array.from(companyMap.entries()).sort(
+          (a, b) => {
+            const rankA = getCompanyOrderRank(a[1]);
+            const rankB = getCompanyOrderRank(b[1]);
+            if (rankA !== rankB) return rankA - rankB;
+            return a[1].localeCompare(b[1]);
+          },
+        );
 
-          miniTableHtml = `
+        const prevSelected = currentCompanyFilter;
+        select.innerHTML = `<option value="ALL">All Companies</option>`;
+        sortedCompanies.forEach(([normKey, displayName]) => {
+          select.innerHTML += `<option value="${normKey}">${displayName}</option>`;
+        });
+
+        if (prevSelected !== "ALL" && companyMap.has(prevSelected)) {
+          select.value = prevSelected;
+        } else {
+          currentCompanyFilter = "ALL";
+          select.value = "ALL";
+        }
+      }
+
+      function handleCompanyFilter(val) {
+        currentCompanyFilter = val || "ALL";
+        renderGrid();
+      }
+
+      function handleSearch(term) {
+        currentSearchTerm = (term || "").trim().toLowerCase();
+        renderGrid();
+      }
+
+      function renderGrid() {
+        const container = document.getElementById("customersGrid");
+        container.innerHTML = "";
+
+        const keys = Object.keys(groupedCustomers).sort((a, b) =>
+          groupedCustomers[a].customer_name.localeCompare(
+            groupedCustomers[b].customer_name,
+          ),
+        );
+
+        keys.forEach((k) => {
+          const cust = groupedCustomers[k];
+
+          if (currentCompanyFilter !== "ALL") {
+            const hasMatchingCompany = (cust.sites || []).some(
+              (s) =>
+                (s.company || "").trim().toLowerCase() === currentCompanyFilter,
+            );
+            if (!hasMatchingCompany) return;
+          }
+
+          const searchBlob = [
+            cust.customer_name,
+            cust.cr_no,
+            cust.sites
+              .map((s) => `${s.site} ${s.project_name} ${s.company}`)
+              .join(" "),
+          ]
+            .join(" ")
+            .toLowerCase();
+
+          if (currentSearchTerm && !searchBlob.includes(currentSearchTerm))
+            return;
+
+          const card = document.createElement("div");
+          card.className = "customer-card";
+          card.onclick = () => openCustomerDetailModal(k);
+
+          const sortedCardSites = [...cust.sites].sort((a, b) => {
+            const rankA = getCompanyOrderRank(a.company);
+            const rankB = getCompanyOrderRank(b.company);
+            if (rankA !== rankB) return rankA - rankB;
+            const siteA = (a.site || "").toLowerCase();
+            const siteB = (b.site || "").toLowerCase();
+            return siteA.localeCompare(siteB);
+          });
+
+          let miniTableHtml = "";
+          if (sortedCardSites.length > 0) {
+            const rowsHtml = sortedCardSites
+              .slice(0, 5)
+              .map(
+                (s) => `
+            <tr>
+              <td style="font-weight: 600; color: #0284c7;">${s.company || "-"}</td>
+              <td style="font-weight: 500;">${s.site || "-"}</td>
+              <td style="color: var(--text-muted);">${formatDateDDMMMYY(s.joining_date) || "-"}</td>
+              <td style="color: var(--text-muted);">${formatDateDDMMMYY(s.release_date) || "-"}</td>
+            </tr>
+          `,
+              )
+              .join("");
+
+            miniTableHtml = `
             <div class="card-sites-preview">
               <table class="preview-mini-table">
                 <thead>
@@ -992,202 +1482,252 @@
               </table>
             </div>
           `;
-        } else {
-          miniTableHtml = `<div class="card-sites-preview text-center py-2 text-muted" style="font-size: 11px;">No sites registered yet</div>`;
-        }
+          } else {
+            miniTableHtml = `<div class="card-sites-preview text-center py-2 text-muted" style="font-size: 11px;">No sites registered yet</div>`;
+          }
 
-        card.innerHTML = `
+          card.innerHTML = `
           <div class="card-top">
             <h6 class="card-title">${cust.customer_name}</h6>
             <span class="card-count-badge"><i class="fa-solid fa-location-dot me-1"></i>${cust.sites.length} Sites</span>
           </div>
           ${miniTableHtml}
         `;
-        container.appendChild(card);
-      });
-    }
-
-    function renderDocPill(recordId, docType, url, label, tooltip = '', showStatusText = false) {
-      const titleAttr = tooltip ? ` title="${tooltip}"` : '';
-      if (url) {
-        const text = showStatusText ? 'Uploaded' : label;
-        return `<span class="doc-pill uploaded doc-trigger"${titleAttr} data-id="${recordId}" data-type="${docType}" data-url="${url}"><i class="fa-solid fa-circle-check"></i> ${text}</span>`;
+          container.appendChild(card);
+        });
       }
-      const text = showStatusText ? 'Pending' : label;
-      return `<span class="doc-pill empty doc-trigger"${titleAttr} data-id="${recordId}" data-type="${docType}"><i class="fa-solid fa-clock"></i> ${text}</span>`;
-    }
 
-    function openCustomerDetailModal(custKey) {
-      selectedActiveCustomerKey = custKey;
-      innerActiveFilters = {};
-      renderDetailModal(custKey);
-      const modalEl = document.getElementById('customerDetailModal');
-      const inst = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-      inst.show();
-    }
+      function renderDocPill(
+        recordId,
+        docType,
+        url,
+        label,
+        tooltip = "",
+        showStatusText = false,
+      ) {
+        const titleAttr = tooltip ? ` title="${tooltip}"` : "";
+        if (url) {
+          const text = showStatusText ? "Uploaded" : label;
+          return `<span class="doc-pill uploaded doc-trigger"${titleAttr} data-id="${recordId}" data-type="${docType}" data-url="${url}"><i class="fa-solid fa-circle-check"></i> ${text}</span>`;
+        }
+        const text = showStatusText ? "Pending" : label;
+        return `<span class="doc-pill empty doc-trigger"${titleAttr} data-id="${recordId}" data-type="${docType}"><i class="fa-solid fa-clock"></i> ${text}</span>`;
+      }
 
-    function renderDetailModal(custKey) {
-      const cust = groupedCustomers[custKey];
-      if (!cust) return;
+      function openCustomerDetailModal(custKey) {
+        selectedActiveCustomerKey = custKey;
+        innerActiveFilters = {};
+        renderDetailModal(custKey);
+        const modalEl = document.getElementById("customerDetailModal");
+        const inst =
+          bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        inst.show();
+      }
 
-      document.getElementById('detailCustomerName').innerText = cust.customer_name;
+      function renderDetailModal(custKey) {
+        const cust = groupedCustomers[custKey];
+        if (!cust) return;
 
-      document.getElementById('modalIshtimaraSlot').innerHTML = `
+        document.getElementById("detailCustomerName").innerText =
+          cust.customer_name;
+
+        document.getElementById("modalIshtimaraSlot").innerHTML = `
         <button type="button" class="common-multi-btn" onclick="openCommonMultiDocModal('ishtimara')">
           <i class="fa-solid fa-id-card"></i> Ishtimara
           <span class="count-pill">${(cust.ishtimara_docs || []).length}</span>
         </button>
       `;
-      document.getElementById('modalOtherDocSlot').innerHTML = `
+        document.getElementById("modalOtherDocSlot").innerHTML = `
         <button type="button" class="common-multi-btn" onclick="openCommonMultiDocModal('other')">
           <i class="fa-solid fa-folder-plus"></i> Other Doc
           <span class="count-pill">${(cust.other_docs || []).length}</span>
         </button>
       `;
 
-      if (activeMultiDocCategory) {
-        renderCommonMultiDocRows();
-      }
-
-      const tbody = document.getElementById('detailSitesTbody');
-      tbody.innerHTML = '';
-
-      if (cust.sites.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
-        attachDocEvents();
-        attachInnerHeaderRightClick();
-        return;
-      }
-
-      const filteredSites = cust.sites.filter(siteRec => {
-        for (const [key, selectedVals] of Object.entries(innerActiveFilters)) {
-          if (!selectedVals || selectedVals.length === 0) continue;
-          let cellVal = siteRec[key];
-          if (key === 'joining_date' || key === 'release_date') {
-            cellVal = formatDateDDMMMYY(cellVal);
-          }
-          cellVal = String(cellVal || '(Blanks)').trim();
-          if (!selectedVals.includes(cellVal)) {
-            return false;
-          }
+        if (activeMultiDocCategory) {
+          renderCommonMultiDocRows();
         }
-        return true;
-      });
 
-      const activeSites = filteredSites.filter(s => (s.status || '').toLowerCase() === 'active');
-      const releasedSites = filteredSites.filter(s => (s.status || '').toLowerCase() !== 'active');
+        const tbody = document.getElementById("detailSitesTbody");
+        tbody.innerHTML = "";
 
-      const sortByDateAsc = (a, b) => {
-        const timeA = a.joining_date ? new Date(a.joining_date).getTime() : 0;
-        const timeB = b.joining_date ? new Date(b.joining_date).getTime() : 0;
-        return timeA - timeB;
-      };
+        if (cust.sites.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
+          attachDocEvents();
+          attachInnerHeaderRightClick();
+          return;
+        }
 
-      activeSites.sort(sortByDateAsc);
-      releasedSites.sort(sortByDateAsc);
+        const filteredSites = cust.sites.filter((siteRec) => {
+          for (const [key, selectedVals] of Object.entries(
+            innerActiveFilters,
+          )) {
+            if (!selectedVals || selectedVals.length === 0) continue;
+            let cellVal = siteRec[key];
+            if (key === "joining_date" || key === "release_date") {
+              cellVal = formatDateDDMMMYY(cellVal);
+            }
+            cellVal = String(cellVal || "(Blanks)").trim();
+            if (!selectedVals.includes(cellVal)) {
+              return false;
+            }
+          }
+          return true;
+        });
 
-      let counter = 1;
+        const activeSites = filteredSites.filter(
+          (s) => (s.status || "").toLowerCase() === "active",
+        );
+        const releasedSites = filteredSites.filter(
+          (s) => (s.status || "").toLowerCase() !== "active",
+        );
 
-      const appendSiteRow = (siteRec) => {
-        const endDateForRange =
-          (siteRec.status || '').toLowerCase() === 'released' && siteRec.release_date
-            ? siteRec.release_date
-            : null;
-        const expectedMonths = generateMonthsRange(siteRec.joining_date, endDateForRange);
-        const uploadedBillsCount = (siteRec.bills_data || []).filter(b => b.file_url).length;
-        const totalBillsCount = Math.max(expectedMonths.length, uploadedBillsCount);
+        const sortByDateAsc = (a, b) => {
+          const timeA = a.joining_date ? new Date(a.joining_date).getTime() : 0;
+          const timeB = b.joining_date ? new Date(b.joining_date).getTime() : 0;
+          return timeA - timeB;
+        };
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+        activeSites.sort(sortByDateAsc);
+        releasedSites.sort(sortByDateAsc);
+
+        let counter = 1;
+
+        const appendSiteRow = (siteRec) => {
+          const endDateForRange =
+            (siteRec.status || "").toLowerCase() === "released" &&
+            siteRec.release_date
+              ? siteRec.release_date
+              : null;
+          const expectedMonths = generateMonthsRange(
+            siteRec.joining_date,
+            endDateForRange,
+          );
+          const uploadedBillsCount = (siteRec.bills_data || []).filter(
+            (b) => b.file_url,
+          ).length;
+          const totalBillsCount = Math.max(
+            expectedMonths.length,
+            uploadedBillsCount,
+          );
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
           <td style="text-align: center; font-weight: bold;">${counter++}</td>
           <td>${formatDateDDMMMYY(siteRec.joining_date)}</td>
-          <td><strong>${siteRec.site || ''}</strong></td>
-          <td>${siteRec.company || ''}</td>
-          <td><span class="badge ${siteRec.status === 'Active' ? 'bg-success' : 'bg-danger'}">${siteRec.status || 'Active'}</span></td>
+          <td><strong>${siteRec.site || ""}</strong></td>
+          <td>${siteRec.company || ""}</td>
+          <td><span class="badge ${siteRec.status === "Active" ? "bg-success" : "bg-danger"}">${siteRec.status || "Active"}</span></td>
           <td>${formatDateDDMMMYY(siteRec.release_date)}</td>
-          <td>${siteRec.remark || ''}</td>
-          <td>${renderDocPill(siteRec.id, 'agreement', siteRec.agreement_doc, 'Agath', 'Agreement (Agath)', true)}</td>
-          <td>${renderDocPill(siteRec.id, 'rfq', siteRec.rfq_doc, 'RFQ', 'Request For Quotation (RFQ)', true)}</td>
-          <td>${renderDocPill(siteRec.id, 'po', siteRec.po_doc, 'PO', 'Purchase Order (PO)', true)}</td>
+          <td>${siteRec.remark || ""}</td>
+          <td>${renderDocPill(siteRec.id, "agreement", siteRec.agreement_doc, "Agath", "Agreement (Agath)", true)}</td>
+          <td>${renderDocPill(siteRec.id, "rfq", siteRec.rfq_doc, "RFQ", "Request For Quotation (RFQ)", true)}</td>
+          <td>${renderDocPill(siteRec.id, "po", siteRec.po_doc, "PO", "Purchase Order (PO)", true)}</td>
           <td><button class="btn btn-sm btn-outline-primary py-0 px-2" title="Bills" onclick="openBillPopup(${siteRec.id})"><i class="fa-solid fa-receipt me-1"></i>Fatoora (${uploadedBillsCount}/${totalBillsCount})</button></td>
-          <td>${renderDocPill(siteRec.id, 'last', siteRec.last_doc, 'Final Conf', 'Final confirmation', true)}</td>
-          <td>${siteRec.project_name || ''}</td>
+          <td>${renderDocPill(siteRec.id, "last", siteRec.last_doc, "Final Conf", "Final confirmation", true)}</td>
+          <td>${siteRec.project_name || ""}</td>
           <td style="text-align: center;">
             <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="openEditSiteModal(${siteRec.id})" title="Edit Site"><i class="fa-solid fa-pen"></i></button>
           </td>
         `;
-        tbody.appendChild(tr);
-      };
+          tbody.appendChild(tr);
+        };
 
-      if (activeSites.length > 0) {
-        const activeHeaderTr = document.createElement('tr');
-        activeHeaderTr.style.background = 'rgba(21, 128, 61, 0.08)';
-        activeHeaderTr.innerHTML = `
+        if (activeSites.length > 0) {
+          const activeHeaderTr = document.createElement("tr");
+          activeHeaderTr.style.background = "rgba(21, 128, 61, 0.08)";
+          activeHeaderTr.innerHTML = `
           <td colspan="14" class="py-1 px-3 fw-bold small text-success" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
             <i class="fa-solid fa-circle-check me-1"></i> ACTIVE SITES (${activeSites.length})
           </td>
         `;
-        tbody.appendChild(activeHeaderTr);
-        activeSites.forEach(appendSiteRow);
-      }
+          tbody.appendChild(activeHeaderTr);
+          activeSites.forEach(appendSiteRow);
+        }
 
-      if (releasedSites.length > 0) {
-        const releasedHeaderTr = document.createElement('tr');
-        releasedHeaderTr.style.background = 'rgba(239, 68, 68, 0.08)';
-        releasedHeaderTr.innerHTML = `
+        if (releasedSites.length > 0) {
+          const releasedHeaderTr = document.createElement("tr");
+          releasedHeaderTr.style.background = "rgba(239, 68, 68, 0.08)";
+          releasedHeaderTr.innerHTML = `
           <td colspan="14" class="py-1 px-3 fw-bold small text-danger" style="border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);">
             <i class="fa-solid fa-clock-rotate-left me-1"></i> RELEASED SITES (${releasedSites.length})
           </td>
         `;
-        tbody.appendChild(releasedHeaderTr);
-        releasedSites.forEach(appendSiteRow);
+          tbody.appendChild(releasedHeaderTr);
+          releasedSites.forEach(appendSiteRow);
+        }
+
+        if (filteredSites.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
+        }
+
+        attachDocEvents();
+        attachInnerHeaderRightClick();
       }
 
-      if (filteredSites.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
+      function openCommonMultiDocModal(category) {
+        if (
+          !selectedActiveCustomerKey ||
+          !groupedCustomers[selectedActiveCustomerKey]
+        )
+          return;
+        activeMultiDocCategory = category;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        const isIshtimara = category === "ishtimara";
+        const titleText = isIshtimara
+          ? "Ishtimara Documents"
+          : "Other Documents";
+        const fieldLabel = isIshtimara ? "Plate No" : "File Name";
+        const fieldPlaceholder = isIshtimara
+          ? "Enter vehicle plate no..."
+          : "Enter document name...";
+
+        document.getElementById("commonMultiDocTitle").innerHTML =
+          `<i class="fa-solid fa-folder-open text-primary me-2"></i>${titleText} — ${cust.customer_name}`;
+        document.getElementById("multiDocTitleLabel").innerText = fieldLabel;
+        document.getElementById("multiDocNewTitle").placeholder =
+          fieldPlaceholder;
+        document.getElementById("multiDocNewTitle").style.textTransform =
+          isIshtimara ? "uppercase" : "none";
+        document.getElementById("multiDocTableColHeader").innerHTML =
+          `${fieldLabel} <span class="text-muted fw-normal" style="font-size: 10px;">(Tap to Open • Double-Tap to Edit)</span>`;
+        document.getElementById("multiDocNewTitle").value = "";
+        document.getElementById("multiDocNewFile").value = "";
+
+        renderCommonMultiDocRows();
+        const modalEl = document.getElementById("commonMultiDocModal");
+        (
+          bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
+        ).show();
       }
 
-      attachDocEvents();
-      attachInnerHeaderRightClick();
-    }
+      function renderCommonMultiDocRows() {
+        const tbody = document.getElementById("commonMultiDocTbody");
+        if (
+          !tbody ||
+          !selectedActiveCustomerKey ||
+          !groupedCustomers[selectedActiveCustomerKey]
+        )
+          return;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        const docs =
+          activeMultiDocCategory === "ishtimara"
+            ? cust.ishtimara_docs || []
+            : cust.other_docs || [];
 
-    function openCommonMultiDocModal(category) {
-      if (!selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
-      activeMultiDocCategory = category;
-      const cust = groupedCustomers[selectedActiveCustomerKey];
-      const isIshtimara = category === 'ishtimara';
-      const titleText = isIshtimara ? 'Ishtimara Documents' : 'Other Documents';
-      const fieldLabel = isIshtimara ? 'Plate No' : 'File Name';
-      const fieldPlaceholder = isIshtimara ? 'Enter vehicle plate no...' : 'Enter document name...';
+        if (docs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No documents uploaded yet.</td></tr>`;
+          return;
+        }
 
-      document.getElementById('commonMultiDocTitle').innerHTML = `<i class="fa-solid fa-folder-open text-primary me-2"></i>${titleText} — ${cust.customer_name}`;
-      document.getElementById('multiDocTitleLabel').innerText = fieldLabel;
-      document.getElementById('multiDocNewTitle').placeholder = fieldPlaceholder;
-      document.getElementById('multiDocNewTitle').style.textTransform = isIshtimara ? 'uppercase' : 'none';
-      document.getElementById('multiDocTableColHeader').innerHTML = `${fieldLabel} <span class="text-muted fw-normal" style="font-size: 10px;">(Tap to Open • Double-Tap to Edit)</span>`;
-      document.getElementById('multiDocNewTitle').value = '';
-      document.getElementById('multiDocNewFile').value = '';
-
-      renderCommonMultiDocRows();
-      const modalEl = document.getElementById('commonMultiDocModal');
-      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
-    }
-
-    function renderCommonMultiDocRows() {
-      const tbody = document.getElementById('commonMultiDocTbody');
-      if (!tbody || !selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
-      const cust = groupedCustomers[selectedActiveCustomerKey];
-      const docs = activeMultiDocCategory === 'ishtimara' ? (cust.ishtimara_docs || []) : (cust.other_docs || []);
-
-      if (docs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No documents uploaded yet.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = docs.map((d, idx) => {
-        const safeTitle = String(d.title || 'Document').replace(/"/g, '&quot;');
-        const safeUrl = String(d.file_url || '').replace(/'/g, "\\'");
-        return `
+        tbody.innerHTML = docs
+          .map((d, idx) => {
+            const safeTitle = String(d.title || "Document").replace(
+              /"/g,
+              "&quot;",
+            );
+            const safeUrl = String(d.file_url || "").replace(/'/g, "\\'");
+            return `
           <tr>
             <td style="text-align:center; font-weight:700;">${idx + 1}</td>
             <td>
@@ -1198,593 +1738,797 @@
                 <i class="fa-solid fa-file-lines"></i> ${safeTitle}
               </span>
             </td>
-            <td class="small text-muted">${d.uploaded_at || '-'}</td>
+            <td class="small text-muted">${d.uploaded_at || "-"}</td>
             <td style="text-align:center; white-space:nowrap;">
               <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Replace File" onclick="triggerReplaceCommonMultiDoc('${d.id}')">🔄</button>
               <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete File" onclick="confirmDeleteCommonMultiDoc('${d.id}', '${safeTitle.replace(/'/g, "\\'")}')">🗑️</button>
             </td>
           </tr>
         `;
-      }).join('');
-    }
+          })
+          .join("");
+      }
 
-    let singleClickTimer = null;
-    function handleMultiDocNameClick(e, url, title) {
-      e.stopPropagation();
-      if (singleClickTimer) clearTimeout(singleClickTimer);
-      singleClickTimer = setTimeout(() => {
-        previewDocPopup(url, title);
-      }, 230);
-    }
+      let singleClickTimer = null;
+      function handleMultiDocNameClick(e, url, title) {
+        e.stopPropagation();
+        if (singleClickTimer) clearTimeout(singleClickTimer);
+        singleClickTimer = setTimeout(() => {
+          previewDocPopup(url, title);
+        }, 230);
+      }
 
-    function enableMultiDocNameEdit(e, docId, currentTitle) {
-      e.stopPropagation();
-      if (singleClickTimer) clearTimeout(singleClickTimer);
-      const cell = e.currentTarget.parentElement;
-      cell.innerHTML = `
-        <input type="text" class="form-control form-control-sm" value="${currentTitle.replace(/"/g, '&quot;')}"
+      function enableMultiDocNameEdit(e, docId, currentTitle) {
+        e.stopPropagation();
+        if (singleClickTimer) clearTimeout(singleClickTimer);
+        const cell = e.currentTarget.parentElement;
+        cell.innerHTML = `
+        <input type="text" class="form-control form-control-sm" value="${currentTitle.replace(/"/g, "&quot;")}"
                style="font-size: 12px; background: var(--bg); color: var(--text); border-color: var(--primary);"
                onblur="saveEditedMultiDocName('${docId}', this.value)"
                onkeydown="if(event.key==='Enter'){ event.preventDefault(); this.blur(); } else if(event.key==='Escape'){ renderCommonMultiDocRows(); }">
       `;
-      const inp = cell.querySelector('input');
-      if (inp) {
-        inp.focus();
-        inp.select();
+        const inp = cell.querySelector("input");
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
       }
-    }
 
-    async function saveEditedMultiDocName(docId, newTitle) {
-      const trimmed = (newTitle || '').trim();
-      if (!trimmed || !selectedActiveCustomerKey) {
-        renderCommonMultiDocRows();
-        return;
-      }
-      const cust = groupedCustomers[selectedActiveCustomerKey];
-      try {
-        const res = await fetch(`${API_BASE}/rename-common-multi-doc`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_name: cust.customer_name,
-            category: activeMultiDocCategory,
-            doc_id: String(docId),
-            new_title: trimmed
-          })
-        });
-        const json = await res.json();
-        if (json.success) {
-          if (activeMultiDocCategory === 'ishtimara') cust.ishtimara_docs = json.docs;
-          else cust.other_docs = json.docs;
+      async function saveEditedMultiDocName(docId, newTitle) {
+        const trimmed = (newTitle || "").trim();
+        if (!trimmed || !selectedActiveCustomerKey) {
           renderCommonMultiDocRows();
-          fetchTableData();
-        } else {
-          Swal.fire({ icon: 'error', title: 'Rename Failed', text: json.error || 'Error' });
+          return;
+        }
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        try {
+          const res = await fetch(`${API_BASE}/rename-common-multi-doc`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_name: cust.customer_name,
+              category: activeMultiDocCategory,
+              doc_id: String(docId),
+              new_title: trimmed,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            if (activeMultiDocCategory === "ishtimara")
+              cust.ishtimara_docs = json.docs;
+            else cust.other_docs = json.docs;
+            renderCommonMultiDocRows();
+            fetchTableData();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Rename Failed",
+              text: json.error || "Error",
+            });
+            renderCommonMultiDocRows();
+          }
+        } catch (err) {
           renderCommonMultiDocRows();
         }
-      } catch (err) {
-        renderCommonMultiDocRows();
       }
-    }
 
-    async function uploadNewCommonMultiDoc() {
-      if (!selectedActiveCustomerKey) return;
-      const cust = groupedCustomers[selectedActiveCustomerKey];
-      const fileInput = document.getElementById('multiDocNewFile');
-      const titleInput = document.getElementById('multiDocNewTitle');
-      if (!fileInput.files.length) {
-        Swal.fire({ icon: 'warning', title: 'Select File', text: 'Please select a PDF or Image file to upload.' });
-        return;
-      }
-      const file = fileInput.files[0];
-      const docTitle = titleInput.value.trim() || file.name.replace(/\.[^/.]+$/, '');
-
-      try {
-        const b64 = await readFileAsBase64(file);
-        const res = await fetch(`${API_BASE}/upload-common-multi-doc`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_name: cust.customer_name,
-            category: activeMultiDocCategory,
-            doc_title: docTitle,
-            file_name: file.name,
-            file_base64: b64
-          })
-        });
-        const json = await res.json();
-        if (json.success) {
-          titleInput.value = '';
-          fileInput.value = '';
-          Swal.fire({ icon: 'success', title: 'Uploaded', timer: 1100, showConfirmButton: false });
-          await fetchTableData();
-        } else {
-          Swal.fire({ icon: 'error', title: 'Upload Failed', text: json.error || 'Server error' });
+      async function uploadNewCommonMultiDoc() {
+        if (!selectedActiveCustomerKey) return;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        const fileInput = document.getElementById("multiDocNewFile");
+        const titleInput = document.getElementById("multiDocNewTitle");
+        if (!fileInput.files.length) {
+          Swal.fire({
+            icon: "warning",
+            title: "Select File",
+            text: "Please select a PDF or Image file to upload.",
+          });
+          return;
         }
-      } catch (err) {
-        Swal.fire({ icon: 'error', title: 'Upload Error', text: err.message });
-      }
-    }
+        const file = fileInput.files[0];
+        const docTitle =
+          titleInput.value.trim() || file.name.replace(/\.[^/.]+$/, "");
 
-    function triggerReplaceCommonMultiDoc(docId) {
-      replaceTargetDocId = docId;
-      const inp = document.getElementById('multiDocReplaceInput');
-      inp.value = '';
-      inp.click();
-    }
-
-    document.getElementById('multiDocReplaceInput').onchange = async function() {
-      if (!this.files.length || !replaceTargetDocId || !selectedActiveCustomerKey) return;
-      const file = this.files[0];
-      const cust = groupedCustomers[selectedActiveCustomerKey];
-      const docs = activeMultiDocCategory === 'ishtimara' ? (cust.ishtimara_docs || []) : (cust.other_docs || []);
-      const existing = docs.find(d => String(d.id) === String(replaceTargetDocId));
-      const keepTitle = existing?.title || file.name.replace(/\.[^/.]+$/, '');
-
-      try {
-        const b64 = await readFileAsBase64(file);
-        const res = await fetch(`${API_BASE}/upload-common-multi-doc`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_name: cust.customer_name,
-            category: activeMultiDocCategory,
-            doc_id: String(replaceTargetDocId),
-            doc_title: keepTitle,
-            file_name: file.name,
-            file_base64: b64
-          })
-        });
-        const json = await res.json();
-        if (json.success) {
-          Swal.fire({ icon: 'success', title: 'File Replaced', timer: 1100, showConfirmButton: false });
-          await fetchTableData();
-        } else {
-          Swal.fire({ icon: 'error', title: 'Replace Failed', text: json.error || 'Error' });
+        try {
+          const b64 = await readFileAsBase64(file);
+          const res = await fetch(`${API_BASE}/upload-common-multi-doc`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_name: cust.customer_name,
+              category: activeMultiDocCategory,
+              doc_title: docTitle,
+              file_name: file.name,
+              file_base64: b64,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            titleInput.value = "";
+            fileInput.value = "";
+            Swal.fire({
+              icon: "success",
+              title: "Uploaded",
+              timer: 1100,
+              showConfirmButton: false,
+            });
+            await fetchTableData();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Upload Failed",
+              text: json.error || "Server error",
+            });
+          }
+        } catch (err) {
+          Swal.fire({
+            icon: "error",
+            title: "Upload Error",
+            text: err.message,
+          });
         }
-      } catch (err) {
-        Swal.fire({ icon: 'error', title: 'Replace Error', text: err.message });
-      } finally {
-        replaceTargetDocId = null;
-        this.value = '';
       }
-    };
 
-    async function confirmDeleteCommonMultiDoc(docId, docTitle) {
-      if (!selectedActiveCustomerKey) return;
-      const cust = groupedCustomers[selectedActiveCustomerKey];
-      const result = await Swal.fire({
-        title: 'Delete Document?',
-        text: `Are you sure you want to permanently delete "${docTitle}"? The file will also be removed from the server!`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Yes, Delete Permanently'
-      });
-      if (!result.isConfirmed) return;
-
-      try {
-        const res = await fetch(`${API_BASE}/delete-common-multi-doc`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_name: cust.customer_name,
-            category: activeMultiDocCategory,
-            doc_id: String(docId)
-          })
-        });
-        const json = await res.json();
-        if (json.success) {
-          Swal.fire({ icon: 'success', title: 'Deleted', timer: 1100, showConfirmButton: false });
-          await fetchTableData();
-        } else {
-          Swal.fire({ icon: 'error', title: 'Delete Failed', text: json.error || 'Error' });
-        }
-      } catch (err) {
-        Swal.fire({ icon: 'error', title: 'Delete Error', text: err.message });
+      function triggerReplaceCommonMultiDoc(docId) {
+        replaceTargetDocId = docId;
+        const inp = document.getElementById("multiDocReplaceInput");
+        inp.value = "";
+        inp.click();
       }
-    }
 
-    function attachInnerHeaderRightClick() {
-      document.querySelectorAll('#innerDetailTable thead th').forEach((th, colIdx) => {
-        th.style.cursor = 'context-menu';
-        th.oncontextmenu = function(e) {
-          e.preventDefault();
-          const key = innerColumnKeyMap[colIdx];
-          if (!key) return;
-          openHeaderFilter(key, th.innerText.trim(), e.pageX, e.pageY);
+      document.getElementById("multiDocReplaceInput").onchange =
+        async function () {
+          if (
+            !this.files.length ||
+            !replaceTargetDocId ||
+            !selectedActiveCustomerKey
+          )
+            return;
+          const file = this.files[0];
+          const cust = groupedCustomers[selectedActiveCustomerKey];
+          const docs =
+            activeMultiDocCategory === "ishtimara"
+              ? cust.ishtimara_docs || []
+              : cust.other_docs || [];
+          const existing = docs.find(
+            (d) => String(d.id) === String(replaceTargetDocId),
+          );
+          const keepTitle =
+            existing?.title || file.name.replace(/\.[^/.]+$/, "");
+
+          try {
+            const b64 = await readFileAsBase64(file);
+            const res = await fetch(`${API_BASE}/upload-common-multi-doc`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                customer_name: cust.customer_name,
+                category: activeMultiDocCategory,
+                doc_id: String(replaceTargetDocId),
+                doc_title: keepTitle,
+                file_name: file.name,
+                file_base64: b64,
+              }),
+            });
+            const json = await res.json();
+            if (json.success) {
+              Swal.fire({
+                icon: "success",
+                title: "File Replaced",
+                timer: 1100,
+                showConfirmButton: false,
+              });
+              await fetchTableData();
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Replace Failed",
+                text: json.error || "Error",
+              });
+            }
+          } catch (err) {
+            Swal.fire({
+              icon: "error",
+              title: "Replace Error",
+              text: err.message,
+            });
+          } finally {
+            replaceTargetDocId = null;
+            this.value = "";
+          }
         };
-      });
-    }
 
-    function openHeaderFilter(key, title, x, y) {
-      if (!selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
-      currentFilterKey = key;
-      const popup = document.getElementById('headerFilterPopup');
-      document.getElementById('filterPopupTitle').innerText = `Filter: ${title}`;
-      document.getElementById('filterSearchInput').value = '';
+      async function confirmDeleteCommonMultiDoc(docId, docTitle) {
+        if (!selectedActiveCustomerKey) return;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        const result = await Swal.fire({
+          title: "Delete Document?",
+          text: `Are you sure you want to permanently delete "${docTitle}"? The file will also be removed from the server!`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#dc2626",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: "Yes, Delete Permanently",
+        });
+        if (!result.isConfirmed) return;
 
-      const valuesSet = new Set();
-      const currentSites = groupedCustomers[selectedActiveCustomerKey].sites || [];
-      currentSites.forEach(r => {
-        let val = r[key];
-        if (key === 'joining_date' || key === 'release_date') val = formatDateDDMMMYY(val);
-        valuesSet.add(String(val || '(Blanks)').trim());
-      });
+        try {
+          const res = await fetch(`${API_BASE}/delete-common-multi-doc`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_name: cust.customer_name,
+              category: activeMultiDocCategory,
+              doc_id: String(docId),
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Deleted",
+              timer: 1100,
+              showConfirmButton: false,
+            });
+            await fetchTableData();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Delete Failed",
+              text: json.error || "Error",
+            });
+          }
+        } catch (err) {
+          Swal.fire({
+            icon: "error",
+            title: "Delete Error",
+            text: err.message,
+          });
+        }
+      }
 
-      const sortedVals = Array.from(valuesSet).sort((a, b) => a.localeCompare(b));
-      const currentlySelected = innerActiveFilters[key] || sortedVals;
+      function attachInnerHeaderRightClick() {
+        document
+          .querySelectorAll("#innerDetailTable thead th")
+          .forEach((th, colIdx) => {
+            th.style.cursor = "context-menu";
+            th.oncontextmenu = function (e) {
+              e.preventDefault();
+              const key = innerColumnKeyMap[colIdx];
+              if (!key) return;
+              openHeaderFilter(key, th.innerText.trim(), e.pageX, e.pageY);
+            };
+          });
+      }
 
-      const listDiv = document.getElementById('filterCheckboxList');
-      listDiv.innerHTML = sortedVals.map(val => `
+      function openHeaderFilter(key, title, x, y) {
+        if (
+          !selectedActiveCustomerKey ||
+          !groupedCustomers[selectedActiveCustomerKey]
+        )
+          return;
+        currentFilterKey = key;
+        const popup = document.getElementById("headerFilterPopup");
+        document.getElementById("filterPopupTitle").innerText =
+          `Filter: ${title}`;
+        document.getElementById("filterSearchInput").value = "";
+
+        const valuesSet = new Set();
+        const currentSites =
+          groupedCustomers[selectedActiveCustomerKey].sites || [];
+        currentSites.forEach((r) => {
+          let val = r[key];
+          if (key === "joining_date" || key === "release_date")
+            val = formatDateDDMMMYY(val);
+          valuesSet.add(String(val || "(Blanks)").trim());
+        });
+
+        const sortedVals = Array.from(valuesSet).sort((a, b) =>
+          a.localeCompare(b),
+        );
+        const currentlySelected = innerActiveFilters[key] || sortedVals;
+
+        const listDiv = document.getElementById("filterCheckboxList");
+        listDiv.innerHTML = sortedVals
+          .map(
+            (val) => `
         <label class="header-filter-item" title="${val}">
-          <input type="checkbox" class="header-filter-check" value="${val}" ${currentlySelected.includes(val) ? 'checked' : ''}>
+          <input type="checkbox" class="header-filter-check" value="${val}" ${currentlySelected.includes(val) ? "checked" : ""}>
           <span>${val}</span>
         </label>
-      `).join('');
+      `,
+          )
+          .join("");
 
-      popup.style.display = 'block';
-      const popupWidth = 250;
-      const popupHeight = 310;
-      const posX = Math.max(15, Math.min(x, window.innerWidth - popupWidth - 20));
-      const posY = Math.max(15, Math.min(y + 8, window.innerHeight - popupHeight - 20));
+        popup.style.display = "block";
+        const popupWidth = 250;
+        const popupHeight = 310;
+        const posX = Math.max(
+          15,
+          Math.min(x, window.innerWidth - popupWidth - 20),
+        );
+        const posY = Math.max(
+          15,
+          Math.min(y + 8, window.innerHeight - popupHeight - 20),
+        );
 
-      popup.style.left = `${posX}px`;
-      popup.style.top = `${posY}px`;
-    }
+        popup.style.left = `${posX}px`;
+        popup.style.top = `${posY}px`;
+      }
 
-    function filterCheckboxItems(query) {
-      const q = (query || '').toLowerCase();
-      document.querySelectorAll('#filterCheckboxList .header-filter-item').forEach(lbl => {
-        const txt = lbl.innerText.toLowerCase();
-        lbl.style.display = txt.includes(q) ? 'flex' : 'none';
-      });
-    }
+      function filterCheckboxItems(query) {
+        const q = (query || "").toLowerCase();
+        document
+          .querySelectorAll("#filterCheckboxList .header-filter-item")
+          .forEach((lbl) => {
+            const txt = lbl.innerText.toLowerCase();
+            lbl.style.display = txt.includes(q) ? "flex" : "none";
+          });
+      }
 
-    function toggleAllFilterCheckboxes(selectAll) {
-      document.querySelectorAll('.header-filter-check').forEach(chk => {
-        const item = chk.closest('.header-filter-item');
-        if (item && item.style.display !== 'none') {
-          chk.checked = selectAll;
-        }
-      });
-    }
-
-    function applyColumnFilter() {
-      if (!currentFilterKey) return;
-      const checkedVals = Array.from(document.querySelectorAll('.header-filter-check:checked')).map(c => c.value);
-      innerActiveFilters[currentFilterKey] = checkedVals;
-      closeHeaderFilter();
-      if (selectedActiveCustomerKey) renderDetailModal(selectedActiveCustomerKey);
-    }
-
-    function resetColumnFilter() {
-      if (!currentFilterKey) return;
-      delete innerActiveFilters[currentFilterKey];
-      closeHeaderFilter();
-      if (selectedActiveCustomerKey) renderDetailModal(selectedActiveCustomerKey);
-    }
-
-    function closeHeaderFilter() {
-      document.getElementById('headerFilterPopup').style.display = 'none';
-      currentFilterKey = null;
-    }
-
-    function attachDocEvents() {
-      document.querySelectorAll('.doc-trigger').forEach(el => {
-        el.onclick = function(e) {
-          e.stopPropagation();
-          const url = this.dataset.url;
-          if (url) {
-            window.open(url, '_blank');
-          } else {
-            currentContextTarget = { id: this.dataset.id, type: this.dataset.type };
-            document.getElementById('hiddenFileInput').click();
+      function toggleAllFilterCheckboxes(selectAll) {
+        document.querySelectorAll(".header-filter-check").forEach((chk) => {
+          const item = chk.closest(".header-filter-item");
+          if (item && item.style.display !== "none") {
+            chk.checked = selectAll;
           }
-        };
+        });
+      }
 
-        el.oncontextmenu = function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          currentContextTarget = { id: this.dataset.id, type: this.dataset.type };
-          const menu = document.getElementById('contextMenu');
-          menu.style.display = 'block';
-          menu.style.left = `${e.pageX}px`;
-          menu.style.top = `${e.pageY}px`;
-        };
-      });
-    }
-
-    window.onclick = function(e) {
-      document.getElementById('contextMenu').style.display = 'none';
-      const popup = document.getElementById('headerFilterPopup');
-      if (popup && popup.style.display === 'block' && !popup.contains(e.target) && !e.target.closest('th')) {
+      function applyColumnFilter() {
+        if (!currentFilterKey) return;
+        const checkedVals = Array.from(
+          document.querySelectorAll(".header-filter-check:checked"),
+        ).map((c) => c.value);
+        innerActiveFilters[currentFilterKey] = checkedVals;
         closeHeaderFilter();
+        if (selectedActiveCustomerKey)
+          renderDetailModal(selectedActiveCustomerKey);
       }
-    };
 
-    function triggerUpload() {
-      if (!currentContextTarget) return;
-      document.getElementById('hiddenFileInput').click();
-    }
+      function resetColumnFilter() {
+        if (!currentFilterKey) return;
+        delete innerActiveFilters[currentFilterKey];
+        closeHeaderFilter();
+        if (selectedActiveCustomerKey)
+          renderDetailModal(selectedActiveCustomerKey);
+      }
 
-    function readFileAsBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-        reader.readAsDataURL(file);
-      });
-    }
+      function closeHeaderFilter() {
+        document.getElementById("headerFilterPopup").style.display = "none";
+        currentFilterKey = null;
+      }
 
-    document.getElementById('hiddenFileInput').onchange = async function() {
-      if (!this.files.length || !currentContextTarget) return;
-      const file = this.files[0];
-      try {
-        const b64 = await readFileAsBase64(file);
-        const res = await fetch(`${API_BASE}/upload-doc`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_id: Number(currentContextTarget.id),
-            doc_type: currentContextTarget.type,
-            file_name: file.name,
-            file_base64: b64
-          })
+      function attachDocEvents() {
+        document.querySelectorAll(".doc-trigger").forEach((el) => {
+          el.onclick = function (e) {
+            e.stopPropagation();
+            const url = this.dataset.url;
+            if (url) {
+              window.open(url, "_blank");
+            } else {
+              currentContextTarget = {
+                id: this.dataset.id,
+                type: this.dataset.type,
+              };
+              document.getElementById("hiddenFileInput").click();
+            }
+          };
+
+          el.oncontextmenu = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            currentContextTarget = {
+              id: this.dataset.id,
+              type: this.dataset.type,
+            };
+            const menu = document.getElementById("contextMenu");
+            menu.style.display = "block";
+            menu.style.left = `${e.pageX}px`;
+            menu.style.top = `${e.pageY}px`;
+          };
         });
-        const json = await res.json();
-        if (json.success) {
-          Swal.fire({ icon: 'success', title: 'File Uploaded', timer: 1200, showConfirmButton: false });
-          fetchTableData();
-        } else {
-          Swal.fire({ icon: 'error', title: 'Upload Failed', text: json.error || 'Error' });
+      }
+
+      window.onclick = function (e) {
+        document.getElementById("contextMenu").style.display = "none";
+        const popup = document.getElementById("headerFilterPopup");
+        if (
+          popup &&
+          popup.style.display === "block" &&
+          !popup.contains(e.target) &&
+          !e.target.closest("th")
+        ) {
+          closeHeaderFilter();
         }
-      } catch (e) {
-        Swal.fire({ icon: 'error', title: 'Upload Error', text: e.message });
-      }
-      this.value = '';
-    };
-
-    function openEditMasterModal() {
-      if (!selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
-      const cust = groupedCustomers[selectedActiveCustomerKey];
-      document.getElementById('edit_old_cust_name').value = cust.customer_name;
-      document.getElementById('edit_cust_name').value = cust.customer_name;
-      const modalEl = document.getElementById('editCustomerMasterModal');
-      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
-    }
-
-    async function saveCustomerMasterChanges() {
-      const oldName = document.getElementById('edit_old_cust_name').value.trim();
-      const newName = document.getElementById('edit_cust_name').value.trim();
-
-      if (!newName) {
-        Swal.fire({ icon: 'warning', title: 'Name Required', text: 'Customer name cannot be empty.' });
-        return;
-      }
-
-      try {
-        const res = await fetch(`${API_BASE}/update-customer-master`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            old_customer_name: oldName,
-            new_customer_name: newName
-          })
-        });
-        const json = await res.json();
-        if (!json.success) {
-          Swal.fire({ icon: 'error', title: 'Update Failed', text: json.error || 'Server error' });
-          return;
-        }
-
-        const modalEl = document.getElementById('editCustomerMasterModal');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (modalInstance) modalInstance.hide();
-
-        selectedActiveCustomerKey = json.new_name.toLowerCase();
-        Swal.fire({ icon: 'success', title: 'Customer Updated', timer: 1200, showConfirmButton: false });
-        await fetchTableData();
-      } catch (err) {
-        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
-      }
-    }
-
-    function openAddCustomerModal() {
-      document.getElementById('siteEngagementForm').reset();
-      document.getElementById('site_row_id').value = '';
-      const custInp = document.getElementById('site_cust_name');
-      custInp.value = '';
-      custInp.readOnly = false;
-      document.getElementById('siteEngagementModalTitle').innerText = 'Add Non-VAT Customer & Site Details';
-      const modalEl = document.getElementById('siteEngagementModal');
-      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
-    }
-
-    function openAddSiteForCurrentCustomer() {
-      if (!selectedActiveCustomerKey) return;
-      const cust = groupedCustomers[selectedActiveCustomerKey];
-      document.getElementById('siteEngagementForm').reset();
-
-      const placeholderRow = rawRecords.find(r =>
-        (r.customer_name || '').trim().toLowerCase() === selectedActiveCustomerKey &&
-        (!r.site || !r.site.trim())
-      );
-      document.getElementById('site_row_id').value = placeholderRow ? placeholderRow.id : '';
-
-      const custInp = document.getElementById('site_cust_name');
-      custInp.value = cust.customer_name;
-      custInp.readOnly = true;
-      document.getElementById('siteEngagementModalTitle').innerText = `Add Site / Project for ${cust.customer_name}`;
-      const modalEl = document.getElementById('siteEngagementModal');
-      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
-    }
-
-    function openEditSiteModal(siteRecordId) {
-      const siteRec = rawRecords.find(r => Number(r.id) === Number(siteRecordId));
-      if (!siteRec) return;
-
-      document.getElementById('siteEngagementForm').reset();
-      document.getElementById('site_row_id').value = siteRec.id;
-      const custInp = document.getElementById('site_cust_name');
-      custInp.value = siteRec.customer_name || '';
-      custInp.readOnly = true;
-      document.getElementById('engagement_site').value = siteRec.site || '';
-      document.getElementById('engagement_company').value = siteRec.company || 'Haka';
-      document.getElementById('engagement_status').value = siteRec.status || 'Active';
-      document.getElementById('engagement_joining_date').value = siteRec.joining_date ? siteRec.joining_date.split('T')[0] : '';
-      document.getElementById('engagement_release_date').value = siteRec.release_date ? siteRec.release_date.split('T')[0] : '';
-      document.getElementById('engagement_remark').value = siteRec.remark || '';
-      document.getElementById('engagement_project_name').value = siteRec.project_name || '';
-
-      document.getElementById('siteEngagementModalTitle').innerText = `Edit Site Details (SN: ${siteRec.sn || siteRec.id})`;
-      const modalEl = document.getElementById('siteEngagementModal');
-      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
-    }
-
-    async function saveSiteEngagement() {
-      const siteVal = document.getElementById('engagement_site').value.trim();
-      const custName = document.getElementById('site_cust_name').value.trim();
-      if (!custName) {
-        Swal.fire({ icon: 'warning', title: 'Customer Name Required', text: 'Please enter customer name.' });
-        return;
-      }
-      if (!siteVal) {
-        Swal.fire({ icon: 'warning', title: 'Site Name Required', text: 'Please enter site name.' });
-        return;
-      }
-
-      const rowId = document.getElementById('site_row_id').value.trim() || null;
-      const payload = {
-        id: rowId,
-        customer_name: custName,
-        site: siteVal,
-        company: document.getElementById('engagement_company').value || 'Haka',
-        status: document.getElementById('engagement_status').value || 'Active',
-        joining_date: document.getElementById('engagement_joining_date').value || null,
-        release_date: document.getElementById('engagement_release_date').value || null,
-        remark: document.getElementById('engagement_remark').value.trim(),
-        project_name: document.getElementById('engagement_project_name').value.trim()
       };
 
-      try {
-        const res = await fetch(`${API_BASE}/upsert-customer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+      function triggerUpload() {
+        if (!currentContextTarget) return;
+        document.getElementById("hiddenFileInput").click();
+      }
+
+      function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(file);
         });
-        const json = await res.json();
-        if (!json.success) {
-          Swal.fire({ icon: 'error', title: 'Save Failed', text: json.error || 'Server error' });
+      }
+
+      document.getElementById("hiddenFileInput").onchange = async function () {
+        if (!this.files.length || !currentContextTarget) return;
+        const file = this.files[0];
+        try {
+          const b64 = await readFileAsBase64(file);
+          const res = await fetch(`${API_BASE}/upload-doc`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_id: Number(currentContextTarget.id),
+              doc_type: currentContextTarget.type,
+              file_name: file.name,
+              file_base64: b64,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            Swal.fire({
+              icon: "success",
+              title: "File Uploaded",
+              timer: 1200,
+              showConfirmButton: false,
+            });
+            fetchTableData();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Upload Failed",
+              text: json.error || "Error",
+            });
+          }
+        } catch (e) {
+          Swal.fire({ icon: "error", title: "Upload Error", text: e.message });
+        }
+        this.value = "";
+      };
+
+      function openEditMasterModal() {
+        if (
+          !selectedActiveCustomerKey ||
+          !groupedCustomers[selectedActiveCustomerKey]
+        )
+          return;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        document.getElementById("edit_old_cust_name").value =
+          cust.customer_name;
+        document.getElementById("edit_cust_name").value = cust.customer_name;
+        const modalEl = document.getElementById("editCustomerMasterModal");
+        (
+          bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
+        ).show();
+      }
+
+      async function saveCustomerMasterChanges() {
+        const oldName = document
+          .getElementById("edit_old_cust_name")
+          .value.trim();
+        const newName = document.getElementById("edit_cust_name").value.trim();
+
+        if (!newName) {
+          Swal.fire({
+            icon: "warning",
+            title: "Name Required",
+            text: "Customer name cannot be empty.",
+          });
           return;
         }
 
-        const savedId = json.id;
-        const filesMap = {
-          'agreement': document.getElementById('engagement_file_agreement').files[0],
-          'rfq': document.getElementById('engagement_file_rfq').files[0],
-          'po': document.getElementById('engagement_file_po').files[0],
-          'last': document.getElementById('engagement_file_last').files[0]
+        try {
+          const res = await fetch(`${API_BASE}/update-customer-master`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              old_customer_name: oldName,
+              new_customer_name: newName,
+            }),
+          });
+          const json = await res.json();
+          if (!json.success) {
+            Swal.fire({
+              icon: "error",
+              title: "Update Failed",
+              text: json.error || "Server error",
+            });
+            return;
+          }
+
+          const modalEl = document.getElementById("editCustomerMasterModal");
+          const modalInstance = bootstrap.Modal.getInstance(modalEl);
+          if (modalInstance) modalInstance.hide();
+
+          selectedActiveCustomerKey = json.new_name.toLowerCase();
+          Swal.fire({
+            icon: "success",
+            title: "Customer Updated",
+            timer: 1200,
+            showConfirmButton: false,
+          });
+          await fetchTableData();
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "Error", text: err.message });
+        }
+      }
+
+      function openAddCustomerModal() {
+        document.getElementById("siteEngagementForm").reset();
+        document.getElementById("site_row_id").value = "";
+        const custInp = document.getElementById("site_cust_name");
+        custInp.value = "";
+        custInp.readOnly = false;
+        document.getElementById("siteEngagementModalTitle").innerText =
+          "Add Non-VAT Customer & Site Details";
+        const modalEl = document.getElementById("siteEngagementModal");
+        (
+          bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
+        ).show();
+      }
+
+      function openAddSiteForCurrentCustomer() {
+        if (!selectedActiveCustomerKey) return;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        document.getElementById("siteEngagementForm").reset();
+
+        const placeholderRow = rawRecords.find(
+          (r) =>
+            (r.customer_name || "").trim().toLowerCase() ===
+              selectedActiveCustomerKey &&
+            (!r.site || !r.site.trim()),
+        );
+        document.getElementById("site_row_id").value = placeholderRow
+          ? placeholderRow.id
+          : "";
+
+        const custInp = document.getElementById("site_cust_name");
+        custInp.value = cust.customer_name;
+        custInp.readOnly = true;
+        document.getElementById("siteEngagementModalTitle").innerText =
+          `Add Site / Project for ${cust.customer_name}`;
+        const modalEl = document.getElementById("siteEngagementModal");
+        (
+          bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
+        ).show();
+      }
+
+      function openEditSiteModal(siteRecordId) {
+        const siteRec = rawRecords.find(
+          (r) => Number(r.id) === Number(siteRecordId),
+        );
+        if (!siteRec) return;
+
+        document.getElementById("siteEngagementForm").reset();
+        document.getElementById("site_row_id").value = siteRec.id;
+        const custInp = document.getElementById("site_cust_name");
+        custInp.value = siteRec.customer_name || "";
+        custInp.readOnly = true;
+        document.getElementById("engagement_site").value = siteRec.site || "";
+        document.getElementById("engagement_company").value =
+          siteRec.company || "Haka";
+        document.getElementById("engagement_status").value =
+          siteRec.status || "Active";
+        document.getElementById("engagement_joining_date").value =
+          siteRec.joining_date ? siteRec.joining_date.split("T")[0] : "";
+        document.getElementById("engagement_release_date").value =
+          siteRec.release_date ? siteRec.release_date.split("T")[0] : "";
+        document.getElementById("engagement_remark").value =
+          siteRec.remark || "";
+        document.getElementById("engagement_project_name").value =
+          siteRec.project_name || "";
+
+        document.getElementById("siteEngagementModalTitle").innerText =
+          `Edit Site Details (SN: ${siteRec.sn || siteRec.id})`;
+        const modalEl = document.getElementById("siteEngagementModal");
+        (
+          bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
+        ).show();
+      }
+
+      async function saveSiteEngagement() {
+        const siteVal = document.getElementById("engagement_site").value.trim();
+        const custName = document.getElementById("site_cust_name").value.trim();
+        if (!custName) {
+          Swal.fire({
+            icon: "warning",
+            title: "Customer Name Required",
+            text: "Please enter customer name.",
+          });
+          return;
+        }
+        if (!siteVal) {
+          Swal.fire({
+            icon: "warning",
+            title: "Site Name Required",
+            text: "Please enter site name.",
+          });
+          return;
+        }
+
+        const rowId =
+          document.getElementById("site_row_id").value.trim() || null;
+        const payload = {
+          id: rowId,
+          customer_name: custName,
+          site: siteVal,
+          company:
+            document.getElementById("engagement_company").value || "Haka",
+          status:
+            document.getElementById("engagement_status").value || "Active",
+          joining_date:
+            document.getElementById("engagement_joining_date").value || null,
+          release_date:
+            document.getElementById("engagement_release_date").value || null,
+          remark: document.getElementById("engagement_remark").value.trim(),
+          project_name: document
+            .getElementById("engagement_project_name")
+            .value.trim(),
         };
 
-        const uploadTasks = [];
-        for (const [docType, fileObj] of Object.entries(filesMap)) {
-          if (fileObj) {
-            const b64 = await readFileAsBase64(fileObj);
-            uploadTasks.push(fetch(`${API_BASE}/upload-doc`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                customer_id: Number(savedId),
-                doc_type: docType,
-                file_name: fileObj.name,
-                file_base64: b64
-              })
-            }));
+        try {
+          const res = await fetch(`${API_BASE}/upsert-customer`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (!json.success) {
+            Swal.fire({
+              icon: "error",
+              title: "Save Failed",
+              text: json.error || "Server error",
+            });
+            return;
           }
+
+          const savedId = json.id;
+          const filesMap = {
+            agreement: document.getElementById("engagement_file_agreement")
+              .files[0],
+            rfq: document.getElementById("engagement_file_rfq").files[0],
+            po: document.getElementById("engagement_file_po").files[0],
+            last: document.getElementById("engagement_file_last").files[0],
+          };
+
+          const uploadTasks = [];
+          for (const [docType, fileObj] of Object.entries(filesMap)) {
+            if (fileObj) {
+              const b64 = await readFileAsBase64(fileObj);
+              uploadTasks.push(
+                fetch(`${API_BASE}/upload-doc`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    customer_id: Number(savedId),
+                    doc_type: docType,
+                    file_name: fileObj.name,
+                    file_base64: b64,
+                  }),
+                }),
+              );
+            }
+          }
+
+          if (uploadTasks.length > 0) {
+            await Promise.all(uploadTasks);
+          }
+
+          const modalEl = document.getElementById("siteEngagementModal");
+          const modalInstance = bootstrap.Modal.getInstance(modalEl);
+          if (modalInstance) modalInstance.hide();
+
+          Swal.fire({
+            icon: "success",
+            title: "Site Saved Successfully",
+            timer: 1200,
+            showConfirmButton: false,
+          });
+          await fetchTableData();
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "Error", text: err.message });
         }
+      }
 
-        if (uploadTasks.length > 0) {
-          await Promise.all(uploadTasks);
+      // --- BILLS SYSTEM ---
+      function openBillPopup(id) {
+        currentBillRecord = rawRecords.find((c) => Number(c.id) === Number(id));
+        if (!currentBillRecord) return;
+        switchBillTab("view");
+        new bootstrap.Modal(document.getElementById("billModal")).show();
+      }
+
+      function generateMonthsRange(startDateStr, endDateStr = null) {
+        const months = [];
+        const start = startDateStr ? new Date(startDateStr) : new Date();
+        const end = endDateStr ? new Date(endDateStr) : new Date();
+        let cur = new Date(start.getFullYear(), start.getMonth(), 1);
+        const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+        const mNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+
+        while (cur <= endMonth) {
+          months.push(
+            `${mNames[cur.getMonth()]} ${String(cur.getFullYear()).slice(-2)}`,
+          );
+          cur.setMonth(cur.getMonth() + 1);
         }
-
-        const modalEl = document.getElementById('siteEngagementModal');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (modalInstance) modalInstance.hide();
-
-        Swal.fire({ icon: 'success', title: 'Site Saved Successfully', timer: 1200, showConfirmButton: false });
-        await fetchTableData();
-      } catch (err) {
-        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+        return months.reverse();
       }
-    }
 
-    // --- BILLS SYSTEM ---
-    function openBillPopup(id) {
-      currentBillRecord = rawRecords.find(c => Number(c.id) === Number(id));
-      if (!currentBillRecord) return;
-      switchBillTab('view');
-      new bootstrap.Modal(document.getElementById('billModal')).show();
-    }
-
-    function generateMonthsRange(startDateStr, endDateStr = null) {
-      const months = [];
-      const start = startDateStr ? new Date(startDateStr) : new Date();
-      const end = endDateStr ? new Date(endDateStr) : new Date();
-      let cur = new Date(start.getFullYear(), start.getMonth(), 1);
-      const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
-      const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-      while (cur <= endMonth) {
-        months.push(`${mNames[cur.getMonth()]} ${String(cur.getFullYear()).slice(-2)}`);
-        cur.setMonth(cur.getMonth() + 1);
-      }
-      return months.reverse();
-    }
-
-    function previewDocPopup(url, title) {
-      if (!url) return;
-      document.getElementById('filePreviewTitle').innerHTML = `<i class="fa-solid fa-file me-2 text-primary"></i>${title || 'Document Preview'}`;
-      document.getElementById('previewOpenNewTab').href = url;
-      const body = document.getElementById('filePreviewBody');
-      const ext = url.split('.').pop().toLowerCase();
-      if (ext === 'pdf') {
-        body.innerHTML = `<iframe src="${url}#toolbar=1" style="width:100%; height:100%; border:none;"></iframe>`;
-      } else {
-        body.innerHTML = `<div class="d-flex align-items-center justify-content-center h-100 p-2" style="background: #1e293b;"><img src="${url}" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:4px;"></div>`;
-      }
-      const prevModal = bootstrap.Modal.getInstance(document.getElementById('filePreviewModal')) || new bootstrap.Modal(document.getElementById('filePreviewModal'));
-      prevModal.show();
-    }
-
-    function switchBillTab(tab) {
-      ['view', 'add', 'download'].forEach(t => {
-        const btn = document.getElementById(`tabBtn_${t}`);
-        if (btn) btn.classList.toggle('active', t === tab);
-      });
-
-      const container = document.getElementById('billTabContent');
-      const bills = currentBillRecord.bills_data || [];
-      const endDateForRange =
-        (currentBillRecord.status || '').toLowerCase() === 'released' && currentBillRecord.release_date
-          ? currentBillRecord.release_date
-          : null;
-      const months = generateMonthsRange(currentBillRecord.joining_date, endDateForRange);
-
-      if (tab === 'view') {
-        let html = '<div class="list-group">';
-        const uploadedBills = bills.filter(b => b.file_url);
-
-        if (uploadedBills.length === 0) {
-          html += '<p class="text-muted p-3 text-center mb-0">No bills uploaded yet.</p>';
+      function previewDocPopup(url, title) {
+        if (!url) return;
+        document.getElementById("filePreviewTitle").innerHTML =
+          `<i class="fa-solid fa-file me-2 text-primary"></i>${title || "Document Preview"}`;
+        document.getElementById("previewOpenNewTab").href = url;
+        const body = document.getElementById("filePreviewBody");
+        const ext = url.split(".").pop().toLowerCase();
+        if (ext === "pdf") {
+          body.innerHTML = `<iframe src="${url}#toolbar=1" style="width:100%; height:100%; border:none;"></iframe>`;
         } else {
-          uploadedBills.forEach(b => {
-            const noteHtml = (b.note && b.note.trim())
-              ? `<div class="mt-1 small text-muted"><i class="fa-solid fa-note-sticky text-warning me-1"></i>${b.note.trim()}</div>`
-              : '';
+          body.innerHTML = `<div class="d-flex align-items-center justify-content-center h-100 p-2" style="background: #1e293b;"><img src="${url}" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:4px;"></div>`;
+        }
+        const prevModal =
+          bootstrap.Modal.getInstance(
+            document.getElementById("filePreviewModal"),
+          ) || new bootstrap.Modal(document.getElementById("filePreviewModal"));
+        prevModal.show();
+      }
 
-            html += `
+      function switchBillTab(tab) {
+        ["view", "add", "download"].forEach((t) => {
+          const btn = document.getElementById(`tabBtn_${t}`);
+          if (btn) btn.classList.toggle("active", t === tab);
+        });
+
+        const container = document.getElementById("billTabContent");
+        const bills = currentBillRecord.bills_data || [];
+        const endDateForRange =
+          (currentBillRecord.status || "").toLowerCase() === "released" &&
+          currentBillRecord.release_date
+            ? currentBillRecord.release_date
+            : null;
+        const months = generateMonthsRange(
+          currentBillRecord.joining_date,
+          endDateForRange,
+        );
+
+        if (tab === "view") {
+          let html = '<div class="list-group">';
+          const uploadedBills = bills.filter((b) => b.file_url);
+
+          if (uploadedBills.length === 0) {
+            html +=
+              '<p class="text-muted p-3 text-center mb-0">No bills uploaded yet.</p>';
+          } else {
+            uploadedBills.forEach((b) => {
+              const noteHtml =
+                b.note && b.note.trim()
+                  ? `<div class="mt-1 small text-muted"><i class="fa-solid fa-note-sticky text-warning me-1"></i>${b.note.trim()}</div>`
+                  : "";
+
+              html += `
               <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3" style="background: var(--surface); color: var(--text); border-color: var(--border);">
                 <div>
                   <span class="fw-bold fs-6">${b.month}</span>
@@ -1795,56 +2539,59 @@
                 </button>
               </div>
             `;
-          });
-        }
-        html += '</div>';
-        container.innerHTML = html;
-      } else if (tab === 'add') {
-        let html = '<div class="table-responsive"><table class="table table-bordered align-middle" style="color: var(--text); border-color: var(--border); font-size: 13px;">';
-        html += '<thead><tr><th style="width: 110px;">Month</th><th style="width: 100px; text-align: center;">Status</th><th>Note</th><th style="width: 110px; text-align: center;">Action</th></tr></thead><tbody>';
-        months.forEach(m => {
-          const existing = bills.find(b => b.month === m && b.file_url);
-          const billItem = bills.find(b => b.month === m);
-          const existingNote = billItem ? (billItem.note || '') : '';
-          const statusBadge = existing
-            ? `<span class="badge bg-success" style="background-color: #198754 !important; font-weight: 600; padding: 5px 8px;">Uploaded</span>`
-            : `<span class="badge bg-danger" style="background-color: #dc3545 !important; font-weight: 600; padding: 5px 8px;">Pending</span>`;
+            });
+          }
+          html += "</div>";
+          container.innerHTML = html;
+        } else if (tab === "add") {
+          let html =
+            '<div class="table-responsive"><table class="table table-bordered align-middle" style="color: var(--text); border-color: var(--border); font-size: 13px;">';
+          html +=
+            '<thead><tr><th style="width: 110px;">Month</th><th style="width: 100px; text-align: center;">Status</th><th>Note</th><th style="width: 110px; text-align: center;">Action</th></tr></thead><tbody>';
+          months.forEach((m) => {
+            const existing = bills.find((b) => b.month === m && b.file_url);
+            const billItem = bills.find((b) => b.month === m);
+            const existingNote = billItem ? billItem.note || "" : "";
+            const statusBadge = existing
+              ? `<span class="badge bg-success" style="background-color: #198754 !important; font-weight: 600; padding: 5px 8px;">Uploaded</span>`
+              : `<span class="badge bg-danger" style="background-color: #dc3545 !important; font-weight: 600; padding: 5px 8px;">Pending</span>`;
 
-          html += `
+            html += `
             <tr>
               <td><strong>${m}</strong></td>
               <td style="text-align: center;">${statusBadge}</td>
               <td>
-                <input type="text" id="bill_note_${m.replace(' ', '_')}" class="form-control form-control-sm" style="font-size: 12px; background: var(--bg); color: var(--text); border-color: var(--border);" placeholder="Add note..." value="${existingNote.replace(/"/g, '&quot;')}" onblur="saveBillNote('${m}', this.value)">
+                <input type="text" id="bill_note_${m.replace(" ", "_")}" class="form-control form-control-sm" style="font-size: 12px; background: var(--bg); color: var(--text); border-color: var(--border);" placeholder="Add note..." value="${existingNote.replace(/"/g, "&quot;")}" onblur="saveBillNote('${m}', this.value)">
               </td>
               <td style="text-align: center; white-space: nowrap;">
-                <input type="file" id="bill_file_${m.replace(' ', '_')}" style="display:none;" accept=".png,.jpg,.jpeg,.pdf" onchange="uploadMonthBill('${m}', this)">
+                <input type="file" id="bill_file_${m.replace(" ", "_")}" style="display:none;" accept=".png,.jpg,.jpeg,.pdf" onchange="uploadMonthBill('${m}', this)">
                 <button class="btn btn-sm btn-primary me-1" onclick="handleBillUploadClick('${m}', ${!!existing})"><i class="fa-solid fa-upload"></i></button>
-                ${existing ? `<button class="btn btn-sm btn-danger" onclick="confirmDeleteBill('${m}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+                ${existing ? `<button class="btn btn-sm btn-danger" onclick="confirmDeleteBill('${m}')"><i class="fa-solid fa-trash"></i></button>` : ""}
               </td>
             </tr>
           `;
-        });
-        html += '</tbody></table></div>';
-        container.innerHTML = html;
-      } else if (tab === 'download') {
-        const validBills = bills.filter(b => b.file_url);
+          });
+          html += "</tbody></table></div>";
+          container.innerHTML = html;
+        } else if (tab === "download") {
+          const validBills = bills.filter((b) => b.file_url);
 
-        let html = `
+          let html = `
           <div class="card p-3 mb-3" style="background: var(--surface); border: 1px solid var(--border);">
             <h6><i class="fa-solid fa-layer-group me-2 text-primary"></i>Combined Chronological Download</h6>
             <p class="text-muted small">Merges first month bill through latest bill into a single PDF.</p>
-            <button class="btn btn-success btn-sm py-2 px-3 fw-bold" ${validBills.length === 0 ? 'disabled' : ''} onclick="downloadCombinedBill()"><i class="fa-solid fa-file-pdf me-1"></i> Download Combined PDF</button>
+            <button class="btn btn-success btn-sm py-2 px-3 fw-bold" ${validBills.length === 0 ? "disabled" : ""} onclick="downloadCombinedBill()"><i class="fa-solid fa-file-pdf me-1"></i> Download Combined PDF</button>
           </div>
           <h6 class="small fw-bold text-muted text-uppercase mb-2">Single Month Download</h6>
           <div class="list-group">
         `;
 
-        if (validBills.length === 0) {
-          html += '<p class="text-muted p-2 text-center mb-0">No bills uploaded yet to download.</p>';
-        } else {
-          validBills.forEach(b => {
-            html += `
+          if (validBills.length === 0) {
+            html +=
+              '<p class="text-muted p-2 text-center mb-0">No bills uploaded yet to download.</p>';
+          } else {
+            validBills.forEach((b) => {
+              html += `
               <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3" style="background: var(--surface); color: var(--text); border-color: var(--border);">
                 <div>
                   <span class="fw-bold fs-6">${b.month}</span>
@@ -1854,128 +2601,140 @@
                 </button>
               </div>
             `;
+            });
+          }
+          html += "</div>";
+          container.innerHTML = html;
+        }
+      }
+
+      async function handleBillUploadClick(month, isAlreadyUploaded) {
+        const fileInput = document.getElementById(
+          `bill_file_${month.replace(" ", "_")}`,
+        );
+        if (!fileInput) return;
+
+        if (isAlreadyUploaded) {
+          const result = await Swal.fire({
+            title: "Replace Bill Confirmation",
+            text: `A bill for ${month} has already been uploaded. Are you sure you want to replace this file? Once replaced, this action cannot be undone!`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#e11d48",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "Yes, Replace File",
           });
+          if (!result.isConfirmed) return;
         }
-        html += '</div>';
-        container.innerHTML = html;
+        fileInput.click();
       }
-    }
 
-    async function handleBillUploadClick(month, isAlreadyUploaded) {
-      const fileInput = document.getElementById(`bill_file_${month.replace(' ', '_')}`);
-      if (!fileInput) return;
+      async function saveBillNote(month, noteVal) {
+        if (!currentBillRecord) return;
+        try {
+          const res = await fetch(`${API_BASE}/update-bill-note`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_id: Number(currentBillRecord.id),
+              month_year: month,
+              note: noteVal,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            currentBillRecord.bills_data = json.bills;
+            const recInRaw = rawRecords.find(
+              (r) => Number(r.id) === Number(currentBillRecord.id),
+            );
+            if (recInRaw) recInRaw.bills_data = json.bills;
+          }
+        } catch (err) {
+          console.error("Note save error:", err);
+        }
+      }
 
-      if (isAlreadyUploaded) {
-        const result = await Swal.fire({
-          title: 'Replace Bill Confirmation',
-          text: `A bill for ${month} has already been uploaded. Are you sure you want to replace this file? Once replaced, this action cannot be undone!`,
-          icon: 'warning',
+      async function uploadMonthBill(month, input) {
+        if (!input.files.length) return;
+        const file = input.files[0];
+        const noteInput = document.getElementById(
+          `bill_note_${month.replace(" ", "_")}`,
+        );
+        const currentNote = noteInput ? noteInput.value.trim() : "";
+
+        try {
+          const b64 = await readFileAsBase64(file);
+          const res = await fetch(`${API_BASE}/upload-bill`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_id: Number(currentBillRecord.id),
+              month_year: month,
+              file_name: file.name,
+              file_base64: b64,
+              note: currentNote,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            currentBillRecord.bills_data = json.bills;
+            const recInRaw = rawRecords.find(
+              (r) => Number(r.id) === Number(currentBillRecord.id),
+            );
+            if (recInRaw) recInRaw.bills_data = json.bills;
+            switchBillTab("add");
+            fetchTableData();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Upload Failed",
+              text: json.error || "Server error",
+            });
+          }
+        } catch (e) {
+          Swal.fire({ icon: "error", title: "Upload Error", text: e.message });
+        } finally {
+          input.value = "";
+        }
+      }
+
+      async function confirmDeleteBill(month) {
+        const confirm = await Swal.fire({
+          title: "Delete Bill?",
+          text: `Delete bill for ${month}?`,
+          icon: "warning",
           showCancelButton: true,
-          confirmButtonColor: '#e11d48',
-          cancelButtonColor: '#64748b',
-          confirmButtonText: 'Yes, Replace File'
+          confirmButtonColor: "#d33",
+          confirmButtonText: "Yes, Delete",
         });
-        if (!result.isConfirmed) return;
-      }
-      fileInput.click();
-    }
-
-    async function saveBillNote(month, noteVal) {
-      if (!currentBillRecord) return;
-      try {
-        const res = await fetch(`${API_BASE}/update-bill-note`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_id: Number(currentBillRecord.id),
-            month_year: month,
-            note: noteVal
-          })
-        });
-        const json = await res.json();
-        if (json.success) {
-          currentBillRecord.bills_data = json.bills;
-          const recInRaw = rawRecords.find(r => Number(r.id) === Number(currentBillRecord.id));
-          if (recInRaw) recInRaw.bills_data = json.bills;
-        }
-      } catch (err) {
-        console.error('Note save error:', err);
-      }
-    }
-
-    async function uploadMonthBill(month, input) {
-      if (!input.files.length) return;
-      const file = input.files[0];
-      const noteInput = document.getElementById(`bill_note_${month.replace(' ', '_')}`);
-      const currentNote = noteInput ? noteInput.value.trim() : '';
-
-      try {
-        const b64 = await readFileAsBase64(file);
-        const res = await fetch(`${API_BASE}/upload-bill`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_id: Number(currentBillRecord.id),
-            month_year: month,
-            file_name: file.name,
-            file_base64: b64,
-            note: currentNote
-          })
-        });
-        const json = await res.json();
-        if (json.success) {
-          currentBillRecord.bills_data = json.bills;
-          const recInRaw = rawRecords.find(r => Number(r.id) === Number(currentBillRecord.id));
-          if (recInRaw) recInRaw.bills_data = json.bills;
-          switchBillTab('add');
-          fetchTableData();
-        } else {
-          Swal.fire({ icon: 'error', title: 'Upload Failed', text: json.error || 'Server error' });
-        }
-      } catch (e) {
-        Swal.fire({ icon: 'error', title: 'Upload Error', text: e.message });
-      } finally {
-        input.value = '';
-      }
-    }
-
-    async function confirmDeleteBill(month) {
-      const confirm = await Swal.fire({
-        title: 'Delete Bill?',
-        text: `Delete bill for ${month}?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'Yes, Delete'
-      });
-      if (confirm.isConfirmed) {
-        const res = await fetch(`${API_BASE}/delete-bill`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_id: Number(currentBillRecord.id),
-            month_year: month
-          })
-        });
-        const json = await res.json();
-        if (json.success) {
-          currentBillRecord.bills_data = json.bills;
-          switchBillTab('add');
-          fetchTableData();
+        if (confirm.isConfirmed) {
+          const res = await fetch(`${API_BASE}/delete-bill`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_id: Number(currentBillRecord.id),
+              month_year: month,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            currentBillRecord.bills_data = json.bills;
+            switchBillTab("add");
+            fetchTableData();
+          }
         }
       }
-    }
 
-    function downloadCombinedBill() {
-      window.location.href = `${API_BASE}/download-bill-combined?customer_id=${currentBillRecord.id}&mode=combine`;
-    }
+      function downloadCombinedBill() {
+        window.location.href = `${API_BASE}/download-bill-combined?customer_id=${currentBillRecord.id}&mode=combine`;
+      }
 
-    function downloadSingleBill(month) {
-      window.location.href = `${API_BASE}/download-bill-combined?customer_id=${currentBillRecord.id}&mode=single&month_year=${encodeURIComponent(month)}`;
-    }
+      function downloadSingleBill(month) {
+        window.location.href = `${API_BASE}/download-bill-combined?customer_id=${currentBillRecord.id}&mode=single&month_year=${encodeURIComponent(month)}`;
+      }
 
-    loadCompanies();
-    fetchTableData();
-  </script>
-</body>
+      loadCompanies();
+      fetchTableData();
+    </script>
+  </body>
 </html>

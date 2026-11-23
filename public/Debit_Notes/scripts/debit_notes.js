@@ -227,14 +227,19 @@ async function startDnCameraScan(mode, accessCode = "") {
   const status = document.getElementById("dnFaceStatus");
   const video = document.getElementById("dnFaceVideo");
 
-  title.innerText = mode === "register" ? "Register Face Unlock" : "Face Unlock";
+  title.innerText =
+    mode === "register" ? "Register Face Unlock" : "Face Unlock";
   status.innerText = "Opening Camera...";
   status.style.color = "#38bdf8";
   modal.style.display = "flex";
 
   try {
     dnFaceStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: "user" },
+      video: {
+        width: { ideal: 320 },
+        height: { ideal: 240 },
+        facingMode: "user",
+      },
       audio: false,
     });
     video.srcObject = dnFaceStream;
@@ -259,15 +264,24 @@ async function startDnCameraScan(mode, accessCode = "") {
 
         if (!encRes.success || !encRes.descriptor) {
           closeDnFaceModal();
-          showStatus(encRes.message || "Face not detected. Try again.", "error");
+          showStatus(
+            encRes.message || "Face not detected. Try again.",
+            "error",
+          );
           return;
         }
 
         const apiUrl =
-          mode === "register" ? "/debit-notes/api/face/register" : "/debit-notes/api/face/verify";
+          mode === "register"
+            ? "/debit-notes/api/face/register"
+            : "/debit-notes/api/face/verify";
         const bodyPayload =
           mode === "register"
-            ? { code: accessCode, faceDescriptor: encRes.descriptor, deviceLabel: navigator.platform || "Device" }
+            ? {
+                code: accessCode,
+                faceDescriptor: encRes.descriptor,
+                deviceLabel: navigator.platform || "Device",
+              }
             : { faceDescriptor: encRes.descriptor };
 
         const verRes = await fetch(apiUrl, {
@@ -285,7 +299,9 @@ async function startDnCameraScan(mode, accessCode = "") {
           updateCornerBioButton();
           document.getElementById("securityModal").style.display = "none";
           showStatus(
-            mode === "register" ? "✓ Face Registered & Unlocked!" : "✓ Unlocked via Face!",
+            mode === "register"
+              ? "✓ Face Registered & Unlocked!"
+              : "✓ Unlocked via Face!",
             "saved",
           );
           initDebitNotes();

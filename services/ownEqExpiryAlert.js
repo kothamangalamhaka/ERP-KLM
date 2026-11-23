@@ -182,7 +182,7 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
       const isthimaaraDays = getDaysRemaining(row.isthimaara_exp);
 
       // Condition: Expired (< 0) or Expiring in next 30 days (<= 30)
-      const hasAlert = 
+      const hasAlert =
         (iqamaDays !== null && iqamaDays <= 30) ||
         (licenceDays !== null && licenceDays <= 30) ||
         (passportDays !== null && passportDays <= 30) ||
@@ -201,12 +201,23 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
         insuranceDays,
         fahsDays,
         opCardDays,
-        isthimaaraDays
+        isthimaaraDays,
       });
 
       // Email Rule: Trigger ONLY if at least one item hits 5, 10, 15, 20, 25, or 30 days
-      [iqamaDays, licenceDays, passportDays, insuranceDays, fahsDays, opCardDays, isthimaaraDays].forEach((d) => {
-        if (d !== null && (emailMilestoneDays.includes(d) || (isTest && d <= 30))) {
+      [
+        iqamaDays,
+        licenceDays,
+        passportDays,
+        insuranceDays,
+        fahsDays,
+        opCardDays,
+        isthimaaraDays,
+      ].forEach((d) => {
+        if (
+          d !== null &&
+          (emailMilestoneDays.includes(d) || (isTest && d <= 30))
+        ) {
           shouldTriggerEmail = true;
         }
       });
@@ -268,7 +279,10 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
       }
 
       if (item.fahsDays !== null && item.fahsDays <= 30) {
-        const tag = item.fahsDays < 0 ? `(EXPIRED ${Math.abs(item.fahsDays)} days ago)` : `(${item.fahsDays} days count)`;
+        const tag =
+          item.fahsDays < 0
+            ? `(EXPIRED ${Math.abs(item.fahsDays)} days ago)`
+            : `(${item.fahsDays} days count)`;
         eqSection += `FAHS :: ${formatDate(item.fahs_mvpi_exp)} ${tag}\n`;
         eqSection += `Chassis No :: ${item.chassis_no || "-"}\n`;
         eqSection += `Serial No :: ${item.serial_no || "-"}\n`;
@@ -276,13 +290,19 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
       }
 
       if (item.opCardDays !== null && item.opCardDays <= 30) {
-        const tag = item.opCardDays < 0 ? `(EXPIRED ${Math.abs(item.opCardDays)} days ago)` : `(${item.opCardDays} days count)`;
+        const tag =
+          item.opCardDays < 0
+            ? `(EXPIRED ${Math.abs(item.opCardDays)} days ago)`
+            : `(${item.opCardDays} days count)`;
         eqSection += `Operation Card Exp :: ${formatDate(item.op_card_exp)} ${tag}\n`;
         hasEq = true;
       }
 
       if (item.isthimaaraDays !== null && item.isthimaaraDays <= 30) {
-        const tag = item.isthimaaraDays < 0 ? `(EXPIRED ${Math.abs(item.isthimaaraDays)} days ago)` : `(${item.isthimaaraDays} days count)`;
+        const tag =
+          item.isthimaaraDays < 0
+            ? `(EXPIRED ${Math.abs(item.isthimaaraDays)} days ago)`
+            : `(${item.isthimaaraDays} days count)`;
         eqSection += `Isthimaara Exp :: ${formatDate(item.isthimaara_exp)} ${tag}\n`;
         hasEq = true;
       }
@@ -300,13 +320,13 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
     if (shouldTriggerEmail && alertItems.length > 0) {
       console.log("📨 Generating and Sending Expiry Email Table...");
       const getExpiryCellStyle = (days) => {
-        if (days === null || days === undefined) return '';
+        if (days === null || days === undefined) return "";
         if (days < 0) {
-          return 'background-color: #dc3545; color: #ffffff; font-weight: bold; text-align: center;';
+          return "background-color: #dc3545; color: #ffffff; font-weight: bold; text-align: center;";
         } else if (days <= 30) {
-          return 'background-color: #fff3cd; color: #d97706; font-weight: bold; text-align: center;';
+          return "background-color: #fff3cd; color: #d97706; font-weight: bold; text-align: center;";
         }
-        return '';
+        return "";
       };
 
       let tableHtml = `

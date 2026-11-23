@@ -15,7 +15,7 @@ router.post("/verify-pin", (req, res) => {
     const token = jwt.sign({ role: "admin_access" }, JWT_SECRET, {
       expiresIn: "12h",
     });
-    res.json({ success: true, token }); 
+    res.json({ success: true, token });
   } else {
     res.status(401).json({ success: false, message: "Invalid PIN" });
   }
@@ -41,7 +41,15 @@ router.get("/", async (req, res) => {
 router.post("/new", async (req, res) => {
   try {
     // Added mobile_allowance here
-    const { name, mobile, base_salary, shift_hours, mobile_allowance, start, end } = req.body;
+    const {
+      name,
+      mobile,
+      base_salary,
+      shift_hours,
+      mobile_allowance,
+      start,
+      end,
+    } = req.body;
 
     // Insert Employee
     const newEmployee = await pool.query(
@@ -52,9 +60,9 @@ router.post("/new", async (req, res) => {
         base_salary || 0,
         shift_hours || 10,
         mobile_allowance || 0, // Added to position $5
-        start || null,         // Moved to position $6
-        end || null,           // Moved to position $7
-      ]
+        start || null, // Moved to position $6
+        end || null, // Moved to position $7
+      ],
     );
 
     const empId = newEmployee.rows[0].id;
@@ -77,7 +85,15 @@ router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     // Added mobile_allowance here
-    const { name, mobile, base_salary, shift_hours, mobile_allowance, start, end } = req.body;
+    const {
+      name,
+      mobile,
+      base_salary,
+      shift_hours,
+      mobile_allowance,
+      start,
+      end,
+    } = req.body;
     const updateEmployee = await pool.query(
       "UPDATE employee_data SET name = $1, mobile = $2, base_salary = $3, shift_hours = $4, mobile_allowance = $5, start_date = $6, end_date = $7 WHERE id = $8",
       [
@@ -86,10 +102,10 @@ router.put("/:id", async (req, res) => {
         base_salary || 0,
         shift_hours || 10,
         mobile_allowance || 0, // Added to position $5
-        start || null,         // Moved to position $6
-        end || null,           // Moved to position $7
-        id                     // Moved to position $8
-      ]
+        start || null, // Moved to position $6
+        end || null, // Moved to position $7
+        id, // Moved to position $8
+      ],
     );
     res.json(updateEmployee.rows[0]);
   } catch (err) {
@@ -246,7 +262,7 @@ router.get("/:id/salary-history", async (req, res) => {
     const { id } = req.params;
     const result = await pool.query(
       "SELECT * FROM employee_salary_history WHERE emp_id = $1 ORDER BY start_date DESC",
-      [id]
+      [id],
     );
     res.json(result.rows);
   } catch (err) {
@@ -266,19 +282,19 @@ router.post("/:id/salary-history", async (req, res) => {
       `UPDATE employee_salary_history 
        SET end_date = ($2::date - INTERVAL '1 day') 
        WHERE emp_id = $1 AND (end_date IS NULL OR end_date >= $2::date)`,
-      [id, start_date]
+      [id, start_date],
     );
 
     // Puthiya record insert cheyyunnu
     const newHike = await pool.query(
       "INSERT INTO employee_salary_history (emp_id, base_salary, start_date) VALUES ($1, $2, $3) RETURNING *",
-      [id, base_salary, start_date]
+      [id, base_salary, start_date],
     );
 
     // employee_data table-il current base_salary update cheyyunnu
     await pool.query(
       "UPDATE employee_data SET base_salary = $1 WHERE id = $2",
-      [base_salary, id]
+      [base_salary, id],
     );
 
     res.status(201).json(newHike.rows[0]);

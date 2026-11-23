@@ -537,50 +537,69 @@ router.get("/reports/financials", verifyToken, async (req, res) => {
 
     // Calculate previous periods' cumulative earnings to roll over to Balance Sheet
     let prev_retained_earnings = 0;
-    result.rows.forEach(l => {
-      if (l.main_group === "Revenue") prev_retained_earnings += (parseFloat(l.prev_cr) - parseFloat(l.prev_dr));
-      if (l.main_group === "Expenses") prev_retained_earnings -= (parseFloat(l.prev_dr) - parseFloat(l.prev_cr));
+    result.rows.forEach((l) => {
+      if (l.main_group === "Revenue")
+        prev_retained_earnings += parseFloat(l.prev_cr) - parseFloat(l.prev_dr);
+      if (l.main_group === "Expenses")
+        prev_retained_earnings -= parseFloat(l.prev_dr) - parseFloat(l.prev_cr);
     });
 
-    const ledgers = result.rows.map(l => {
-      const ob_dr = l.opening_balance_type === 'Dr' ? parseFloat(l.opening_balance || 0) : 0;
-      const ob_cr = l.opening_balance_type === 'Cr' ? parseFloat(l.opening_balance || 0) : 0;
+    const ledgers = result.rows
+      .map((l) => {
+        const ob_dr =
+          l.opening_balance_type === "Dr"
+            ? parseFloat(l.opening_balance || 0)
+            : 0;
+        const ob_cr =
+          l.opening_balance_type === "Cr"
+            ? parseFloat(l.opening_balance || 0)
+            : 0;
 
-      // Pure Cumulative for Trial Balance (ALL accounts)
-      const cum_total_dr = parseFloat(l.cum_dr) + ob_dr;
-      const cum_total_cr = parseFloat(l.cum_cr) + ob_cr;
-      const tb_net_dr = cum_total_dr > cum_total_cr ? cum_total_dr - cum_total_cr : 0;
-      const tb_net_cr = cum_total_cr > cum_total_dr ? cum_total_cr - cum_total_dr : 0;
+        // Pure Cumulative for Trial Balance (ALL accounts)
+        const cum_total_dr = parseFloat(l.cum_dr) + ob_dr;
+        const cum_total_cr = parseFloat(l.cum_cr) + ob_cr;
+        const tb_net_dr =
+          cum_total_dr > cum_total_cr ? cum_total_dr - cum_total_cr : 0;
+        const tb_net_cr =
+          cum_total_cr > cum_total_dr ? cum_total_cr - cum_total_dr : 0;
 
-      // Periodic for P&L, Cumulative for Balance Sheet
-      let bs_pl_dr = 0, bs_pl_cr = 0;
-      if (l.main_group === "Revenue" || l.main_group === "Expenses") {
-        bs_pl_dr = parseFloat(l.period_dr);
-        bs_pl_cr = parseFloat(l.period_cr);
-      } else {
-        bs_pl_dr = cum_total_dr;
-        bs_pl_cr = cum_total_cr;
-      }
-      const net_dr = bs_pl_dr > bs_pl_cr ? bs_pl_dr - bs_pl_cr : 0;
-      const net_cr = bs_pl_cr > bs_pl_dr ? bs_pl_cr - bs_pl_dr : 0;
+        // Periodic for P&L, Cumulative for Balance Sheet
+        let bs_pl_dr = 0,
+          bs_pl_cr = 0;
+        if (l.main_group === "Revenue" || l.main_group === "Expenses") {
+          bs_pl_dr = parseFloat(l.period_dr);
+          bs_pl_cr = parseFloat(l.period_cr);
+        } else {
+          bs_pl_dr = cum_total_dr;
+          bs_pl_cr = cum_total_cr;
+        }
+        const net_dr = bs_pl_dr > bs_pl_cr ? bs_pl_dr - bs_pl_cr : 0;
+        const net_cr = bs_pl_cr > bs_pl_dr ? bs_pl_cr - bs_pl_dr : 0;
 
-      return { ...l, tb_net_dr, tb_net_cr, net_dr, net_cr };
-    }).filter(l => l.tb_net_dr > 0 || l.tb_net_cr > 0 || l.net_dr > 0 || l.net_cr > 0);
+        return { ...l, tb_net_dr, tb_net_cr, net_dr, net_cr };
+      })
+      .filter(
+        (l) =>
+          l.tb_net_dr > 0 || l.tb_net_cr > 0 || l.net_dr > 0 || l.net_cr > 0,
+      );
 
     // Current period P&L metrics
-    let revenue = 0, expenses = 0;
+    let revenue = 0,
+      expenses = 0;
     ledgers.forEach((l) => {
-      if (l.main_group === "Revenue") revenue += (l.net_cr - l.net_dr);
-      if (l.main_group === "Expenses") expenses += (l.net_dr - l.net_cr);
+      if (l.main_group === "Revenue") revenue += l.net_cr - l.net_dr;
+      if (l.main_group === "Expenses") expenses += l.net_dr - l.net_cr;
     });
     const netProfit = revenue - expenses;
 
     // Balance Sheet structural metrics
-    let assets = 0, liabilities = 0, capital = 0;
+    let assets = 0,
+      liabilities = 0,
+      capital = 0;
     ledgers.forEach((l) => {
-      if (l.main_group === "Assets") assets += (l.net_dr - l.net_cr);
-      if (l.main_group === "Liabilities") liabilities += (l.net_cr - l.net_dr);
-      if (l.main_group === "Capital & Reserves") capital += (l.net_cr - l.net_dr);
+      if (l.main_group === "Assets") assets += l.net_dr - l.net_cr;
+      if (l.main_group === "Liabilities") liabilities += l.net_cr - l.net_dr;
+      if (l.main_group === "Capital & Reserves") capital += l.net_cr - l.net_dr;
     });
 
     // The core equation balance point (Adding previous years profit to this year)
@@ -590,7 +609,12 @@ router.get("/reports/financials", verifyToken, async (req, res) => {
       success: true,
       trial_balance: ledgers,
       profit_loss: { revenue, expenses, net_profit: netProfit },
-      balance_sheet: { assets, liabilities, capital, net_profit: totalCumulativeProfit },
+      balance_sheet: {
+        assets,
+        liabilities,
+        capital,
+        net_profit: totalCumulativeProfit,
+      },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

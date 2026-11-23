@@ -33,12 +33,16 @@ router.post("/rotate-file", verifyEditor, async (req, res) => {
   try {
     const { filePath, rotation } = req.body;
     if (!filePath) {
-      return res.status(400).json({ success: false, message: "No path provided" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No path provided" });
     }
 
     const exists = await client.exists(filePath);
     if (!exists) {
-      return res.status(404).json({ success: false, message: "File not found in Nextcloud" });
+      return res
+        .status(404)
+        .json({ success: false, message: "File not found in Nextcloud" });
     }
 
     const ext = path.extname(filePath).toLowerCase();
@@ -58,11 +62,18 @@ router.post("/rotate-file", verifyEditor, async (req, res) => {
         .toBuffer();
 
       // Put rotated file back to Nextcloud (Overwrite)
-      await client.putFileContents(filePath, rotatedBuffer, { overwrite: true });
-      return res.json({ success: true, message: "Image rotated and saved successfully" });
+      await client.putFileContents(filePath, rotatedBuffer, {
+        overwrite: true,
+      });
+      return res.json({
+        success: true,
+        message: "Image rotated and saved successfully",
+      });
     } else if (ext === ".pdf") {
       if (!pdfLib || !pdfLib.PDFDocument) {
-        return res.status(500).json({ success: false, message: "pdf-lib library not installed" });
+        return res
+          .status(500)
+          .json({ success: false, message: "pdf-lib library not installed" });
       }
 
       const pdfDoc = await pdfLib.PDFDocument.load(Buffer.from(fileBuffer));
@@ -73,10 +84,18 @@ router.post("/rotate-file", verifyEditor, async (req, res) => {
       });
 
       const savedBytes = await pdfDoc.save();
-      await client.putFileContents(filePath, Buffer.from(savedBytes), { overwrite: true });
-      return res.json({ success: true, message: "PDF rotated and saved successfully" });
+      await client.putFileContents(filePath, Buffer.from(savedBytes), {
+        overwrite: true,
+      });
+      return res.json({
+        success: true,
+        message: "PDF rotated and saved successfully",
+      });
     } else {
-      return res.status(400).json({ success: false, message: "Unsupported file type for rotation" });
+      return res.status(400).json({
+        success: false,
+        message: "Unsupported file type for rotation",
+      });
     }
   } catch (err) {
     console.error("WebDAV Rotate Save Error:", err);
@@ -89,12 +108,17 @@ router.post("/rename-file", verifyEditor, async (req, res) => {
   try {
     const { oldPath, newName } = req.body;
     if (!oldPath) {
-      return res.status(400).json({ success: false, message: "Old path missing" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Old path missing" });
     }
 
     const exists = await client.exists(oldPath);
     if (!exists) {
-      return res.status(404).json({ success: false, message: "Original file not found in Nextcloud" });
+      return res.status(404).json({
+        success: false,
+        message: "Original file not found in Nextcloud",
+      });
     }
 
     const dir = path.posix.dirname(oldPath);
@@ -103,17 +127,26 @@ router.post("/rename-file", verifyEditor, async (req, res) => {
 
     cleanBaseName = cleanBaseName.replace(/[/\\?%*:|"<>]/g, "-");
     if (!cleanBaseName) {
-      return res.status(400).json({ success: false, message: "Invalid file name" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid file name" });
     }
 
     const targetPath = path.posix.join(dir, cleanBaseName + ext);
     if (oldPath !== targetPath && (await client.exists(targetPath))) {
-      return res.status(400).json({ success: false, message: "A file with this name already exists" });
+      return res.status(400).json({
+        success: false,
+        message: "A file with this name already exists",
+      });
     }
 
     // Nextcloud moveFile performs rename
     await client.moveFile(oldPath, targetPath);
-    res.json({ success: true, newPath: targetPath, newBaseName: cleanBaseName + ext });
+    res.json({
+      success: true,
+      newPath: targetPath,
+      newBaseName: cleanBaseName + ext,
+    });
   } catch (err) {
     console.error("WebDAV Rename Error:", err);
     res.status(500).json({ success: false, message: err.message });
@@ -126,17 +159,23 @@ router.post("/extract-pdf", verifyEditor, async (req, res) => {
   try {
     const { filePath } = req.body;
     if (!filePath) {
-      return res.status(400).json({ success: false, message: "PDF path missing" });
+      return res
+        .status(400)
+        .json({ success: false, message: "PDF path missing" });
     }
 
     const exists = await client.exists(filePath);
     if (!exists) {
-      return res.status(404).json({ success: false, message: "PDF not found in Nextcloud" });
+      return res
+        .status(404)
+        .json({ success: false, message: "PDF not found in Nextcloud" });
     }
 
     const ext = path.extname(filePath).toLowerCase();
     if (ext !== ".pdf") {
-      return res.status(400).json({ success: false, message: "File is not a PDF" });
+      return res
+        .status(400)
+        .json({ success: false, message: "File is not a PDF" });
     }
 
     // Create a temporary directory locally on the Linux server
@@ -156,8 +195,13 @@ router.post("/extract-pdf", verifyEditor, async (req, res) => {
     exec(cmd, async (error, stdout, stderr) => {
       if (error) {
         console.error("pdfimages exec error:", error, stderr);
-        await fs.promises.rm(tempLocalDir, { recursive: true, force: true }).catch(() => {});
-        return res.status(500).json({ success: false, message: "Failed to extract images from PDF" });
+        await fs.promises
+          .rm(tempLocalDir, { recursive: true, force: true })
+          .catch(() => {});
+        return res.status(500).json({
+          success: false,
+          message: "Failed to extract images from PDF",
+        });
       }
 
       try {
@@ -170,7 +214,9 @@ router.post("/extract-pdf", verifyEditor, async (req, res) => {
             const localImgPath = path.join(tempLocalDir, f);
             const imgData = await fs.promises.readFile(localImgPath);
             const targetNcPath = path.posix.join(nextcloudFolder, f);
-            await client.putFileContents(targetNcPath, imgData, { overwrite: true });
+            await client.putFileContents(targetNcPath, imgData, {
+              overwrite: true,
+            });
           }
         }
 
@@ -181,11 +227,16 @@ router.post("/extract-pdf", verifyEditor, async (req, res) => {
         }
 
         // Move original PDF to Nextcloud Temp folder
-        const targetTempPath = path.posix.join(ncTempFolder, path.basename(filePath));
+        const targetTempPath = path.posix.join(
+          ncTempFolder,
+          path.basename(filePath),
+        );
         await client.moveFile(filePath, targetTempPath);
 
         // Clean up server local temp files
-        await fs.promises.rm(tempLocalDir, { recursive: true, force: true }).catch(() => {});
+        await fs.promises
+          .rm(tempLocalDir, { recursive: true, force: true })
+          .catch(() => {});
 
         res.json({
           success: true,
@@ -193,13 +244,17 @@ router.post("/extract-pdf", verifyEditor, async (req, res) => {
         });
       } catch (ncErr) {
         console.error("Nextcloud sync error:", ncErr);
-        await fs.promises.rm(tempLocalDir, { recursive: true, force: true }).catch(() => {});
+        await fs.promises
+          .rm(tempLocalDir, { recursive: true, force: true })
+          .catch(() => {});
         res.status(500).json({ success: false, message: ncErr.message });
       }
     });
   } catch (err) {
     console.error("Extract PDF WebDAV Error:", err);
-    await fs.promises.rm(tempLocalDir, { recursive: true, force: true }).catch(() => {});
+    await fs.promises
+      .rm(tempLocalDir, { recursive: true, force: true })
+      .catch(() => {});
     res.status(500).json({ success: false, message: err.message });
   }
 });

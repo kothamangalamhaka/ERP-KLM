@@ -1,242 +1,286 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Super Admin | Spare Parts Approval</title>
-  <script>
-    (function () {
-      try {
-        const saved = localStorage.getItem("sp_theme");
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const theme = saved || (prefersDark ? "dark" : "light");
-        document.documentElement.setAttribute("data-theme", theme);
-        document.documentElement.setAttribute("data-bs-theme", theme);
-      } catch (e) {}
-    })();
-  </script>
-  <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
-  <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
-  <style>
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-Regular.woff2") format("woff2");
-      font-weight: 400;
-    }
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
-      font-weight: 600;
-    }
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-Bold.woff2") format("woff2");
-      font-weight: 700;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Super Admin | Spare Parts Approval</title>
+    <script>
+      (function () {
+        try {
+          const saved = localStorage.getItem("sp_theme");
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
+          const theme = saved || (prefersDark ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+          document.documentElement.setAttribute("data-bs-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+    <style>
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+        font-weight: 600;
+      }
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-Bold.woff2") format("woff2");
+        font-weight: 700;
+      }
 
-    :root {
-      --primary: #2563eb;
-      --bg: #f1f5f9;
-      --surface: rgba(255, 255, 255, 0.85);
-      --border: rgba(148, 163, 184, 0.35);
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
-    }
+      :root {
+        --primary: #2563eb;
+        --bg: #f1f5f9;
+        --surface: rgba(255, 255, 255, 0.85);
+        --border: rgba(148, 163, 184, 0.35);
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+      }
 
-    [data-theme="dark"] {
-      --primary: #3b82f6;
-      --bg: #0b1120;
-      --surface: rgba(30, 41, 59, 0.78);
-      --border: rgba(148, 163, 184, 0.18);
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
-    }
+      [data-theme="dark"] {
+        --primary: #3b82f6;
+        --bg: #0b1120;
+        --surface: rgba(30, 41, 59, 0.78);
+        --border: rgba(148, 163, 184, 0.18);
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
+      }
 
-    * {
-      font-family: "InterLocal", system-ui, sans-serif;
-    }
+      * {
+        font-family: "InterLocal", system-ui, sans-serif;
+      }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
 
-    .glass-nav {
-      background: var(--surface);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      box-shadow: var(--shadow);
-    }
+      .glass-nav {
+        background: var(--surface);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
 
-    .glass-panel {
-      background: var(--surface);
-      backdrop-filter: blur(18px);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      padding: 1.5rem;
-    }
+      .glass-panel {
+        background: var(--surface);
+        backdrop-filter: blur(18px);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 1.5rem;
+      }
 
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.2rem;
-      box-shadow: var(--shadow);
-    }
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.2rem;
+        box-shadow: var(--shadow);
+      }
 
-    .table {
-      --bs-table-bg: transparent;
-      --bs-table-color: var(--text);
-      --bs-table-border-color: var(--border);
-    }
-  </style>
-</head>
-<body>
-  <nav class="navbar glass-nav px-3 px-md-4 py-3 mb-4">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center gap-2">
-        <i class="fas fa-shield-halved text-primary fs-4"></i>
-        <span class="fw-bold fs-5">Spare Parts Super Admin</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <a href="/Office/Spare_parts_sale/dashboard.html" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-          <i class="fas fa-chart-line me-1"></i>Dashboard
-        </a>
-        <button class="btn btn-sm btn-outline-secondary rounded-circle" id="themeToggle" style="width:36px;height:36px;">
-          <i class="fas fa-moon" id="themeIcon"></i>
-        </button>
-        <button class="btn btn-sm btn-danger rounded-pill px-3" id="logoutBtn">
-          <i class="fas fa-sign-out-alt me-1"></i>Logout
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container pb-5">
-    <div class="row g-3 mb-4">
-      <div class="col-md-4">
-        <div class="stat-card">
-          <div class="small" style="color: var(--text-muted)">Total Accounts</div>
-          <div class="fs-3 fw-bold" id="statTotal">0</div>
+      .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--text);
+        --bs-table-border-color: var(--border);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar glass-nav px-3 px-md-4 py-3 mb-4">
+      <div
+        class="container-fluid d-flex justify-content-between align-items-center"
+      >
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-shield-halved text-primary fs-4"></i>
+          <span class="fw-bold fs-5">Spare Parts Super Admin</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a
+            href="/Office/Spare_parts_sale/dashboard.html"
+            class="btn btn-sm btn-outline-primary rounded-pill px-3"
+          >
+            <i class="fas fa-chart-line me-1"></i>Dashboard
+          </a>
+          <button
+            class="btn btn-sm btn-outline-secondary rounded-circle"
+            id="themeToggle"
+            style="width: 36px; height: 36px"
+          >
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-danger rounded-pill px-3"
+            id="logoutBtn"
+          >
+            <i class="fas fa-sign-out-alt me-1"></i>Logout
+          </button>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="stat-card">
-          <div class="small text-warning fw-semibold">Pending Approval</div>
-          <div class="fs-3 fw-bold text-warning" id="statPending">0</div>
+    </nav>
+
+    <div class="container pb-5">
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="stat-card">
+            <div class="small" style="color: var(--text-muted)">
+              Total Accounts
+            </div>
+            <div class="fs-3 fw-bold" id="statTotal">0</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-card">
+            <div class="small text-warning fw-semibold">Pending Approval</div>
+            <div class="fs-3 fw-bold text-warning" id="statPending">0</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-card">
+            <div class="small text-success fw-semibold">Active Users</div>
+            <div class="fs-3 fw-bold text-success" id="statActive">0</div>
+          </div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="stat-card">
-          <div class="small text-success fw-semibold">Active Users</div>
-          <div class="fs-3 fw-bold text-success" id="statActive">0</div>
+
+      <div class="glass-panel">
+        <div
+          class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"
+        >
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-users-cog me-2 text-primary"></i>User Access
+            Requests
+          </h5>
+          <button
+            class="btn btn-sm btn-primary rounded-pill px-3"
+            onclick="loadUsers()"
+          >
+            <i class="fas fa-rotate me-1"></i>Refresh
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="6" class="text-center py-4">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
-    <div class="glass-panel">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <h5 class="fw-bold mb-0"><i class="fas fa-users-cog me-2 text-primary"></i>User Access Requests</h5>
-        <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="loadUsers()">
-          <i class="fas fa-rotate me-1"></i>Refresh
-        </button>
-      </div>
+    <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
+    <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
+    <script>
+      const token = localStorage.getItem("sp_token");
+      const user = JSON.parse(localStorage.getItem("sp_user") || "{}");
 
-      <div class="table-responsive">
-        <table class="table align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="usersTableBody">
-            <tr><td colspan="6" class="text-center py-4">Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+      if (!token || user.role !== "Super Admin") {
+        window.location.href = "/Office/Spare_parts_sale/index.html";
+      }
 
-  <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
-  <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
-  <script>
-    const token = localStorage.getItem("sp_token");
-    const user = JSON.parse(localStorage.getItem("sp_user") || "{}");
-
-    if (!token || user.role !== "Super Admin") {
-      window.location.href = "/Office/Spare_parts_sale/index.html";
-    }
-
-    // Theme
-    const themeToggle = document.getElementById("themeToggle");
-    const themeIcon = document.getElementById("themeIcon");
-    function updateIcon() {
-      const t = document.documentElement.getAttribute("data-theme");
-      themeIcon.className = t === "dark" ? "fas fa-sun" : "fas fa-moon";
-    }
-    updateIcon();
-    themeToggle.addEventListener("click", () => {
-      const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      document.documentElement.setAttribute("data-bs-theme", next);
-      try { localStorage.setItem("sp_theme", next); } catch (e) {}
+      // Theme
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      function updateIcon() {
+        const t = document.documentElement.getAttribute("data-theme");
+        themeIcon.className = t === "dark" ? "fas fa-sun" : "fas fa-moon";
+      }
       updateIcon();
-    });
+      themeToggle.addEventListener("click", () => {
+        const next =
+          document.documentElement.getAttribute("data-theme") === "dark"
+            ? "light"
+            : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        document.documentElement.setAttribute("data-bs-theme", next);
+        try {
+          localStorage.setItem("sp_theme", next);
+        } catch (e) {}
+        updateIcon();
+      });
 
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      localStorage.removeItem("sp_token");
-      localStorage.removeItem("sp_user");
-      window.location.href = "/Office/Spare_parts_sale/index.html";
-    });
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        localStorage.removeItem("sp_token");
+        localStorage.removeItem("sp_user");
+        window.location.href = "/Office/Spare_parts_sale/index.html";
+      });
 
-    function esc(str) {
-      return String(str || "").replace(/[&<>"']/g, (m) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      }[m]));
-    }
+      function esc(str) {
+        return String(str || "").replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[m],
+        );
+      }
 
-    async function loadUsers() {
-      try {
-        const res = await fetch("/api/spare-parts/admin/users", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.status === 401 || res.status === 403) {
-          window.location.href = "/Office/Spare_parts_sale/index.html";
-          return;
-        }
-        const data = await res.json();
-        if (!data.success) return;
+      async function loadUsers() {
+        try {
+          const res = await fetch("/api/spare-parts/admin/users", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.status === 401 || res.status === 403) {
+            window.location.href = "/Office/Spare_parts_sale/index.html";
+            return;
+          }
+          const data = await res.json();
+          if (!data.success) return;
 
-        const users = data.users;
-        document.getElementById("statTotal").textContent = users.length;
-        document.getElementById("statPending").textContent = users.filter(u => u.status === "Pending").length;
-        document.getElementById("statActive").textContent = users.filter(u => u.status === "Active").length;
+          const users = data.users;
+          document.getElementById("statTotal").textContent = users.length;
+          document.getElementById("statPending").textContent = users.filter(
+            (u) => u.status === "Pending",
+          ).length;
+          document.getElementById("statActive").textContent = users.filter(
+            (u) => u.status === "Active",
+          ).length;
 
-        const tbody = document.getElementById("usersTableBody");
-        if (users.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No users found.</td></tr>`;
-          return;
-        }
+          const tbody = document.getElementById("usersTableBody");
+          if (users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No users found.</td></tr>`;
+            return;
+          }
 
-        tbody.innerHTML = users.map(u => {
-          const isSelf = Number(u.id) === Number(user.id);
-          let badge = "bg-secondary";
-          if (u.status === "Active") badge = "bg-success";
-          else if (u.status === "Pending") badge = "bg-warning text-dark";
-          else if (u.status === "Rejected") badge = "bg-danger";
+          tbody.innerHTML = users
+            .map((u) => {
+              const isSelf = Number(u.id) === Number(user.id);
+              let badge = "bg-secondary";
+              if (u.status === "Active") badge = "bg-success";
+              else if (u.status === "Pending") badge = "bg-warning text-dark";
+              else if (u.status === "Rejected") badge = "bg-danger";
 
-          return `
+              return `
             <tr>
-              <td class="fw-semibold">${esc(u.display_name)} ${isSelf ? '<span class="badge bg-info text-dark ms-1">You</span>' : ''}</td>
+              <td class="fw-semibold">${esc(u.display_name)} ${isSelf ? '<span class="badge bg-info text-dark ms-1">You</span>' : ""}</td>
               <td>${esc(u.username)}</td>
               <td>${esc(u.email || "-")}</td>
               <td>
@@ -247,7 +291,10 @@
               </td>
               <td><span class="badge ${badge}">${esc(u.status)}</span></td>
               <td class="text-end">
-                ${isSelf ? '<span class="small text-muted">Protected</span>' : `
+                ${
+                  isSelf
+                    ? '<span class="small text-muted">Protected</span>'
+                    : `
                   <div class="btn-group btn-group-sm">
                     <button class="btn btn-success" title="Approve" onclick="updateUser(${u.id}, 'Active')">
                       <i class="fas fa-check"></i>
@@ -262,76 +309,93 @@
                       <i class="fas fa-trash"></i>
                     </button>
                   </div>
-                `}
+                `
+                }
               </td>
             </tr>
           `;
-        }).join("");
-      } catch (err) {
-        console.error(err);
+            })
+            .join("");
+        } catch (err) {
+          console.error(err);
+        }
       }
-    }
 
-    async function updateUser(userId, status) {
-      const role = document.getElementById(`role_${userId}`).value;
-      const res = await fetch("/api/spare-parts/admin/update-status", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId, status, role })
-      });
-      const data = await res.json();
-      if (data.success) {
-        Swal.fire({ icon: "success", title: "Updated", text: data.message, timer: 1400, showConfirmButton: false });
-        loadUsers();
-      } else {
-        Swal.fire({ icon: "error", title: "Error", text: data.message });
+      async function updateUser(userId, status) {
+        const role = document.getElementById(`role_${userId}`).value;
+        const res = await fetch("/api/spare-parts/admin/update-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ userId, status, role }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Updated",
+            text: data.message,
+            timer: 1400,
+            showConfirmButton: false,
+          });
+          loadUsers();
+        } else {
+          Swal.fire({ icon: "error", title: "Error", text: data.message });
+        }
       }
-    }
 
-    async function resetPwd(userId, uname) {
-      const { value: newPassword } = await Swal.fire({
-        title: `Reset Password: ${uname}`,
-        input: "password",
-        inputPlaceholder: "Enter new password (min 4 chars)",
-        showCancelButton: true
-      });
-      if (!newPassword) return;
+      async function resetPwd(userId, uname) {
+        const { value: newPassword } = await Swal.fire({
+          title: `Reset Password: ${uname}`,
+          input: "password",
+          inputPlaceholder: "Enter new password (min 4 chars)",
+          showCancelButton: true,
+        });
+        if (!newPassword) return;
 
-      const res = await fetch("/api/spare-parts/admin/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId, newPassword })
-      });
-      const data = await res.json();
-      Swal.fire({ icon: data.success ? "success" : "error", text: data.message });
-    }
+        const res = await fetch("/api/spare-parts/admin/reset-password", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ userId, newPassword }),
+        });
+        const data = await res.json();
+        Swal.fire({
+          icon: data.success ? "success" : "error",
+          text: data.message,
+        });
+      }
 
-    async function deleteUser(userId, uname) {
-      const confirm = await Swal.fire({
-        icon: "warning",
-        title: `Delete ${uname}?`,
-        text: "This action cannot be undone.",
-        showCancelButton: true,
-        confirmButtonColor: "#dc2626"
-      });
-      if (!confirm.isConfirmed) return;
+      async function deleteUser(userId, uname) {
+        const confirm = await Swal.fire({
+          icon: "warning",
+          title: `Delete ${uname}?`,
+          text: "This action cannot be undone.",
+          showCancelButton: true,
+          confirmButtonColor: "#dc2626",
+        });
+        if (!confirm.isConfirmed) return;
 
-      const res = await fetch(`/api/spare-parts/admin/delete-user/${userId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) loadUsers();
-      Swal.fire({ icon: data.success ? "success" : "error", text: data.message });
-    }
+        const res = await fetch(
+          `/api/spare-parts/admin/delete-user/${userId}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        const data = await res.json();
+        if (data.success) loadUsers();
+        Swal.fire({
+          icon: data.success ? "success" : "error",
+          text: data.message,
+        });
+      }
 
-    loadUsers();
-  </script>
-</body>
+      loadUsers();
+    </script>
+  </body>
 </html>

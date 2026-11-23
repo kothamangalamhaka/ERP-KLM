@@ -61,11 +61,17 @@ router.post("/add-equipment", async (req, res) => {
 
 // 2. 🟢 NEW: Edit & Update Equipment Costs (Purchase Date, Purchase Cost Paid & Remaining Purchase Cost)
 router.post("/edit-equipment", async (req, res) => {
-  const { id, purchase_date, purchase_cost, remaining_purchase_cost } = req.body;
+  const { id, purchase_date, purchase_cost, remaining_purchase_cost } =
+    req.body;
   try {
     await pool.query(
       `UPDATE equipments SET purchase_date = $1, purchase_cost = $2, remaining_purchase_cost = $3 WHERE id = $4`,
-      [purchase_date || null, purchase_cost || 0, remaining_purchase_cost || 0, id],
+      [
+        purchase_date || null,
+        purchase_cost || 0,
+        remaining_purchase_cost || 0,
+        id,
+      ],
     );
     res.json({
       success: true,

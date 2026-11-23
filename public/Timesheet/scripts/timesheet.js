@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!token || !userStr) {
     localStorage.removeItem("timesheetToken");
     localStorage.removeItem("timesheetUser");
-    window.location.replace("index.html"); 
+    window.location.replace("index.html");
     return;
   }
 
@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function logout() {
   localStorage.removeItem("timesheetToken");
   localStorage.removeItem("timesheetUser");
-  window.location.replace("index.html"); 
+  window.location.replace("index.html");
 }
 
 let alertResolver;
@@ -382,11 +382,12 @@ async function importExcel() {
           } catch (e) {
             sitesArray = [];
           }
-          
+
           // 🟢 FIXED: Partial Keyword Match
           let siteMatch =
-            sitesArray.includes("ALL") || sitesArray.some(keyword => site.includes(keyword));
-            
+            sitesArray.includes("ALL") ||
+            sitesArray.some((keyword) => site.includes(keyword));
+
           if (!siteMatch) return false;
           let ruleStart = new Date(r.start_date);
           ruleStart.setHours(0, 0, 0, 0);
@@ -714,17 +715,19 @@ function customConfirm(title, msg) {
     confirmResolver = resolve;
     document.getElementById("confirmTitle").innerText = title;
     document.getElementById("confirmMessage").innerText = msg;
-    
-    const actionBtns = document.querySelectorAll("#customConfirmModal .btn-primary");
+
+    const actionBtns = document.querySelectorAll(
+      "#customConfirmModal .btn-primary",
+    );
     if (actionBtns && actionBtns.length > 1) {
-        const confirmBtn = actionBtns[1];
-        if (title.includes("Lock")) {
-            confirmBtn.innerText = "Lock System";
-            confirmBtn.style.backgroundColor = "#2563eb"; // Blue for Lock
-        } else {
-            confirmBtn.innerText = "Delete";
-            confirmBtn.style.backgroundColor = "#ef4444"; // Red for Delete
-        }
+      const confirmBtn = actionBtns[1];
+      if (title.includes("Lock")) {
+        confirmBtn.innerText = "Lock System";
+        confirmBtn.style.backgroundColor = "#2563eb"; // Blue for Lock
+      } else {
+        confirmBtn.innerText = "Delete";
+        confirmBtn.style.backgroundColor = "#ef4444"; // Red for Delete
+      }
     }
 
     document.getElementById("customConfirmModal").style.display = "flex";
@@ -971,115 +974,137 @@ document.addEventListener("click", function (e) {
 // 🔒 LOCK PERIOD MANAGEMENT
 // ==========================================
 function openLockModal() {
-    document.getElementById("entryLockModal").style.display = "flex";
-    
-    // Calculate exactly 2 months back from the current date
-    const targetDate = new Date();
-    targetDate.setMonth(targetDate.getMonth() - 2);
-    
-    const monthNames = [
-        "January", "February", "March", "April", "May", "June", 
-        "July", "August", "September", "October", "November", "December"
-    ];
-    
-    // Set the dynamic month and year to the modal inputs
-    document.getElementById("lockMonth").value = monthNames[targetDate.getMonth()];
-    document.getElementById("lockYear").value = targetDate.getFullYear();
-    
-    fetchLockStatus();
+  document.getElementById("entryLockModal").style.display = "flex";
+
+  // Calculate exactly 2 months back from the current date
+  const targetDate = new Date();
+  targetDate.setMonth(targetDate.getMonth() - 2);
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  // Set the dynamic month and year to the modal inputs
+  document.getElementById("lockMonth").value =
+    monthNames[targetDate.getMonth()];
+  document.getElementById("lockYear").value = targetDate.getFullYear();
+
+  fetchLockStatus();
 }
 
 async function fetchLockStatus() {
-    try {
-        const token = localStorage.getItem("timesheetToken");
-        const res = await fetch("/api/lock/status", { headers: { Authorization: "Bearer " + token } });
-        const data = await res.json();
-        const statusDiv = document.getElementById("currentLockStatus");
-        
-        if (data.success && data.data.lock_month && data.data.lock_year) {
-            statusDiv.innerHTML = `System is LOCKED up to: <span style="font-size:18px;">${data.data.lock_month} ${data.data.lock_year}</span>`;
-            statusDiv.style.background = "#fee2e2";
-            statusDiv.style.color = "#b91c1c";
-        } else {
-            statusDiv.innerHTML = "System is currently UNLOCKED.";
-            statusDiv.style.background = "#d1e7dd";
-            statusDiv.style.color = "#0f5132";
-        }
-    } catch (e) {
-        console.error("Lock status check failed.");
+  try {
+    const token = localStorage.getItem("timesheetToken");
+    const res = await fetch("/api/lock/status", {
+      headers: { Authorization: "Bearer " + token },
+    });
+    const data = await res.json();
+    const statusDiv = document.getElementById("currentLockStatus");
+
+    if (data.success && data.data.lock_month && data.data.lock_year) {
+      statusDiv.innerHTML = `System is LOCKED up to: <span style="font-size:18px;">${data.data.lock_month} ${data.data.lock_year}</span>`;
+      statusDiv.style.background = "#fee2e2";
+      statusDiv.style.color = "#b91c1c";
+    } else {
+      statusDiv.innerHTML = "System is currently UNLOCKED.";
+      statusDiv.style.background = "#d1e7dd";
+      statusDiv.style.color = "#0f5132";
     }
+  } catch (e) {
+    console.error("Lock status check failed.");
+  }
 }
 
 async function setLockPeriod() {
-    const month = document.getElementById("lockMonth").value;
-    const year = document.getElementById("lockYear").value;
-    
-    const sure = await customConfirm("Confirm Lock", `Are you sure you want to LOCK all entries up to ${month} ${year}? Users will not be able to edit past data.`);
-    if(!sure) return;
+  const month = document.getElementById("lockMonth").value;
+  const year = document.getElementById("lockYear").value;
 
-    try {
-        const token = localStorage.getItem("timesheetToken");
-        const res = await fetch("/api/lock/set", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-            body: JSON.stringify({ month, year })
-        });
-        const data = await res.json();
-        if (data.success) {
-            customAlert("Success", data.message);
-            fetchLockStatus();
-        } else {
-            customAlert("Error", data.message);
-        }
-    } catch (e) {
-        customAlert("Error", "Failed to set lock.");
+  const sure = await customConfirm(
+    "Confirm Lock",
+    `Are you sure you want to LOCK all entries up to ${month} ${year}? Users will not be able to edit past data.`,
+  );
+  if (!sure) return;
+
+  try {
+    const token = localStorage.getItem("timesheetToken");
+    const res = await fetch("/api/lock/set", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ month, year }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      customAlert("Success", data.message);
+      fetchLockStatus();
+    } else {
+      customAlert("Error", data.message);
     }
+  } catch (e) {
+    customAlert("Error", "Failed to set lock.");
+  }
 }
 
 async function requestUnlockOtp() {
-    const btn = document.getElementById("reqOtpBtn");
-    btn.disabled = true;
-    btn.innerText = "Sending...";
-    try {
-        const token = localStorage.getItem("timesheetToken");
-        const res = await fetch("/api/lock/request-unlock", {
-            method: "POST",
-            headers: { Authorization: "Bearer " + token }
-        });
-        const data = await res.json();
-        if(data.success) {
-            customAlert("OTP Sent", data.message);
-        } else {
-            customAlert("Error", data.message);
-        }
-    } catch(e) {
-        customAlert("Error", "Network issue");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "📩 Request OTP";
+  const btn = document.getElementById("reqOtpBtn");
+  btn.disabled = true;
+  btn.innerText = "Sending...";
+  try {
+    const token = localStorage.getItem("timesheetToken");
+    const res = await fetch("/api/lock/request-unlock", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token },
+    });
+    const data = await res.json();
+    if (data.success) {
+      customAlert("OTP Sent", data.message);
+    } else {
+      customAlert("Error", data.message);
     }
+  } catch (e) {
+    customAlert("Error", "Network issue");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "📩 Request OTP";
+  }
 }
 
 async function verifyUnlockCode() {
-    const code = document.getElementById("unlockCode").value.trim();
-    if(!code) return customAlert("Warning", "Enter OTP or Master Code");
+  const code = document.getElementById("unlockCode").value.trim();
+  if (!code) return customAlert("Warning", "Enter OTP or Master Code");
 
-    try {
-        const token = localStorage.getItem("timesheetToken");
-        const res = await fetch("/api/lock/verify-unlock", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-            body: JSON.stringify({ code })
-        });
-        const data = await res.json();
-        if (data.success) {
-            customAlert("Unlocked!", data.message);
-            document.getElementById("unlockCode").value = "";
-            fetchLockStatus();
-        } else {
-            customAlert("Error", data.message);
-        }
-    } catch (e) {
-        customAlert("Error", "Verification failed.");
+  try {
+    const token = localStorage.getItem("timesheetToken");
+    const res = await fetch("/api/lock/verify-unlock", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      customAlert("Unlocked!", data.message);
+      document.getElementById("unlockCode").value = "";
+      fetchLockStatus();
+    } else {
+      customAlert("Error", data.message);
     }
+  } catch (e) {
+    customAlert("Error", "Verification failed.");
+  }
 }

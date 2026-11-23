@@ -246,7 +246,8 @@ async function fetchData() {
   }
 
   emp.current_effective_salary = effectiveBaseSalary;
-  document.getElementById("dispBaseSal").innerText = effectiveBaseSalary.toFixed(2);
+  document.getElementById("dispBaseSal").innerText =
+    effectiveBaseSalary.toFixed(2);
   document.getElementById("dispShiftHrs").innerText = emp.shift_hours || 10;
 
   const fmt = { day: "2-digit", month: "short", year: "numeric" };
@@ -734,7 +735,10 @@ function updateSummary() {
   const emp = empDataMap[empId];
   if (!emp) return;
 
-  const baseSal = emp.current_effective_salary !== undefined ? emp.current_effective_salary : (parseFloat(emp.base_salary) || 0);
+  const baseSal =
+    emp.current_effective_salary !== undefined
+      ? emp.current_effective_salary
+      : parseFloat(emp.base_salary) || 0;
   const empShiftHrPerDay = parseFloat(emp.shift_hours) || 10;
   const rateHr = baseSal / (empShiftHrPerDay * 26);
 
@@ -749,7 +753,7 @@ function updateSummary() {
 
   document.getElementById("daysWorked").innerText = daysWrk;
   document.getElementById("rateHr").innerText = rateHr.toFixed(2);
-  
+
   // Hours (മണിക്കൂറുകൾ പൂർണ്ണ സംഖ്യയാണെങ്കിൽ .00 വേണ്ട)
   document.getElementById("totalNormal").innerText = Number.isInteger(totNormal)
     ? totNormal

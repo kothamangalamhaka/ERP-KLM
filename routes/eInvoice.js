@@ -32,7 +32,13 @@ function getZatcaTLV(tag, value) {
   return Buffer.concat([tagBuf, lenBuf, valBuf]);
 }
 
-function generateZatcaQrBase64(sellerName, vatNumber, invoiceTimestamp, invoiceTotal, vatTotal) {
+function generateZatcaQrBase64(
+  sellerName,
+  vatNumber,
+  invoiceTimestamp,
+  invoiceTotal,
+  vatTotal,
+) {
   const tlv1 = getZatcaTLV(1, sellerName);
   const tlv2 = getZatcaTLV(2, vatNumber);
   const tlv3 = getZatcaTLV(3, invoiceTimestamp);
@@ -46,7 +52,9 @@ function generateZatcaQrBase64(sellerName, vatNumber, invoiceTimestamp, invoiceT
 // 1. Fetch all companies for dropdown
 router.get("/api/companies", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM e_invoice_companies ORDER BY id ASC");
+    const result = await pool.query(
+      "SELECT * FROM e_invoice_companies ORDER BY id ASC",
+    );
     res.json({ success: true, companies: result.rows });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -56,12 +64,27 @@ router.get("/api/companies", async (req, res) => {
 // 2. Add or Update company
 router.post(
   "/api/save-company",
-  upload.fields([{ name: "logo_file", maxCount: 1 }, { name: "seal_file", maxCount: 1 }, { name: "sign_file", maxCount: 1 }]),
+  upload.fields([
+    { name: "logo_file", maxCount: 1 },
+    { name: "seal_file", maxCount: 1 },
+    { name: "sign_file", maxCount: 1 },
+  ]),
   async (req, res) => {
     try {
       const {
-        id, company_name_en, company_name_ar, short_code, cr_number, vat_number,
-        address_line_en, address_line_ar, phone, email, existing_logo, existing_seal, existing_sign,
+        id,
+        company_name_en,
+        company_name_ar,
+        short_code,
+        cr_number,
+        vat_number,
+        address_line_en,
+        address_line_ar,
+        phone,
+        email,
+        existing_logo,
+        existing_seal,
+        existing_sign,
       } = req.body;
 
       const cleanCode = (short_code || "").trim().toUpperCase();
@@ -69,9 +92,12 @@ router.post(
       let seal_url = existing_seal || null;
       let signature_url = existing_sign || null;
 
-      if (req.files && req.files["logo_file"] && req.files["logo_file"][0]) logo_url = `/uploads/einvoice/${req.files["logo_file"][0].filename}`;
-      if (req.files && req.files["seal_file"] && req.files["seal_file"][0]) seal_url = `/uploads/einvoice/${req.files["seal_file"][0].filename}`;
-      if (req.files && req.files["sign_file"] && req.files["sign_file"][0]) signature_url = `/uploads/einvoice/${req.files["sign_file"][0].filename}`;
+      if (req.files && req.files["logo_file"] && req.files["logo_file"][0])
+        logo_url = `/uploads/einvoice/${req.files["logo_file"][0].filename}`;
+      if (req.files && req.files["seal_file"] && req.files["seal_file"][0])
+        seal_url = `/uploads/einvoice/${req.files["seal_file"][0].filename}`;
+      if (req.files && req.files["sign_file"] && req.files["sign_file"][0])
+        signature_url = `/uploads/einvoice/${req.files["sign_file"][0].filename}`;
 
       if (id) {
         await pool.query(
@@ -80,21 +106,48 @@ router.post(
             address_line_en = $6, address_line_ar = $7, phone = $8, email = $9,
             logo_url = $10, seal_url = $11, signature_url = $12, updated_at = CURRENT_TIMESTAMP
            WHERE id = $13`,
-          [company_name_en, company_name_ar, cleanCode, cr_number, vat_number, address_line_en, address_line_ar, phone, email, logo_url, seal_url, signature_url, id]
+          [
+            company_name_en,
+            company_name_ar,
+            cleanCode,
+            cr_number,
+            vat_number,
+            address_line_en,
+            address_line_ar,
+            phone,
+            email,
+            logo_url,
+            seal_url,
+            signature_url,
+            id,
+          ],
         );
       } else {
         await pool.query(
           `INSERT INTO e_invoice_companies 
             (company_name_en, company_name_ar, short_code, cr_number, vat_number, address_line_en, address_line_ar, phone, email, logo_url, seal_url, signature_url)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-          [company_name_en, company_name_ar, cleanCode, cr_number, vat_number, address_line_en, address_line_ar, phone, email, logo_url, seal_url, signature_url]
+          [
+            company_name_en,
+            company_name_ar,
+            cleanCode,
+            cr_number,
+            vat_number,
+            address_line_en,
+            address_line_ar,
+            phone,
+            email,
+            logo_url,
+            seal_url,
+            signature_url,
+          ],
         );
       }
       res.json({ success: true });
     } catch (error) {
       res.json({ success: false, message: error.message });
     }
-  }
+  },
 );
 
 // 3. Delete company
@@ -111,8 +164,15 @@ router.post("/api/delete-company", async (req, res) => {
 // 4. Generate ZATCA Base64
 router.post("/api/generate-zatca-qr", (req, res) => {
   try {
-    const { seller_name, vat_number, timestamp, total_with_vat, vat_total } = req.body;
-    const base64Str = generateZatcaQrBase64(seller_name, vat_number, timestamp, total_with_vat, vat_total);
+    const { seller_name, vat_number, timestamp, total_with_vat, vat_total } =
+      req.body;
+    const base64Str = generateZatcaQrBase64(
+      seller_name,
+      vat_number,
+      timestamp,
+      total_with_vat,
+      vat_total,
+    );
     res.json({ success: true, base64: base64Str });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -128,7 +188,7 @@ router.get("/api/next-invoice-no", async (req, res) => {
     if (company_id) {
       const compRes = await pool.query(
         "SELECT short_code, company_name_en FROM e_invoice_companies WHERE id = $1",
-        [company_id]
+        [company_id],
       );
       if (compRes.rows.length > 0) {
         shortCode =
@@ -154,7 +214,11 @@ router.get("/api/next-invoice-no", async (req, res) => {
     // Bill Date-ൽ നിന്നുള്ള Year, Month കൃത്യമായി എടുക്കുന്നു
     let targetYear = 2026;
     let targetMonth = 10;
-    if (invoice_date && typeof invoice_date === "string" && invoice_date.includes("-")) {
+    if (
+      invoice_date &&
+      typeof invoice_date === "string" &&
+      invoice_date.includes("-")
+    ) {
       const parts = invoice_date.split("T")[0].split("-");
       if (parts.length >= 2) {
         targetYear = parseInt(parts[0], 10) || 2026;
@@ -173,7 +237,7 @@ router.get("/api/next-invoice-no", async (req, res) => {
     // 🟢 കമ്പനിയുടെ മൊത്തം ബില്ലുകൾ പരിശോധിച്ച് ലാസ്റ്റ് 5 അക്കം എപ്പോഴും Increment ചെയ്യുന്നു (മാസം മാറിയാലും റിപ്പീറ്റ് വരില്ല)
     const companyBillsRes = await pool.query(
       "SELECT invoice_no FROM generated_e_invoices WHERE invoice_no LIKE $1",
-      [`${shortCode}-%`]
+      [`${shortCode}-%`],
     );
 
     let highestExistingSeq = startBase - 1;
@@ -204,26 +268,46 @@ router.get("/api/next-invoice-no", async (req, res) => {
 router.post("/api/save-invoice-record", async (req, res) => {
   try {
     const {
-      invoice_no, company_id, company_name, vendor_name, billing_month, invoice_date,
-      invoice_time, subtotal, vat_amount, grand_total, has_seal, mode, manual_items, raw_payload,
+      invoice_no,
+      company_id,
+      company_name,
+      vendor_name,
+      billing_month,
+      invoice_date,
+      invoice_time,
+      subtotal,
+      vat_amount,
+      grand_total,
+      has_seal,
+      mode,
+      manual_items,
+      raw_payload,
     } = req.body;
 
     if (!company_id) {
-      return res.json({ success: false, message: "Company selection is mandatory" });
+      return res.json({
+        success: false,
+        message: "Company selection is mandatory",
+      });
     }
 
-    const extractedRemarks = (raw_payload && raw_payload.remarks) ? raw_payload.remarks : "";
+    const extractedRemarks =
+      raw_payload && raw_payload.remarks ? raw_payload.remarks : "";
 
     const finalPayload = {
       ...(raw_payload || {}),
       remarks: extractedRemarks,
-      manual_items: manual_items || (raw_payload ? raw_payload.manual_items : []),
+      manual_items:
+        manual_items || (raw_payload ? raw_payload.manual_items : []),
       mode: mode || "newbill",
-      has_seal: !!has_seal
+      has_seal: !!has_seal,
     };
 
     // തീയതി ശൂന്യമാണെങ്കിലോ അസാധുവാണെങ്കിലോ മാത്രം ഇന്നത്തെ തീയതി നൽകുക
-    const validInvoiceDate = (invoice_date && String(invoice_date).trim() !== "------") ? invoice_date : new Date().toISOString().split("T")[0];
+    const validInvoiceDate =
+      invoice_date && String(invoice_date).trim() !== "------"
+        ? invoice_date
+        : new Date().toISOString().split("T")[0];
 
     const result = await pool.query(
       `INSERT INTO generated_e_invoices 
@@ -243,9 +327,19 @@ router.post("/api/save-invoice-record", async (req, res) => {
         raw_payload = EXCLUDED.raw_payload 
        RETURNING id`,
       [
-        invoice_no, company_id || null, company_name, vendor_name, billing_month, validInvoiceDate,
-        invoice_time, subtotal || 0, vat_amount || 0, grand_total || 0, extractedRemarks, finalPayload,
-      ]
+        invoice_no,
+        company_id || null,
+        company_name,
+        vendor_name,
+        billing_month,
+        validInvoiceDate,
+        invoice_time,
+        subtotal || 0,
+        vat_amount || 0,
+        grand_total || 0,
+        extractedRemarks,
+        finalPayload,
+      ],
     );
     res.json({ success: true, id: result.rows[0].id });
   } catch (err) {
@@ -267,17 +361,25 @@ async function ensureSupplierTableSchema() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  await pool.query(`ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS customer_code VARCHAR(50) UNIQUE`);
-  await pool.query(`ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS nickname VARCHAR(255)`);
-  await pool.query(`ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE`);
-  await pool.query(`ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  await pool.query(
+    `ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS customer_code VARCHAR(50) UNIQUE`,
+  );
+  await pool.query(
+    `ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS nickname VARCHAR(255)`,
+  );
+  await pool.query(
+    `ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE`,
+  );
+  await pool.query(
+    `ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
+  );
 }
 
 router.get("/api/suppliers", async (req, res) => {
   try {
     await ensureSupplierTableSchema();
     const result = await pool.query(
-      "SELECT * FROM e_invoice_suppliers WHERE is_deleted = FALSE ORDER BY id DESC"
+      "SELECT * FROM e_invoice_suppliers WHERE is_deleted = FALSE ORDER BY id DESC",
     );
     res.json({ success: true, suppliers: result.rows });
   } catch (err) {
@@ -298,17 +400,29 @@ router.post("/api/save-supplier", async (req, res) => {
         `UPDATE e_invoice_suppliers 
          SET customer_name = $1, nickname = $2, vat_number = $3, updated_at = CURRENT_TIMESTAMP 
          WHERE id = $4`,
-        [customer_name.trim(), (nickname || "").trim(), (vat_number || "").trim(), id]
+        [
+          customer_name.trim(),
+          (nickname || "").trim(),
+          (vat_number || "").trim(),
+          id,
+        ],
       );
     } else {
-      const countRes = await pool.query("SELECT COUNT(*) as total FROM e_invoice_suppliers");
+      const countRes = await pool.query(
+        "SELECT COUNT(*) as total FROM e_invoice_suppliers",
+      );
       const nextSeq = parseInt(countRes.rows[0].total || 0, 10) + 1;
       const customerCode = `CUS-${String(nextSeq).padStart(5, "0")}`;
 
       await pool.query(
         `INSERT INTO e_invoice_suppliers (customer_code, customer_name, nickname, vat_number, is_deleted) 
          VALUES ($1, $2, $3, $4, FALSE)`,
-        [customerCode, customer_name.trim(), (nickname || "").trim(), (vat_number || "").trim()]
+        [
+          customerCode,
+          customer_name.trim(),
+          (nickname || "").trim(),
+          (vat_number || "").trim(),
+        ],
       );
     }
     res.json({ success: true });
@@ -321,12 +435,13 @@ router.post("/api/delete-supplier", async (req, res) => {
   try {
     await ensureSupplierTableSchema();
     const { id } = req.body;
-    if (!id) return res.json({ success: false, message: "Customer ID required" });
+    if (!id)
+      return res.json({ success: false, message: "Customer ID required" });
 
     // Soft delete to prevent permanent data loss
     await pool.query(
       "UPDATE e_invoice_suppliers SET is_deleted = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-      [id]
+      [id],
     );
     res.json({ success: true, message: "Customer archived successfully" });
   } catch (err) {
@@ -338,7 +453,7 @@ router.post("/api/delete-supplier", async (req, res) => {
 router.get("/api/items", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM e_invoice_items WHERE is_deleted = FALSE ORDER BY id DESC"
+      "SELECT * FROM e_invoice_items WHERE is_deleted = FALSE ORDER BY id DESC",
     );
     res.json({ success: true, items: result.rows });
   } catch (err) {
@@ -356,16 +471,28 @@ router.post("/api/save-item", async (req, res) => {
     if (id) {
       await pool.query(
         "UPDATE e_invoice_items SET item_name = $1, item_name_ar = $2, rate = $3 WHERE id = $4",
-        [item_name.trim(), (item_name_ar || "").trim(), parseFloat(rate) || 0, id]
+        [
+          item_name.trim(),
+          (item_name_ar || "").trim(),
+          parseFloat(rate) || 0,
+          id,
+        ],
       );
     } else {
-      const countRes = await pool.query("SELECT COUNT(*) as total FROM e_invoice_items");
+      const countRes = await pool.query(
+        "SELECT COUNT(*) as total FROM e_invoice_items",
+      );
       const nextSeq = parseInt(countRes.rows[0].total || 0, 10) + 1;
       const itemCode = `IT-${String(nextSeq).padStart(5, "0")}`;
 
       await pool.query(
         "INSERT INTO e_invoice_items (item_code, item_name, item_name_ar, rate, is_deleted) VALUES ($1, $2, $3, $4, FALSE)",
-        [itemCode, item_name.trim(), (item_name_ar || "").trim(), parseFloat(rate) || 0]
+        [
+          itemCode,
+          item_name.trim(),
+          (item_name_ar || "").trim(),
+          parseFloat(rate) || 0,
+        ],
       );
     }
     res.json({ success: true });
@@ -379,7 +506,10 @@ router.post("/api/delete-item", async (req, res) => {
     const { id } = req.body;
     if (!id) return res.json({ success: false, message: "Item ID required" });
 
-    await pool.query("UPDATE e_invoice_items SET is_deleted = TRUE WHERE id = $1", [id]);
+    await pool.query(
+      "UPDATE e_invoice_items SET is_deleted = TRUE WHERE id = $1",
+      [id],
+    );
     res.json({ success: true, message: "Item archived successfully" });
   } catch (err) {
     res.json({ success: false, message: err.message });
@@ -399,7 +529,7 @@ router.get("/api/dashboard-invoices", async (req, res) => {
          ON TRIM(g.vendor_name) = TRIM(s.customer_name) 
          AND s.is_deleted = FALSE
        WHERE (g.bill_source IS NULL OR g.bill_source != 'VB')
-       ORDER BY g.id DESC`
+       ORDER BY g.id DESC`,
     );
     res.json({ success: true, invoices: result.rows });
   } catch (err) {
@@ -411,8 +541,12 @@ router.get("/api/dashboard-invoices", async (req, res) => {
 router.get("/api/invoice/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("SELECT * FROM generated_e_invoices WHERE id = $1", [id]);
-    if (result.rows.length === 0) return res.json({ success: false, message: "Invoice not found" });
+    const result = await pool.query(
+      "SELECT * FROM generated_e_invoices WHERE id = $1",
+      [id],
+    );
+    if (result.rows.length === 0)
+      return res.json({ success: false, message: "Invoice not found" });
     res.json({ success: true, invoice: result.rows[0] });
   } catch (err) {
     res.json({ success: false, message: err.message });
@@ -424,7 +558,13 @@ router.post("/api/verify-security", (req, res) => {
   try {
     const { code } = req.body;
     const validCode = process.env.EINV; // Using EINV from .env
-    if (!validCode) return res.status(500).json({ success: false, message: "Security code not configured in .env" });
+    if (!validCode)
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: "Security code not configured in .env",
+        });
     if (code && String(code).trim() === String(validCode).trim()) {
       return res.json({ success: true, message: "Access Granted" });
     } else {

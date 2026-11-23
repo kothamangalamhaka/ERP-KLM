@@ -65,11 +65,14 @@ document.addEventListener("focusin", function (e) {
 });
 
 // 🟢 Keep session alive every 10 minutes while user stays on the page
-setInterval(() => {
-  if (document.visibilityState === "visible" && !isRedirectingToLogin) {
-    verifySessionOnEntry(true);
-  }
-}, 10 * 60 * 1000);
+setInterval(
+  () => {
+    if (document.visibilityState === "visible" && !isRedirectingToLogin) {
+      verifySessionOnEntry(true);
+    }
+  },
+  10 * 60 * 1000,
+);
 
 let userRole = "";
 const userStr = localStorage.getItem("timesheetUser");

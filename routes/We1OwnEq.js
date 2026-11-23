@@ -44,27 +44,27 @@ router.get("/data", verifyToken, async (req, res) => {
 
 // 2. Fetch Log History by Type & Plate (Changed to POST to avoid URL space/character issues)
 const dateColumnMapping = {
-    'SiteLog': 'mob_date',
-    'DriverLog': 'join_date',
-    'VehicleTypeLog': 'start_date',
-    'OwnerLog': 'start_date',
-    'SanthookLog': 'start_date'
+  SiteLog: "mob_date",
+  DriverLog: "join_date",
+  VehicleTypeLog: "start_date",
+  OwnerLog: "start_date",
+  SanthookLog: "start_date",
 };
 
 router.post("/log/history", verifyToken, async (req, res) => {
   try {
     const { type, plate } = req.body;
     const tableName = logTableMapping[type];
-    if(!tableName) throw new Error("Invalid Log Type");
+    if (!tableName) throw new Error("Invalid Log Type");
 
-    const dateCol = dateColumnMapping[type] || 'id';
+    const dateCol = dateColumnMapping[type] || "id";
 
     // 🟢 തീയതി പ്രകാരം ലേറ്റസ്റ്റ് എൻട്രി മുകളിൽ വരാൻ Date DESC സോർട്ട് ചെയ്യുന്നു
     const result = await pool.query(
-        `SELECT * FROM ${tableName} 
+      `SELECT * FROM ${tableName} 
          WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
-         ORDER BY COALESCE(${dateCol}, '1970-01-01'::date) DESC, id DESC`, 
-        [plate]
+         ORDER BY COALESCE(${dateCol}, '1970-01-01'::date) DESC, id DESC`,
+      [plate],
     );
     res.json({ success: true, data: result.rows });
   } catch (error) {
@@ -219,7 +219,7 @@ router.post("/add", verifyEditor, async (req, res) => {
       eq_insurance_exp,
       fahs_mvpi_exp,
       op_card_exp,
-      isthimaara_exp
+      isthimaara_exp,
     } = req.body;
 
     if (!plate_no) throw new Error("Plate number is required.");
@@ -276,7 +276,7 @@ router.post("/add", verifyEditor, async (req, res) => {
       val(vehicle_owner),
       val(santhook),
       val(salary),
-      val(mob_date) ? (val(status) || "Running") : "Ideal",
+      val(mob_date) ? val(status) || "Running" : "Ideal",
       val(note),
       val(old_eq),
       val(new_eq),
@@ -285,7 +285,7 @@ router.post("/add", verifyEditor, async (req, res) => {
       val(eq_insurance_exp),
       val(fahs_mvpi_exp),
       val(op_card_exp),
-      val(isthimaara_exp)
+      val(isthimaara_exp),
     ];
     await client.query(query, values);
 
@@ -307,7 +307,7 @@ router.post("/add", verifyEditor, async (req, res) => {
         val(iqama_expiry),
         val(licence_expiry),
         val(passport_no),
-        val(passport_expiry)
+        val(passport_expiry),
       ],
     );
 
@@ -358,7 +358,15 @@ router.post("/update-note", verifyEditor, async (req, res) => {
 // 5.1 Update Equipment Master Specs (Direct Data Edit)
 router.post("/equipment/update-specs", verifyEditor, async (req, res) => {
   try {
-    const { plate_no, chassis_no, serial_no, eq_insurance_exp, fahs_mvpi_exp, op_card_exp, isthimaara_exp } = req.body;
+    const {
+      plate_no,
+      chassis_no,
+      serial_no,
+      eq_insurance_exp,
+      fahs_mvpi_exp,
+      op_card_exp,
+      isthimaara_exp,
+    } = req.body;
     if (!plate_no) throw new Error("Plate number is missing.");
 
     const val = (v) => (v && String(v).trim() !== "" ? v : null);
@@ -379,11 +387,14 @@ router.post("/equipment/update-specs", verifyEditor, async (req, res) => {
         val(fahs_mvpi_exp),
         val(op_card_exp),
         val(isthimaara_exp),
-        plate_no.trim()
-      ]
+        plate_no.trim(),
+      ],
     );
 
-    res.json({ success: true, message: "Equipment specifications updated successfully." });
+    res.json({
+      success: true,
+      message: "Equipment specifications updated successfully.",
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

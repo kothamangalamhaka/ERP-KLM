@@ -705,8 +705,12 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
            )`,
         [owner_name.trim(), cleanPlate, periodStart, periodEnd],
       );
-
-      } else if (id && oldOwnerVal && owner_name && oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()) {
+    } else if (
+      id &&
+      oldOwnerVal &&
+      owner_name &&
+      oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()
+    ) {
       // Start date ഇല്ലാത്ത സാഹചര്യത്തിലും past billing_records അപ്ഡേറ്റ് ചെയ്യുന്നു
       await client.query(
         `UPDATE billing_records
@@ -1736,7 +1740,9 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
       return res.json({ success: false, message: "Invalid column parameter" });
 
     const username = req.user.username;
-    const cleanPlate = String(plate_no || "").trim().toUpperCase();
+    const cleanPlate = String(plate_no || "")
+      .trim()
+      .toUpperCase();
 
     // Fetch previous value, existing modified_by, and edit_history directly from DB
     const oldRowRes = await pool.query(
@@ -1753,11 +1759,14 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
     if (
       existingRow &&
       existingRow.modified_by &&
-      (!Array.isArray(existingRow.edit_history) || existingRow.edit_history.length === 0)
+      (!Array.isArray(existingRow.edit_history) ||
+        existingRow.edit_history.length === 0)
     ) {
       historyItems.push({
         u: existingRow.modified_by,
-        t: existingRow.updated_at ? new Date(existingRow.updated_at).toISOString() : new Date().toISOString(),
+        t: existingRow.updated_at
+          ? new Date(existingRow.updated_at).toISOString()
+          : new Date().toISOString(),
         c: "Initial Entry",
         o: "",
         v: "Previous Record",
@@ -2871,7 +2880,8 @@ const webauthnChallenges = new Map();
 function getRpConfig(req) {
   const hostHeader = req.headers["x-forwarded-host"] || req.headers.host || "";
   const rpID = hostHeader.split(":")[0];
-  const proto = req.headers["x-forwarded-proto"] || (req.secure ? "https" : "http");
+  const proto =
+    req.headers["x-forwarded-proto"] || (req.secure ? "https" : "http");
   const origin = `${proto}://${hostHeader}`;
   return { rpID, origin };
 }
@@ -2881,7 +2891,10 @@ router.post("/webauthn/register-options", async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.json({ success: false, message: "Username and password required." });
+      return res.json({
+        success: false,
+        message: "Username and password required.",
+      });
     }
     const userRes = await pool.query(
       "SELECT id, username, email, password_hash, webauthn_credentials FROM timesheet_users WHERE username = $1",
@@ -2897,7 +2910,9 @@ router.post("/webauthn/register-options", async (req, res) => {
     }
 
     const { rpID } = getRpConfig(req);
-    const existingCreds = Array.isArray(user.webauthn_credentials) ? user.webauthn_credentials : [];
+    const existingCreds = Array.isArray(user.webauthn_credentials)
+      ? user.webauthn_credentials
+      : [];
 
     const options = await generateRegistrationOptions({
       rpName: "Haka ERP Timesheet",
@@ -2929,7 +2944,10 @@ router.post("/webauthn/register-verify", async (req, res) => {
     const { userId, credential } = req.body;
     const expectedChallenge = webauthnChallenges.get(`reg_${userId}`);
     if (!expectedChallenge) {
-      return res.json({ success: false, message: "Registration session expired. Try again." });
+      return res.json({
+        success: false,
+        message: "Registration session expired. Try again.",
+      });
     }
 
     const { rpID, origin } = getRpConfig(req);
@@ -2941,7 +2959,10 @@ router.post("/webauthn/register-verify", async (req, res) => {
     });
 
     if (!verification.verified || !verification.registrationInfo) {
-      return res.json({ success: false, message: "Biometric verification failed." });
+      return res.json({
+        success: false,
+        message: "Biometric verification failed.",
+      });
     }
 
     const { credential: newCred } = verification.registrationInfo;
@@ -2972,7 +2993,10 @@ router.post("/webauthn/register-verify", async (req, res) => {
       "WEBAUTHN_REGISTER",
       "Registered Windows Hello / Device Biometric",
     );
-    res.json({ success: true, message: "Windows Hello / Biometric registered successfully!" });
+    res.json({
+      success: true,
+      message: "Windows Hello / Biometric registered successfully!",
+    });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
@@ -3025,7 +3049,10 @@ router.post("/webauthn/login-verify", async (req, res) => {
     const { credential, challenge } = req.body;
     const stored = webauthnChallenges.get(challenge);
     if (!stored) {
-      return res.json({ success: false, message: "Authentication challenge expired." });
+      return res.json({
+        success: false,
+        message: "Authentication challenge expired.",
+      });
     }
 
     const usersRes = await pool.query(
@@ -3036,7 +3063,9 @@ router.post("/webauthn/login-verify", async (req, res) => {
     let matchedCred = null;
 
     for (const u of usersRes.rows) {
-      const creds = Array.isArray(u.webauthn_credentials) ? u.webauthn_credentials : [];
+      const creds = Array.isArray(u.webauthn_credentials)
+        ? u.webauthn_credentials
+        : [];
       const found = creds.find((c) => c.id === credential.id);
       if (found) {
         matchedUser = u;
@@ -3046,7 +3075,10 @@ router.post("/webauthn/login-verify", async (req, res) => {
     }
 
     if (!matchedUser || !matchedCred) {
-      return res.json({ success: false, message: "Device biometric not registered for any user." });
+      return res.json({
+        success: false,
+        message: "Device biometric not registered for any user.",
+      });
     }
 
     if (matchedUser.status !== "Active") {
@@ -3061,14 +3093,19 @@ router.post("/webauthn/login-verify", async (req, res) => {
       expectedRPID: rpID,
       credential: {
         id: matchedCred.id,
-        publicKey: new Uint8Array(Buffer.from(matchedCred.publicKey, "base64url")),
+        publicKey: new Uint8Array(
+          Buffer.from(matchedCred.publicKey, "base64url"),
+        ),
         counter: matchedCred.counter || 0,
         transports: matchedCred.transports || ["internal"],
       },
     });
 
     if (!verification.verified) {
-      return res.json({ success: false, message: "Biometric verification failed." });
+      return res.json({
+        success: false,
+        message: "Biometric verification failed.",
+      });
     }
 
     // Update counter
@@ -3091,7 +3128,11 @@ router.post("/webauthn/login-verify", async (req, res) => {
       { expiresIn: "365d" },
     );
 
-    await logAudit(matchedUser, "WEBAUTHN_LOGIN", "Logged in via Windows Hello / Device Biometric");
+    await logAudit(
+      matchedUser,
+      "WEBAUTHN_LOGIN",
+      "Logged in via Windows Hello / Device Biometric",
+    );
     res.json({
       success: true,
       token,

@@ -440,10 +440,7 @@
         >
           Export All as Excel
         </button>
-        <button
-          class="btn btn-pdf"
-          onclick="openAllPeriodExportModal('pdf')"
-        >
+        <button class="btn btn-pdf" onclick="openAllPeriodExportModal('pdf')">
           Export All as PDF
         </button>
         <button class="btn btn-png" onclick="exportAllEquipmentsPNGZip()">
@@ -491,12 +488,33 @@
       "
       onclick="if (event.target === this) closeAllPeriodExportModal();"
     >
-      <div class="modal-box" style="width: 400px; max-width: calc(100vw - 24px); padding: 22px">
-        <h4 id="allPeriodModalTitle" style="margin: 0 0 14px 0; font-size: 16px">
+      <div
+        class="modal-box"
+        style="width: 400px; max-width: calc(100vw - 24px); padding: 22px"
+      >
+        <h4
+          id="allPeriodModalTitle"
+          style="margin: 0 0 14px 0; font-size: 16px"
+        >
           📊 Export All Equipments
         </h4>
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px">
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 14px;
+          "
+        >
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
             <input
               type="radio"
               name="allExportScope"
@@ -504,9 +522,20 @@
               checked
               onchange="toggleCustomYearGapBox(false)"
             />
-            <span><b>Current Year</b> (<span id="lblCurrentYearScope">2026</span>)</span>
+            <span
+              ><b>Current Year</b> (<span id="lblCurrentYearScope">2026</span
+              >)</span
+            >
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer">
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
             <input
               type="radio"
               name="allExportScope"
@@ -515,7 +544,15 @@
             />
             <span><b>Entire Period</b> (All Available Years)</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer">
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
             <input
               type="radio"
               name="allExportScope"
@@ -539,12 +576,40 @@
         >
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
             <div>
-              <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px">Start Year</label>
-              <input type="number" id="expGapStartYear" min="2000" max="2100" style="width: 100%; padding: 6px" />
+              <label
+                style="
+                  font-size: 11px;
+                  font-weight: 600;
+                  display: block;
+                  margin-bottom: 4px;
+                "
+                >Start Year</label
+              >
+              <input
+                type="number"
+                id="expGapStartYear"
+                min="2000"
+                max="2100"
+                style="width: 100%; padding: 6px"
+              />
             </div>
             <div>
-              <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px">End Year</label>
-              <input type="number" id="expGapEndYear" min="2000" max="2100" style="width: 100%; padding: 6px" />
+              <label
+                style="
+                  font-size: 11px;
+                  font-weight: 600;
+                  display: block;
+                  margin-bottom: 4px;
+                "
+                >End Year</label
+              >
+              <input
+                type="number"
+                id="expGapEndYear"
+                min="2000"
+                max="2100"
+                style="width: 100%; padding: 6px"
+              />
             </div>
           </div>
         </div>
@@ -1034,7 +1099,11 @@
       }
 
       // 🟢 HELPER: Prepare structured data of an equipment (optionally filtered by yearsArray)
-      function prepareEquipmentExportData(eq, yearsArray = null, customSheetLabel = null) {
+      function prepareEquipmentExportData(
+        eq,
+        yearsArray = null,
+        customSheetLabel = null,
+      ) {
         const shortMonths = [
           "Jan",
           "Feb",
@@ -1411,7 +1480,10 @@
           return;
         }
 
-        showToast(`Generating ${eq.plate_no} PDF (1 Year = 1 Page)...`, "success");
+        showToast(
+          `Generating ${eq.plate_no} PDF (1 Year = 1 Page)...`,
+          "success",
+        );
         const jsPdfClass =
           window.jspdf && window.jspdf.jsPDF
             ? window.jspdf.jsPDF
@@ -1592,10 +1664,7 @@
           document.getElementById("expGapStartYear").value,
           10,
         );
-        const ey = parseInt(
-          document.getElementById("expGapEndYear").value,
-          10,
-        );
+        const ey = parseInt(document.getElementById("expGapEndYear").value, 10);
         if (!sy || !ey || sy > ey) {
           showToast("Please enter a valid Start Year and End Year!", "error");
           return null;
@@ -1762,10 +1831,7 @@
                 undefined,
                 "FAST",
               );
-              showToast(
-                `Rendered ${eq.plate_no} (${yr})...`,
-                "success",
-              );
+              showToast(`Rendered ${eq.plate_no} (${yr})...`, "success");
             }
           }
 

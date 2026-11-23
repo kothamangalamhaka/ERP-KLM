@@ -60,7 +60,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     sessionStorage.removeItem("skipAutoFace");
     const faceBtn = document.querySelector(".face-corner-btn");
     if (faceBtn) {
-      faceBtn.style.display = localStorage.getItem("invoice_face_trust_token") ? "flex" : "none";
+      faceBtn.style.display = localStorage.getItem("invoice_face_trust_token")
+        ? "flex"
+        : "none";
     }
   }
 });
@@ -3700,7 +3702,11 @@ window.startBillingAppFaceAuth = async function (action) {
     }
 
     appCamStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+      video: {
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        facingMode: "user",
+      },
       audio: false,
     });
     video.srcObject = appCamStream;
@@ -3812,7 +3818,10 @@ async function handleBillingAppFaceCapture(frame) {
         showToast(resetData.message);
         if (resetData.success) {
           if (resetData.faceTrustToken) {
-            localStorage.setItem("invoice_face_trust_token", resetData.faceTrustToken);
+            localStorage.setItem(
+              "invoice_face_trust_token",
+              resetData.faceTrustToken,
+            );
             const faceBtn = document.querySelector(".face-corner-btn");
             if (faceBtn) faceBtn.style.display = "flex";
           }

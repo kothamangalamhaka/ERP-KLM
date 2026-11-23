@@ -32,12 +32,17 @@
         --text-main: #0f172a;
         --text-muted: #64748b;
         --border-color: #e2e8f0;
-        --card-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.02);
+        --card-shadow:
+          0 10px 40px -10px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.02);
         --disabled-btn: #cbd5e1;
       }
 
       [data-theme="dark"] {
-        --bg-gradient: radial-gradient(circle at 20% 20%, #1e293b 0%, #090d16 100%);
+        --bg-gradient: radial-gradient(
+          circle at 20% 20%,
+          #1e293b 0%,
+          #090d16 100%
+        );
         --card-bg: #111827;
         --input-bg: #1f2937;
         --input-focus-bg: #1f2937;
@@ -45,7 +50,9 @@
         --text-main: #f1f5f9;
         --text-muted: #94a3b8;
         --border-color: #334155;
-        --card-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        --card-shadow:
+          0 20px 50px -12px rgba(0, 0, 0, 0.65),
+          0 0 0 1px rgba(255, 255, 255, 0.08);
         --disabled-btn: #334155;
       }
 
@@ -62,7 +69,9 @@
         min-height: 100vh;
         margin: 0;
         color: var(--text-main);
-        transition: background 0.25s ease, color 0.25s ease;
+        transition:
+          background 0.25s ease,
+          color 0.25s ease;
       }
 
       .app-wrapper {
@@ -75,7 +84,9 @@
         text-align: center;
         position: relative;
         overflow: hidden;
-        transition: background-color 0.25s ease, box-shadow 0.25s ease;
+        transition:
+          background-color 0.25s ease,
+          box-shadow 0.25s ease;
       }
 
       .app-wrapper::before {
@@ -407,7 +418,10 @@
           title="Select Date (Default: Today)"
         >
           <span>📅</span>
-          <span id="dateCornerLabel" style="font-size: 11px; display: none"></span>
+          <span
+            id="dateCornerLabel"
+            style="font-size: 11px; display: none"
+          ></span>
         </button>
         <input
           type="date"
@@ -645,7 +659,7 @@
           showStatus(
             "Connected successfully. Select a vendor.",
             "success",
-            false
+            false,
           );
         } catch (error) {
           console.error("Vendor loading error:", error);
@@ -658,7 +672,7 @@
           showStatus(
             `Failed to establish connection with server: ${error.message}`,
             "error",
-            false
+            false,
           );
         }
       }
@@ -712,8 +726,7 @@
         if (!vendorKey) {
           throw new Error("Please select a vendor.");
         }
-        const selectedOption =
-          vendorSelect.options[vendorSelect.selectedIndex];
+        const selectedOption = vendorSelect.options[vendorSelect.selectedIndex];
         const vendorName = selectedOption
           ? selectedOption.textContent
           : vendorKey;
@@ -737,7 +750,7 @@
         showStatus(
           `Checking ${dateParams.label} invoices for ${vendor.vendorName}...`,
           "info",
-          true
+          true,
         );
 
         try {
@@ -759,7 +772,7 @@
 
           if (!response.ok) {
             throw new Error(
-              data.detail || data.error || "Server connection failed"
+              data.detail || data.error || "Server connection failed",
             );
           }
 
@@ -781,7 +794,7 @@
               : "";
           showStatus(
             `Found ${count} invoice file(s)${billInfo} ready to download.`,
-            "success"
+            "success",
           );
         } catch (error) {
           console.error("Check count error:", error);
@@ -809,7 +822,7 @@
           }
           console.warn(
             "Directory picker unavailable, falling back to browser download:",
-            err
+            err,
           );
           return null;
         }
@@ -828,7 +841,7 @@
       async function saveFilesToDirectoryOrDownload(
         files,
         dirHandle,
-        typeLabel = "file"
+        typeLabel = "file",
       ) {
         const total = files.length;
 
@@ -838,7 +851,7 @@
             showStatus(
               `Saving ${index + 1}/${total} ${typeLabel} to "${dirHandle.name}"...`,
               "info",
-              true
+              true,
             );
             const fileHandle = await dirHandle.getFileHandle(file.name, {
               create: true,
@@ -855,7 +868,7 @@
             showStatus(
               `Downloading ${index + 1}/${total} ${typeLabel} file(s)...`,
               "info",
-              true
+              true,
             );
             downloadBase64File(file);
             if (index < total - 1) {
@@ -891,7 +904,7 @@
         showStatus(
           `Processing ${dateParams.label} Bills for ${vendor.vendorName}...`,
           "info",
-          true
+          true,
         );
 
         try {
@@ -912,7 +925,7 @@
 
           if (!response.ok) {
             throw new Error(
-              data.detail || data.error || "Server connection failed"
+              data.detail || data.error || "Server connection failed",
             );
           }
 
@@ -924,7 +937,7 @@
           const doneMsg = await saveFilesToDirectoryOrDownload(
             data.files,
             dirHandle,
-            "bill"
+            "bill",
           );
           showStatus(doneMsg, "success");
         } catch (error) {
@@ -962,7 +975,7 @@
         showStatus(
           `Scanning mailbox for ${dateParams.label} ${vendor.vendorName} invoices...`,
           "info",
-          true
+          true,
         );
 
         try {
@@ -983,7 +996,7 @@
 
           if (!response.ok) {
             throw new Error(
-              data.detail || data.error || "Server connection failed"
+              data.detail || data.error || "Server connection failed",
             );
           }
 
@@ -998,7 +1011,7 @@
             showStatus(
               `Creating ZIP containing ${files.length} file(s)...`,
               "info",
-              true
+              true,
             );
             const zip = new JSZip();
 
@@ -1025,7 +1038,7 @@
             const doneMsg = await saveFilesToDirectoryOrDownload(
               files,
               dirHandle,
-              "invoice"
+              "invoice",
             );
             showStatus(doneMsg, "success");
           }

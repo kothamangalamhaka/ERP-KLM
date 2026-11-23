@@ -1,27 +1,30 @@
 // routes/We1_EQ_Driver_Payroll.js
 
 const express = require("express");
-const pool = require("../config/db"); 
+const pool = require("../config/db");
 
 // Custom middleware to check emp_token
 const verifyAuth = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) return res.status(401).json({ success: false, message: "No token provided" });
-    next();
+  const authHeader = req.headers["authorization"];
+  if (!authHeader)
+    return res
+      .status(401)
+      .json({ success: false, message: "No token provided" });
+  next();
 };
 
 const router = express.Router();
 
 // 1. Fetch Payroll Data for a specific Month/Year
 router.get("/data", verifyAuth, async (req, res) => {
-    try {
-        const { month_year } = req.query; 
-        
-        if (!month_year) {
-            return res.json({ success: false, message: "Month and Year required" });
-        }
+  try {
+    const { month_year } = req.query;
 
-        const query = `
+    if (!month_year) {
+      return res.json({ success: false, message: "Month and Year required" });
+    }
+
+    const query = `
             WITH VehicleEndDates AS (
                 -- Finding the exact stop/replace date of each vehicle from site log & master
                 SELECT 
@@ -93,28 +96,37 @@ router.get("/data", verifyAuth, async (req, res) => {
             LEFT JOIN PayrollData p ON a.driver_name = p.driver_name
             ORDER BY a.driver_name ASC
         `;
-        
-        const result = await pool.query(query, [month_year]);
-        res.json({ success: true, data: result.rows });
 
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+    const result = await pool.query(query, [month_year]);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 });
 
 // 2. Save or Update Payroll Entry
 router.post("/save", verifyAuth, async (req, res) => {
-    try {
-        const { 
-            month_year, plate_no, driver_name, basic_salary, 
-            over_time, deduction, advance_paid, status, remark 
-        } = req.body;
+  try {
+    const {
+      month_year,
+      plate_no,
+      driver_name,
+      basic_salary,
+      over_time,
+      deduction,
+      advance_paid,
+      status,
+      remark,
+    } = req.body;
 
-        if (!month_year || !plate_no || !driver_name) {
-            return res.json({ success: false, message: "Month/Year, Plate No and Driver Name required" });
-        }
+    if (!month_year || !plate_no || !driver_name) {
+      return res.json({
+        success: false,
+        message: "Month/Year, Plate No and Driver Name required",
+      });
+    }
 
-        const query = `
+    const query = `
             INSERT INTO we1_payroll 
             (month_year, plate_no, driver_name, basic_salary, over_time, deduction, advance_paid, status, remark)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -128,24 +140,23 @@ router.post("/save", verifyAuth, async (req, res) => {
                 remark = EXCLUDED.remark
         `;
 
-        const values = [
-            month_year, 
-            plate_no, 
-            driver_name, 
-            basic_salary || 0, 
-            over_time || 0, 
-            deduction || 0, 
-            advance_paid || 0,
-            status || 'Un Paid', 
-            remark
-        ];
+    const values = [
+      month_year,
+      plate_no,
+      driver_name,
+      basic_salary || 0,
+      over_time || 0,
+      deduction || 0,
+      advance_paid || 0,
+      status || "Un Paid",
+      remark,
+    ];
 
-        await pool.query(query, values);
-        res.json({ success: true, message: "Payroll updated successfully" });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+    await pool.query(query, values);
+    res.json({ success: true, message: "Payroll updated successfully" });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 });
 
 module.exports = router;

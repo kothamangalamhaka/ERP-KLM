@@ -59,7 +59,10 @@ async function handleQtLogin() {
       if (data.token) {
         localStorage.setItem("qt_token", data.token);
       }
-      localStorage.setItem("qt_user", JSON.stringify(data.user || { username }));
+      localStorage.setItem(
+        "qt_user",
+        JSON.stringify(data.user || { username }),
+      );
       window.location.replace(window.qtSession.getLoginDestination());
     } else {
       showAlert(data.message || "Invalid credentials", "error");
@@ -89,7 +92,7 @@ async function handleQtSignup() {
     if (res.ok) {
       showAlert(
         "Registration request submitted! Please wait for Admin approval.",
-        "success"
+        "success",
       );
       toggleView("login");
     } else {

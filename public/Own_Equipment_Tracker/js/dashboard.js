@@ -698,9 +698,7 @@ function populateColumnFilterItems(columnKey) {
   const list = document.getElementById("plateFilterList");
   if (!list) return;
 
-  const searchTerm = (
-    document.getElementById("searchPlateNo")?.value || ""
-  )
+  const searchTerm = (document.getElementById("searchPlateNo")?.value || "")
     .trim()
     .toLowerCase();
 
@@ -709,10 +707,15 @@ function populateColumnFilterItems(columnKey) {
     if (searchTerm && !pNo.toLowerCase().includes(searchTerm)) return false;
 
     for (const [fCol, selectedVals] of Object.entries(activeColumnFilters)) {
-      if (selectedVals === null || selectedVals === undefined || fCol === columnKey)
+      if (
+        selectedVals === null ||
+        selectedVals === undefined ||
+        fCol === columnKey
+      )
         continue;
       const v = getEquipmentColumnValue(eq, fCol);
-      const strV = v === "" || v === null || v === undefined ? "__BLANK__" : String(v);
+      const strV =
+        v === "" || v === null || v === undefined ? "__BLANK__" : String(v);
       if (!selectedVals.includes(strV)) return false;
     }
     return true;
@@ -1373,7 +1376,9 @@ function formatPurchaseDate(d) {
   return `${day}-${monthNames[x.getMonth()]}-${x.getFullYear().toString().slice(-2)}`;
 }
 function exportToExcel() {
-  const curY = Number(document.getElementById("filterYear").value) || new Date().getFullYear();
+  const curY =
+    Number(document.getElementById("filterYear").value) ||
+    new Date().getFullYear();
   const sYearInp = document.getElementById("dashExpStartYear");
   const eYearInp = document.getElementById("dashExpEndYear");
   const sMonthSel = document.getElementById("dashExpStartMonth");
@@ -1383,7 +1388,9 @@ function exportToExcel() {
   if (sMonthSel) sMonthSel.value = "1";
   if (eMonthSel) eMonthSel.value = "12";
 
-  const curUiRadio = document.querySelector('input[name="dashExportOption"][value="current_ui"]');
+  const curUiRadio = document.querySelector(
+    'input[name="dashExportOption"][value="current_ui"]',
+  );
   if (curUiRadio) curUiRadio.checked = true;
   toggleDashExportPeriod(false);
 
@@ -1436,7 +1443,10 @@ function confirmDashboardExport() {
       year: y,
       months: vM.join(","),
     });
-    if (visiblePlates.length > 0 && visiblePlates.length < rawEquipments.length) {
+    if (
+      visiblePlates.length > 0 &&
+      visiblePlates.length < rawEquipments.length
+    ) {
       params.set("plates", visiblePlates.join(","));
     }
     closeModal("exportModal");

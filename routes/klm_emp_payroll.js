@@ -15,7 +15,9 @@ router.post("/verify-pin", (req, res) => {
   const validPin = process.env.SAL_PIN;
 
   if (pin && pin === validPin) {
-    const token = jwt.sign({ role: "salary_admin" }, JWT_SECRET, { expiresIn: "12h" });
+    const token = jwt.sign({ role: "salary_admin" }, JWT_SECRET, {
+      expiresIn: "12h",
+    });
     res.json({ success: true, token });
   } else {
     res.status(401).json({ success: false, message: "Invalid Salary PIN" });
@@ -27,35 +29,58 @@ router.use(verifyToken);
 // 🟢 Recurring Expenses CRUD APIs
 router.get("/recurring-expenses", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM recurring_expenses ORDER BY id ASC");
+    const result = await pool.query(
+      "SELECT * FROM recurring_expenses ORDER BY id ASC",
+    );
     res.json({ success: true, data: result.rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to fetch recurring expenses" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch recurring expenses" });
   }
 });
 
 router.post("/recurring-expenses/save", async (req, res) => {
   try {
-    const { id, expense_head, description, amount, start_month, end_month } = req.body;
+    const { id, expense_head, description, amount, start_month, end_month } =
+      req.body;
     if (!expense_head || !description || !start_month) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
     }
-    const endVal = end_month && end_month.trim() !== "" ? end_month.trim() : null;
+    const endVal =
+      end_month && end_month.trim() !== "" ? end_month.trim() : null;
 
     if (id) {
       await pool.query(
         `UPDATE recurring_expenses SET expense_head = $1, description = $2, amount = $3, start_month = $4, end_month = $5 WHERE id = $6`,
-        [expense_head, description.trim(), amount || 0, start_month.trim(), endVal, id]
+        [
+          expense_head,
+          description.trim(),
+          amount || 0,
+          start_month.trim(),
+          endVal,
+          id,
+        ],
       );
     } else {
       await pool.query(
         `INSERT INTO recurring_expenses (expense_head, description, amount, start_month, end_month) VALUES ($1, $2, $3, $4, $5)`,
-        [expense_head, description.trim(), amount || 0, start_month.trim(), endVal]
+        [
+          expense_head,
+          description.trim(),
+          amount || 0,
+          start_month.trim(),
+          endVal,
+        ],
       );
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to save recurring expense" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to save recurring expense" });
   }
 });
 
@@ -65,7 +90,9 @@ router.delete("/recurring-expenses/:id", async (req, res) => {
     await pool.query("DELETE FROM recurring_expenses WHERE id = $1", [id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to delete recurring expense" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete recurring expense" });
   }
 });
 
@@ -74,34 +101,39 @@ router.post("/send-unlock-otp", async (req, res) => {
   try {
     const targetEmail = process.env.KLM_STAFF_PAY_ROLL;
     if (!targetEmail) {
-      return res.status(400).json({ success: false, message: "KLM_STAFF_PAY_ROLL email is not configured in .env" });
+      return res.status(400).json({
+        success: false,
+        message: "KLM_STAFF_PAY_ROLL email is not configured in .env",
+      });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     activeOtpStore = {
       otp: otp,
-      expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes validity
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes validity
     };
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
         user: process.env.EMAIL_USER || targetEmail,
-        pass: process.env.EMAIL_PASS
-      }
+        pass: process.env.EMAIL_PASS,
+      },
     });
 
     await transporter.sendMail({
       from: `"Payroll Security" <${process.env.EMAIL_USER || targetEmail}>`,
       to: targetEmail,
       subject: "Security OTP to Unlock Payroll Sheet",
-      text: `Your 6-digit OTP to unlock the payroll sheet is: ${otp}. It will expire in 5 minutes.`
+      text: `Your 6-digit OTP to unlock the payroll sheet is: ${otp}. It will expire in 5 minutes.`,
     });
 
     res.json({ success: true, message: `OTP sent to ${targetEmail}` });
   } catch (err) {
     console.error("OTP Send Error:", err);
-    res.status(500).json({ success: false, message: "Failed to send OTP email" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to send OTP email" });
   }
 });
 
@@ -109,22 +141,30 @@ router.post("/send-unlock-otp", async (req, res) => {
 router.post("/verify-unlock-otp", async (req, res) => {
   try {
     const { otp, month_year } = req.body;
-    if (!otp || String(otp) !== activeOtpStore.otp || Date.now() > activeOtpStore.expiresAt) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+    if (
+      !otp ||
+      String(otp) !== activeOtpStore.otp ||
+      Date.now() > activeOtpStore.expiresAt
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired OTP" });
     }
 
     activeOtpStore = { otp: null, expiresAt: 0 };
     if (month_year) {
       await pool.query(
         `UPDATE monthly_payroll_summary SET is_locked = false, updated_at = NOW() WHERE month_year = $1`,
-        [month_year]
+        [month_year],
       );
     }
 
     res.json({ success: true, message: "Unlocked successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Unlock operation failed" });
+    res
+      .status(500)
+      .json({ success: false, message: "Unlock operation failed" });
   }
 });
 
@@ -137,12 +177,14 @@ router.post("/toggle-lock", async (req, res) => {
        VALUES ($1, $2, NOW()) 
        ON CONFLICT (month_year) 
        DO UPDATE SET is_locked = EXCLUDED.is_locked, updated_at = NOW()`,
-      [month_year, lock]
+      [month_year, lock],
     );
     res.json({ success: true, is_locked: lock });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Failed to update lock status" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update lock status" });
   }
 });
 
@@ -158,13 +200,13 @@ function getNonFridayDaysCount(year, monthIndex) {
 
 router.get("/data", async (req, res) => {
   try {
-    const { month } = req.query; 
+    const { month } = req.query;
     if (!month) return res.status(400).json({ error: "Month is required" });
 
     const [yearStr, monthStr] = month.split("-");
     const year = parseInt(yearStr);
     const monthIndex = parseInt(monthStr) - 1;
-    const isJuneOrLater = (year > 2026) || (year === 2026 && monthIndex >= 5);
+    const isJuneOrLater = year > 2026 || (year === 2026 && monthIndex >= 5);
 
     const { totalDays, workingDays } = getNonFridayDaysCount(year, monthIndex);
     const startDateStr = `${yearStr}-${monthStr.padStart(2, "0")}-01`;
@@ -182,18 +224,21 @@ router.get("/data", async (req, res) => {
         `SELECT base_salary FROM employee_salary_history 
          WHERE emp_id = $1 AND start_date <= $2 AND (end_date IS NULL OR end_date >= $3) 
          ORDER BY start_date DESC LIMIT 1`,
-        [emp.id, endDateStr, startDateStr]
+        [emp.id, endDateStr, startDateStr],
       );
-      const baseSalary = histSalRes.rows.length > 0 ? parseFloat(histSalRes.rows[0].base_salary) : (parseFloat(emp.base_salary) || 0);
+      const baseSalary =
+        histSalRes.rows.length > 0
+          ? parseFloat(histSalRes.rows[0].base_salary)
+          : parseFloat(emp.base_salary) || 0;
       const expectedShiftHours = workingDays * shiftHrs;
       const divisorHours = Math.min(260, expectedShiftHours);
       const hourlyRate = divisorHours > 0 ? baseSalary / divisorHours : 0;
 
       const logsRes = await pool.query(
         `SELECT SUM(COALESCE(normal_hr, 0)) as total_normal, SUM(COALESCE(ot_hr, 0)) as total_ot FROM attendance_logs WHERE emp_id = $1 AND log_date >= $2 AND log_date <= $3`,
-        [emp.id, startDateStr, endDateStr]
+        [emp.id, startDateStr, endDateStr],
       );
-      
+
       const totalNormalHr = parseFloat(logsRes.rows[0]?.total_normal) || 0;
       const totalOtHr = parseFloat(logsRes.rows[0]?.total_ot) || 0;
 
@@ -207,58 +252,81 @@ router.get("/data", async (req, res) => {
         normal_hr: totalNormalHr,
         ot_hr: totalOtHr,
         basic_earned: totalNormalHr * hourlyRate,
-        ot_earned: totalOtHr * hourlyRate
+        ot_earned: totalOtHr * hourlyRate,
       });
     }
 
-    const summaryRes = await pool.query(`SELECT * FROM monthly_payroll_summary WHERE month_year = $1`, [month]);
+    const summaryRes = await pool.query(
+      `SELECT * FROM monthly_payroll_summary WHERE month_year = $1`,
+      [month],
+    );
     let summary = summaryRes.rows[0];
 
     // Always fetch the latest previous month's closing balance dynamically
     const prevDate = new Date(year, monthIndex - 1, 1);
     const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
-    const prevSummaryRes = await pool.query(`SELECT closing_balance, upcoming_expenses FROM monthly_payroll_summary WHERE month_year = $1`, [prevMonthStr]);
-    
+    const prevSummaryRes = await pool.query(
+      `SELECT closing_balance, upcoming_expenses FROM monthly_payroll_summary WHERE month_year = $1`,
+      [prevMonthStr],
+    );
+
     let dynamicPrevClosing = 0;
     let prevUpcomingExp = [];
-    
+
     if (prevSummaryRes.rows.length > 0) {
-      dynamicPrevClosing = parseFloat(prevSummaryRes.rows[0].closing_balance) || 0;
+      dynamicPrevClosing =
+        parseFloat(prevSummaryRes.rows[0].closing_balance) || 0;
       prevUpcomingExp = prevSummaryRes.rows[0].upcoming_expenses || [];
     }
 
     // Filter out GST Filing from previous upcoming as GST is handled separately per month
-    const customPrevUpcomingExp = prevUpcomingExp.filter(ex => !ex.desc.includes("GST Filing"));
+    const customPrevUpcomingExp = prevUpcomingExp.filter(
+      (ex) => !ex.desc.includes("GST Filing"),
+    );
 
     if (!summary) {
       const recRes = await pool.query(
         `SELECT * FROM recurring_expenses WHERE start_month <= $1 AND (end_month IS NULL OR end_month >= $1) ORDER BY id ASC`,
-        [month]
+        [month],
       );
       const recList = recRes.rows;
 
       const nextMonthDate = new Date(year, monthIndex + 1, 1);
-      const nextMonthShort = nextMonthDate.toLocaleString("en-US", { month: "short" });
+      const nextMonthShort = nextMonthDate.toLocaleString("en-US", {
+        month: "short",
+      });
       const nextYearShort = String(nextMonthDate.getFullYear()).slice(-2);
 
       let curExpenses = [];
       let othExpenses = [];
       let upExpenses = [];
 
-      recList.forEach(item => {
+      recList.forEach((item) => {
         let desc = item.description;
-        if (item.expense_head === "upcoming" && desc.toLowerCase().includes("haritha karma sena")) {
+        if (
+          item.expense_head === "upcoming" &&
+          desc.toLowerCase().includes("haritha karma sena")
+        ) {
           desc = `Haritha Karma Sena ${nextMonthShort}-${nextYearShort}`;
         }
-        const expObj = { desc: desc, amt: parseFloat(item.amount) || 0, fixed: false };
+        const expObj = {
+          desc: desc,
+          amt: parseFloat(item.amount) || 0,
+          fixed: false,
+        };
         if (item.expense_head === "current") curExpenses.push(expObj);
         else if (item.expense_head === "other") othExpenses.push(expObj);
         else if (item.expense_head === "upcoming") upExpenses.push(expObj);
       });
 
       // Add previous upcoming custom expenses into current period
-      customPrevUpcomingExp.forEach(pExp => {
-        if (!curExpenses.some(c => c.desc.trim().toLowerCase() === pExp.desc.trim().toLowerCase())) {
+      customPrevUpcomingExp.forEach((pExp) => {
+        if (
+          !curExpenses.some(
+            (c) =>
+              c.desc.trim().toLowerCase() === pExp.desc.trim().toLowerCase(),
+          )
+        ) {
           curExpenses.push({ desc: pExp.desc, amt: pExp.amt, fixed: false });
         }
       });
@@ -270,7 +338,7 @@ router.get("/data", async (req, res) => {
         staff_adjustments: {},
         current_expenses: curExpenses,
         other_expenses: othExpenses,
-        upcoming_expenses: upExpenses
+        upcoming_expenses: upExpenses,
       };
     } else {
       // If month is not May 2026 (starting month), keep Opening Balance strictly synced
@@ -283,8 +351,11 @@ router.get("/data", async (req, res) => {
         let curExpenses = summary.current_expenses || [];
         let updated = false;
 
-        customPrevUpcomingExp.forEach(pExp => {
-          const existingIdx = curExpenses.findIndex(c => c.desc.trim().toLowerCase() === pExp.desc.trim().toLowerCase());
+        customPrevUpcomingExp.forEach((pExp) => {
+          const existingIdx = curExpenses.findIndex(
+            (c) =>
+              c.desc.trim().toLowerCase() === pExp.desc.trim().toLowerCase(),
+          );
           if (existingIdx === -1) {
             // If item does not exist, append it
             curExpenses.push({ desc: pExp.desc, amt: pExp.amt, fixed: false });
@@ -304,7 +375,7 @@ router.get("/data", async (req, res) => {
       month: month,
       working_days: workingDays,
       staff: staffPayrollList,
-      summary: summary
+      summary: summary,
     });
   } catch (err) {
     console.error(err);
@@ -314,12 +385,26 @@ router.get("/data", async (req, res) => {
 
 router.post("/save-summary", async (req, res) => {
   try {
-    const { month_year, cash_in_hand_cf, cash_from_ajil, staff_adjustments, current_expenses, other_expenses, upcoming_expenses, closing_balance } = req.body;
-    
+    const {
+      month_year,
+      cash_in_hand_cf,
+      cash_from_ajil,
+      staff_adjustments,
+      current_expenses,
+      other_expenses,
+      upcoming_expenses,
+      closing_balance,
+    } = req.body;
+
     // Check if sheet is locked
-    const checkLock = await pool.query(`SELECT is_locked FROM monthly_payroll_summary WHERE month_year = $1`, [month_year]);
+    const checkLock = await pool.query(
+      `SELECT is_locked FROM monthly_payroll_summary WHERE month_year = $1`,
+      [month_year],
+    );
     if (checkLock.rows.length > 0 && checkLock.rows[0].is_locked) {
-      return res.status(403).json({ error: "This month is locked and cannot be edited." });
+      return res
+        .status(403)
+        .json({ error: "This month is locked and cannot be edited." });
     }
 
     const query = `
@@ -337,13 +422,18 @@ router.post("/save-summary", async (req, res) => {
         updated_at = NOW()
       RETURNING *;
     `;
-    
+
     const result = await pool.query(query, [
-      month_year, cash_in_hand_cf || 0, cash_from_ajil || 0, 
-      JSON.stringify(staff_adjustments || {}), JSON.stringify(current_expenses || []), 
-      JSON.stringify(other_expenses || []), JSON.stringify(upcoming_expenses || []), closing_balance || 0
+      month_year,
+      cash_in_hand_cf || 0,
+      cash_from_ajil || 0,
+      JSON.stringify(staff_adjustments || {}),
+      JSON.stringify(current_expenses || []),
+      JSON.stringify(other_expenses || []),
+      JSON.stringify(upcoming_expenses || []),
+      closing_balance || 0,
     ]);
-    
+
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     console.error(err);
