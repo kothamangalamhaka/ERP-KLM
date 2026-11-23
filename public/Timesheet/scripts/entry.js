@@ -7,9 +7,14 @@ function getAuthToken() {
 
 let token = getAuthToken();
 const userStr = localStorage.getItem("timesheetUser");
+let isVerifyingSession = false;
 
 if (!token || !userStr) {
-  logout();
+  const currentPage = encodeURIComponent(
+    window.location.pathname.split("/").pop() + window.location.search,
+  );
+  window.location.replace("index.html?redirect=" + currentPage);
+  throw new Error("Redirecting to login");
 } else {
   localStorage.setItem("lastActive", String(Date.now()));
 }
@@ -21,6 +26,8 @@ async function verifyEntrySessionOnLoad(runInitAfter = false) {
   if (!activeToken || !activeUser) {
     return logout();
   }
+  if (isVerifyingSession) return true;
+  isVerifyingSession = true;
   try {
     const res = await fetch("/timesheet/api/verify-session", {
       headers: {
@@ -33,6 +40,15 @@ async function verifyEntrySessionOnLoad(runInitAfter = false) {
       openTimesheetReLoginModal(() => init());
       return false;
     }
+    const vData = await res.json().catch(() => ({}));
+    if (vData && vData.success && vData.token) {
+      localStorage.setItem("timesheetToken", vData.token);
+      token = vData.token;
+      if (vData.user) {
+        localStorage.setItem("timesheetUser", JSON.stringify(vData.user));
+      }
+      localStorage.setItem("lastActive", String(Date.now()));
+    }
     if (runInitAfter) {
       await init();
     }
@@ -43,6 +59,8 @@ async function verifyEntrySessionOnLoad(runInitAfter = false) {
       await init();
     }
     return true;
+  } finally {
+    isVerifyingSession = false;
   }
 }
 
@@ -184,43 +202,29 @@ async function init() {
 
   if (rData && rData.success) rulesCache = rData.data;
 
-  const srRes = await fetch(`/timesheet/api/special-rules?_t=${ts}`, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
-    cache: "no-store",
-  });
-  const srData = await srRes.json();
+  const authHeader = {
+    Authorization: "Bearer " + getAuthToken(),
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+  };
+  const [srData, brData, vData, lData] = await Promise.all([
+    fetch(`/timesheet/api/special-rules?_t=${ts}`, { headers: authHeader, cache: "no-store" })
+      .then((r) => r.json())
+      .catch(() => ({})),
+    fetch(`/timesheet/api/break-rules?_t=${ts}`, { headers: authHeader, cache: "no-store" })
+      .then((r) => r.json())
+      .catch(() => ({})),
+    fetch(`/timesheet/api/vehicle-info?_t=${ts}`, { headers: authHeader, cache: "no-store" })
+      .then((r) => r.json())
+      .catch(() => ({})),
+    fetch(`/api/lock/status?_t=${ts}`, { headers: { Authorization: "Bearer " + getAuthToken() } })
+      .then((r) => r.json())
+      .catch(() => ({})),
+  ]);
+
   if (srData.success) specialRulesCache = srData.data;
-
-  const brRes = await fetch(`/timesheet/api/break-rules?_t=${ts}`, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
-    cache: "no-store",
-  });
-  const brData = await brRes.json();
   if (brData.success) breakRulesCache = brData.data;
-
-  const vRes = await fetch(`/timesheet/api/vehicle-info?_t=${ts}`, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
-    cache: "no-store",
-  });
-  const vData = await vRes.json();
   if (vData.success) vehiclesCache = vData.data;
-
-  const lRes = await fetch(`/api/lock/status?_t=${ts}`, {
-    headers: { Authorization: "Bearer " + token },
-  });
-  const lData = await lRes.json().catch(() => ({}));
   if (lData.success && lData.data) {
     systemLockData = {
       month: lData.data.lock_month,
@@ -946,7 +950,7 @@ async function triggerFetch() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
+        Authorization: "Bearer " + getAuthToken(),
       },
       body: JSON.stringify({ month: m, year: y, plate_no: p }),
     })
@@ -2007,16 +2011,20 @@ async function saveCellData(rowIdx, colName, colValue) {
       }
     } catch (logErr) {}
   } catch (e) {
-    console.error("Strict Save Error:", e);
-    statusLabel.innerText = "Error";
+    console.error("Save Error:", e);
+    statusLabel.innerText = "✗ Retry";
+    statusLabel.className = "save-indicator";
     statusLabel.style.backgroundColor = "#dc3545";
+    statusLabel.style.color = "#ffffff";
 
-    await customAlert(
-      "CRITICAL ERROR: Data failed to save securely to the database. To prevent data loss, your session will be closed. Reason: " +
-        (e.message || "Server Connection Error"),
-      "Database Error",
-    );
-    logout();
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "error",
+      title: "Save failed: " + (e.message || "Connection issue. Please re-enter cell."),
+      showConfirmButton: false,
+      timer: 4000,
+    });
   } finally {
     pendingSaves = Math.max(0, pendingSaves - 1);
   }
@@ -2095,7 +2103,7 @@ async function requestOtpFromGrid() {
     const token = localStorage.getItem("timesheetToken");
     const res = await fetch("/api/lock/request-unlock", {
       method: "POST",
-      headers: { Authorization: "Bearer " + token },
+      headers: { Authorization: "Bearer " + getAuthToken() },
     });
     const data = await res.json();
 
@@ -2150,7 +2158,7 @@ async function triggerGridUnlock() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
+        Authorization: "Bearer " + getAuthToken(),
       },
       body: JSON.stringify({ code }),
     });
@@ -2410,7 +2418,7 @@ async function exportExcel() {
   const y = document.getElementById("bulkYear").value;
   try {
     const res = await fetch(`/timesheet/api/grid-data?month=${m}&year=${y}`, {
-      headers: { Authorization: "Bearer " + token },
+      headers: { Authorization: "Bearer " + getAuthToken() },
     });
     const data = await res.json();
     let ws_data = [
@@ -2510,26 +2518,26 @@ async function importExcel() {
   let bkRules = [];
   try {
     const rRes = await fetch("/timesheet/api/rules", {
-      headers: { Authorization: "Bearer " + token },
+      headers: { Authorization: "Bearer " + getAuthToken() },
     });
     const rData = await rRes.json();
     if (rData.success) rules = rData.data;
 
     let vInfo = [];
     const vRes = await fetch("/timesheet/api/vehicle-info", {
-      headers: { Authorization: "Bearer " + token },
+      headers: { Authorization: "Bearer " + getAuthToken() },
     });
     const vData = await vRes.json();
     if (vData.success) vInfo = vData.data;
 
     const srRes = await fetch("/timesheet/api/special-rules", {
-      headers: { Authorization: "Bearer " + token },
+      headers: { Authorization: "Bearer " + getAuthToken() },
     });
     const srData = await srRes.json();
     if (srData.success) spRules = srData.data;
 
     const brRes = await fetch("/timesheet/api/break-rules", {
-      headers: { Authorization: "Bearer " + token },
+      headers: { Authorization: "Bearer " + getAuthToken() },
     });
     const brData = await brRes.json();
     if (brData.success) bkRules = brData.data;
@@ -2713,7 +2721,7 @@ async function importExcel() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
+            Authorization: "Bearer " + getAuthToken(),
           },
           body: JSON.stringify({ records: processedRecords }),
         });
@@ -2755,15 +2763,13 @@ async function applyLockStatus(
   try {
     const ts = new Date().getTime();
     const lRes = await fetch(`/api/lock/status?_t=${ts}`, {
-      headers: { Authorization: "Bearer " + token },
+      headers: { Authorization: "Bearer " + getAuthToken() },
     });
 
     if (lRes.status === 401 || lRes.status === 403) {
-      await customAlert(
-        "Session expired due to inactivity. Please login again to prevent data loss.",
-        "Session Timeout",
+      openTimesheetReLoginModal(() =>
+        applyLockStatus(selectedMonthStr, selectedYearStr, silent),
       );
-      logout();
       return;
     }
 
@@ -2872,12 +2878,15 @@ window.addEventListener("focus", async () => {});
 // 🟢 LIVE LOCK TRANSFER & POLLING LOGIC
 // ==========================================
 
+let isRecordPollInFlight = false;
 function startRecordPoll(p, m, y) {
   clearInterval(recordPollTimer);
-  const generation = recordPollGeneration; // 🟢 നിലവിലെ ജനറേഷൻ ഓർത്തു വെക്കുന്നു
+  isRecordPollInFlight = false;
+  const generation = recordPollGeneration;
   recordPollTimer = setInterval(async () => {
-    if (generation !== recordPollGeneration) return; // 🟢 പ്ലേറ്റ് മാറിയാൽ പഴയ പോൾ തടയുന്നു
-    if (window.pauseEntryRecordPoll) return; // 🟢 Heavy file action (PDF/Rotate) നടക്കുമ്പോൾ പോളിംഗ് താൽക്കാലികമായി നിർത്തിവെക്കുന്നു
+    if (generation !== recordPollGeneration) return;
+    if (window.pauseEntryRecordPoll || isRecordPollInFlight) return;
+    isRecordPollInFlight = true;
 
     try {
       const ts = new Date().getTime();
@@ -2885,13 +2894,14 @@ function startRecordPoll(p, m, y) {
         `/timesheet/api/record-lock/poll?plate=${p}&month=${m}&year=${y}&_t=${ts}`,
         {
           headers: {
-            Authorization: "Bearer " + token,
+            Authorization: "Bearer " + getAuthToken(),
             "Cache-Control": "no-cache",
             Pragma: "no-cache",
           },
           cache: "no-store",
         },
       );
+      if (!res.ok) return;
       const data = await res.json();
       if (generation !== recordPollGeneration) return;
       const userStr = localStorage.getItem("timesheetUser");
@@ -3001,7 +3011,10 @@ function startRecordPoll(p, m, y) {
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      isRecordPollInFlight = false;
+    }
   }, 5000);
 }
 
@@ -3038,7 +3051,7 @@ async function requestEditAccess() {
     const res = await fetch("/timesheet/api/record-lock/request-transfer", {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + token,
+        Authorization: "Bearer " + getAuthToken(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ plate: p, month: m, year: y }),
@@ -3083,7 +3096,7 @@ async function requestEditAccess() {
         const claimRes = await fetch("/timesheet/api/record-lock/request", {
           method: "POST",
           headers: {
-            Authorization: "Bearer " + token,
+            Authorization: "Bearer " + getAuthToken(),
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ plate: p, month: m, year: y }),
@@ -3205,7 +3218,7 @@ async function resolveTransfer(p, m, y, action) {
   await fetch("/timesheet/api/record-lock/resolve-transfer", {
     method: "POST",
     headers: {
-      Authorization: "Bearer " + token,
+      Authorization: "Bearer " + getAuthToken(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ plate: p, month: m, year: y, action: action }),
@@ -3216,7 +3229,7 @@ async function forceClaimLock(p, m, y) {
   await fetch("/timesheet/api/record-lock/resolve-transfer", {
     method: "POST",
     headers: {
-      Authorization: "Bearer " + token,
+      Authorization: "Bearer " + getAuthToken(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ plate: p, month: m, year: y, action: "force" }),

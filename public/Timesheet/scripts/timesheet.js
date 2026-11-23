@@ -1,3 +1,16 @@
+document.addEventListener(
+  "wheel",
+  (e) => {
+    if (
+      document.activeElement &&
+      document.activeElement.type === "number"
+    ) {
+      document.activeElement.blur();
+    }
+  },
+  { passive: true },
+);
+
 document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem("timesheetToken");
   const userStr = localStorage.getItem("timesheetUser");
@@ -540,7 +553,7 @@ async function fetchSpecialRules() {
         let statusBadge = r.is_active
           ? '<span style="color:green;font-weight:bold;">Active</span>'
           : '<span style="color:gray;font-weight:bold;">Inactive</span>';
-        tbody.innerHTML += `<tr><td style="font-size:12px;">${sitesStr}</td><td style="font-size:12px;">${datesStr}</td><td style="font-weight:bold; color:#0ea5e9;">${r.rule_type}</td><td style="font-size:12px;">${r.reason || "-"}</td><td>${statusBadge}</td><td style="display: flex; gap: 5px; justify-content: center;"><button class="btn-success" style="padding: 4px 8px; font-size: 11px; border:none; border-radius:4px; cursor:pointer;" onclick="editSpecialRule(${r.id})">Edit</button><button class="btn-danger" style="padding: 4px 8px; font-size: 11px; border:none; border-radius:4px; cursor:pointer;" onclick="deleteSpecialRule(${r.id})">Delete</button></td></tr>`;
+        tbody.innerHTML += `<tr><td style="font-size:12px;">${sitesStr}</td><td style="font-size:12px;">${datesStr}</td><td style="font-weight:bold; color:#0ea5e9;">${r.rule_type}</td><td style="font-size:12px;">${r.reason || "-"}</td><td>${statusBadge}</td><td><div style="display: flex; gap: 5px; justify-content: center;"><button class="btn-success" style="padding: 4px 8px; font-size: 11px; border:none; border-radius:4px; cursor:pointer;" onclick="editSpecialRule(${r.id})">Edit</button><button class="btn-danger" style="padding: 4px 8px; font-size: 11px; border:none; border-radius:4px; cursor:pointer;" onclick="deleteSpecialRule(${r.id})">Delete</button></div></td></tr>`;
       });
     }
   } catch (err) {}
@@ -779,9 +792,11 @@ async function fetchBreakRules() {
             <td style="font-weight:bold; color:#0f172a;">${eDate}</td>
             <td style="font-weight:bold; color:#f59e0b;">${r.break_start} to ${r.break_end}</td>
             <td>${statusBadge}</td>
-            <td style="display: flex; gap: 5px; justify-content: center;">
-              <button class="btn-success" style="padding: 4px 8px; font-size: 11px; border:none; border-radius:4px; cursor:pointer;" onclick="editBreakRule(${r.id})">Edit</button>
-              <button class="btn-danger" style="padding: 4px 8px; font-size: 11px; border:none; border-radius:4px; cursor:pointer;" onclick="deleteBreakRule(${r.id})">Delete</button>
+            <td>
+              <div style="display: flex; gap: 5px; justify-content: center;">
+                <button class="btn-success" style="padding: 4px 8px; font-size: 11px; border:none; border-radius:4px; cursor:pointer;" onclick="editBreakRule(${r.id})">Edit</button>
+                <button class="btn-danger" style="padding: 4px 8px; font-size: 11px; border:none; border-radius:4px; cursor:pointer;" onclick="deleteBreakRule(${r.id})">Delete</button>
+              </div>
             </td>
           </tr>
         `;

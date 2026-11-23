@@ -506,25 +506,33 @@ function populateCheckboxes(
   oList.querySelectorAll(".dynamic-item").forEach((e) => e.remove());
   sList.querySelectorAll(".dynamic-item").forEach((e) => e.remove());
 
-  owners.forEach((o) => {
-    // മുൻപ് Select All ആയിരുന്നെങ്കിൽ പുതിയ ഓണറും select ആകണം; അല്ലെങ്കിൽ പഴയ ലിസ്റ്റിൽ ഉള്ളതോ എന്ന് നോക്കണം
-    let isChecked = wasAllOwnersSelected
-      ? "checked"
-      : prevOwners.includes(o)
-        ? "checked"
-        : "";
-    oList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${o}" ${isChecked} onchange="updateSelectTexts()"> ${o}</label>`;
-  });
+  oList.insertAdjacentHTML(
+    "beforeend",
+    owners
+      .map((o) => {
+        const isChecked = wasAllOwnersSelected
+          ? "checked"
+          : prevOwners.includes(o)
+            ? "checked"
+            : "";
+        return `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${o}" ${isChecked} onchange="updateSelectTexts()"> ${o}</label>`;
+      })
+      .join(""),
+  );
 
-  sites.forEach((s) => {
-    // മുൻപ് Select All ആയിരുന്നെങ്കിൽ ആ മാസത്തിൽ വരുന്ന പുതിയ എല്ലാ സൈറ്റുകളും സ്വയം select ആകുന്നു
-    let isChecked = wasAllSitesSelected
-      ? "checked"
-      : prevSites.includes(s)
-        ? "checked"
-        : "";
-    sList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${s}" ${isChecked} onchange="updateSelectTexts()"> ${s}</label>`;
-  });
+  sList.insertAdjacentHTML(
+    "beforeend",
+    sites
+      .map((s) => {
+        const isChecked = wasAllSitesSelected
+          ? "checked"
+          : prevSites.includes(s)
+            ? "checked"
+            : "";
+        return `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${s}" ${isChecked} onchange="updateSelectTexts()"> ${s}</label>`;
+      })
+      .join(""),
+  );
 
   // Select All ചെക്ക്ബോക്സുകളുടെ നില അപ്ഡേറ്റ് ചെയ്യുന്നു
   if (document.getElementById("selectAllOwners")) {
@@ -1174,10 +1182,10 @@ function createBillCard(group, id) {
                         <td class="grandTotal total-col" style="display:${vatDisplay};">0</td>
                         <td class="no-export-col"></td>
                         <td class="no-export"></td>
-                        <td class="no-export"></td>
-                        <td class="no-export"></td>
-                        <td class="no-export"></td>
-                        <td class="no-export"></td>
+                        <td class="no-export grandLogNr">0</td>
+                        <td class="no-export grandLogOt">0</td>
+                        <td class="no-export grandBillNr">0</td>
+                        <td class="no-export grandBillOt">0</td>
                         <td class="no-export" style="text-align: center;">
                             <button type="button" class="btn-add-circle" onclick="addDynamicRow('${id}')">+</button>
                         </td>
@@ -1961,7 +1969,11 @@ function updateCardTotals(card) {
     gVat = 0,
     gTotal = 0,
     gNhr = 0,
-    gOthr = 0;
+    gOthr = 0,
+    gLogNr = 0,
+    gLogOt = 0,
+    gBillNr = 0,
+    gBillOt = 0;
 
   card.querySelectorAll(".tableBody tr").forEach((row) => {
     gNhr += parseFloat(row.querySelector(".nhr").value) || 0;
@@ -1972,10 +1984,24 @@ function updateCardTotals(card) {
     gTotal += rowTotalStr
       ? parseFloat(rowTotalStr)
       : parseFloat(row.querySelector(".rent").value || 0);
+    gLogNr += parseFloat(row.querySelector(".log-nr")?.innerText) || 0;
+    gLogOt += parseFloat(row.querySelector(".log-ot")?.innerText) || 0;
+    gBillNr += parseFloat(row.querySelector(".bill-nr")?.innerText) || 0;
+    gBillOt += parseFloat(row.querySelector(".bill-ot")?.innerText) || 0;
   });
 
-  card.querySelector(".grandNHr").innerText = gNhr;
-  card.querySelector(".grandOTHr").innerText = gOthr;
+  const fmtHr = (v) => (Number.isInteger(v) ? v : parseFloat(v.toFixed(2)));
+
+  card.querySelector(".grandNHr").innerText = fmtHr(gNhr);
+  card.querySelector(".grandOTHr").innerText = fmtHr(gOthr);
+  const elLogNr = card.querySelector(".grandLogNr");
+  const elLogOt = card.querySelector(".grandLogOt");
+  const elBillNr = card.querySelector(".grandBillNr");
+  const elBillOt = card.querySelector(".grandBillOt");
+  if (elLogNr) elLogNr.innerText = fmtHr(gLogNr);
+  if (elLogOt) elLogOt.innerText = fmtHr(gLogOt);
+  if (elBillNr) elBillNr.innerText = fmtHr(gBillNr);
+  if (elBillOt) elBillOt.innerText = fmtHr(gBillOt);
   card.querySelector(".grandRent").innerText = Number.isInteger(gRent)
     ? gRent
     : gRent.toFixed(2);

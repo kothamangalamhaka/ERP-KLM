@@ -359,25 +359,42 @@
               >dashboard</i
             >
           </button>
-          <!-- 🟢 Modern Month & Year Selector -->
+          <!-- 🟢 Unified Segmented Month & Year Selector -->
           <div
-            class="selector-wrapper"
-            style="display: flex; align-items: center; gap: 4px; padding: 0 6px"
+            class="selector-wrapper month-year-pill"
+            style="
+              display: inline-flex;
+              align-items: center;
+              height: 36px;
+              padding: 0;
+              background: #ffffff;
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              overflow: hidden;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            "
           >
             <button
               type="button"
               onclick="prevMonthBilling()"
               title="Previous Month"
               style="
-                padding: 4px 7px;
-                border: 1px solid #cbd5e1;
-                background: white;
-                border-radius: 4px;
+                height: 100%;
+                width: 32px;
+                border: none;
+                border-right: 1px solid #e2e8f0;
+                background: #f8fafc;
                 cursor: pointer;
                 font-size: 11px;
-                font-weight: bold;
+                font-weight: 700;
                 color: #475569;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.15s, color 0.15s;
               "
+              onmouseover="this.style.background='#e2e8f0'; this.style.color='#0f172a';"
+              onmouseout="this.style.background='#f8fafc'; this.style.color='#475569';"
             >
               ◀
             </button>
@@ -385,13 +402,14 @@
               id="billingMonthSelect"
               onchange="onMonthYearChange()"
               style="
-                padding: 4px 6px;
-                border: 1px solid #cbd5e1;
-                border-radius: 4px;
+                height: 100%;
+                padding: 0 10px;
+                border: none;
+                border-right: 1px solid #e2e8f0;
                 font-weight: 700;
-                font-size: 12px;
-                color: #1e293b;
-                background: white;
+                font-size: 13px;
+                color: #0f172a;
+                background: transparent;
                 outline: none;
                 cursor: pointer;
               "
@@ -414,15 +432,17 @@
               id="billingYearInput"
               value="2026"
               onchange="onMonthYearChange()"
+              onwheel="this.blur()"
               style="
-                width: 62px;
-                padding: 4px 6px;
-                border: 1px solid #cbd5e1;
-                border-radius: 4px;
+                height: 100%;
+                width: 60px;
+                padding: 0 6px;
+                border: none;
+                border-right: 1px solid #e2e8f0;
                 font-weight: 700;
-                font-size: 12px;
-                color: #1e293b;
-                background: white;
+                font-size: 13px;
+                color: #0f172a;
+                background: transparent;
                 text-align: center;
                 outline: none;
               "
@@ -432,15 +452,21 @@
               onclick="nextMonthBilling()"
               title="Next Month"
               style="
-                padding: 4px 7px;
-                border: 1px solid #cbd5e1;
-                background: white;
-                border-radius: 4px;
+                height: 100%;
+                width: 32px;
+                border: none;
+                background: #f8fafc;
                 cursor: pointer;
                 font-size: 11px;
-                font-weight: bold;
+                font-weight: 700;
                 color: #475569;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.15s, color 0.15s;
               "
+              onmouseover="this.style.background='#e2e8f0'; this.style.color='#0f172a';"
+              onmouseout="this.style.background='#f8fafc'; this.style.color='#475569';"
             >
               ▶
             </button>

@@ -161,39 +161,17 @@ router.get("/vehicles", async (req, res) => {
   try {
     const { month } = req.query;
 
-    // Fetch Timesheet DB & All Logs
-    const tsVehiclesResult = await pool.query(
-      "SELECT * FROM timesheet_vehicles",
-    );
-    const driverLogs = await pool.query(
-      "SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log",
-    );
-    const siteLogs = await pool.query(
-      "SELECT plate_no, site_name, rate, work_start_date, work_end_date, vehicle_type FROM vehicle_site_log",
-    );
-    const rateLogs = await pool.query(
-      "SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_rate_log",
-    );
-    const ownerLogs = await pool.query(
-      "SELECT plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, company_arabic_name, work_start_date, work_end_date FROM vehicle_owner_log",
-    );
-    const plateLogs = await pool.query(
-      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
-    );
-
-    let savedResult = { rows: [] };
-    let timesheetRows = [];
-    let invoiceRows = [];
-    let specialRules = [];
     let targetStart, targetEnd;
     let targetMonthIdx = -1,
       targetYearNum = 0;
+    let mName = "",
+      yStr = "";
+    const hasMonthFilter = Boolean(month && month !== "All");
 
-    if (month && month !== "All") {
-      const savedQuery = `SELECT * FROM billing_records WHERE billing_month = $1`;
-      savedResult = await pool.query(savedQuery, [month]);
-
-      const [mName, yStr] = month.trim().split(" ");
+    if (hasMonthFilter) {
+      const parts = month.trim().split(" ");
+      mName = parts[0] || "";
+      yStr = parts[1] || "";
       const monthNames = [
         "January",
         "February",
@@ -209,32 +187,70 @@ router.get("/vehicles", async (req, res) => {
         "December",
       ];
       const mIdx = monthNames.indexOf(mName);
-
       if (mIdx !== -1 && yStr) {
         targetYearNum = parseInt(yStr);
         targetMonthIdx = mIdx;
         targetStart = new Date(targetYearNum, mIdx, 1);
         targetEnd = new Date(targetYearNum, mIdx + 1, 0);
-
-        const [timesheetsResult, invoicesResult, specialRulesResult] =
-          await Promise.all([
-            pool.query(
-              "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month = $1 AND year = $2",
-              [mName, yStr],
-            ),
-            pool.query(
-              "SELECT plate_no, site_name, bill_nr, bill_ot FROM invoice_records WHERE month = $1",
-              [month],
-            ),
-            pool.query(
-              "SELECT sites, dates, rule_type FROM special_days_rules WHERE is_active = true",
-            ),
-          ]);
-        timesheetRows = timesheetsResult.rows;
-        invoiceRows = invoicesResult.rows;
-        specialRules = specialRulesResult.rows;
       }
     }
+
+    const hasValidMonthYear = targetMonthIdx !== -1 && Boolean(yStr);
+
+    // Fetch all required tables in a single parallel batch for maximum speed
+    const [
+      tsVehiclesResult,
+      driverLogs,
+      siteLogs,
+      rateLogs,
+      ownerLogs,
+      plateLogs,
+      savedResult,
+      timesheetsResult,
+      invoicesResult,
+      specialRulesResult,
+    ] = await Promise.all([
+      pool.query("SELECT * FROM timesheet_vehicles"),
+      pool.query(
+        "SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log",
+      ),
+      pool.query(
+        "SELECT plate_no, site_name, rate, work_start_date, work_end_date, vehicle_type FROM vehicle_site_log",
+      ),
+      pool.query(
+        "SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_rate_log",
+      ),
+      pool.query(
+        "SELECT plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, company_arabic_name, work_start_date, work_end_date FROM vehicle_owner_log",
+      ),
+      pool.query(
+        "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
+      ),
+      hasMonthFilter
+        ? pool.query("SELECT * FROM billing_records WHERE billing_month = $1", [month])
+        : Promise.resolve({ rows: [] }),
+      hasValidMonthYear
+        ? pool.query(
+            "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month = $1 AND year = $2",
+            [mName, yStr],
+          )
+        : Promise.resolve({ rows: [] }),
+      hasValidMonthYear
+        ? pool.query(
+            "SELECT plate_no, site_name, bill_nr, bill_ot FROM invoice_records WHERE month = $1",
+            [month],
+          )
+        : Promise.resolve({ rows: [] }),
+      hasValidMonthYear
+        ? pool.query(
+            "SELECT sites, dates, rule_type FROM special_days_rules WHERE is_active = true",
+          )
+        : Promise.resolve({ rows: [] }),
+    ]);
+
+    const timesheetRows = timesheetsResult.rows;
+    const invoiceRows = invoicesResult.rows;
+    const specialRules = specialRulesResult.rows;
 
     let validVehicles = [];
     let processedPlates = new Set();

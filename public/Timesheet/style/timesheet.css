@@ -76,13 +76,13 @@ body {
 
 /* Main Container */
 .container {
-  padding: 40px 20px;
-  max-width: 1450px;
+  padding: 32px 24px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
 .welcome-section {
-  margin-bottom: 40px;
+  margin-bottom: 30px;
   text-align: left;
 }
 
@@ -102,11 +102,14 @@ body {
 /* Module Grid */
 .module-grid {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(230px, 1fr)
-  ); /* Reduced min-width to fit 5 cards per row */
-  gap: 20px; /* Slightly reduced gap */
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 18px;
+}
+
+@media (min-width: 1360px) {
+  .module-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 
 .module-card {
@@ -323,6 +326,16 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
 .btn-primary {
   background-color: var(--primary);
   color: white;
@@ -393,7 +406,7 @@ th,
 td {
   padding: 10px;
   text-align: center;
-  border-bottom: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
 }
 
 th:first-child,
@@ -412,10 +425,6 @@ th {
 
 tbody tr:hover {
   background-color: #f8f9fa;
-}
-
-tbody tr:last-child td {
-  border-bottom: none;
 }
 
 #rulesTable input[type="text"] {
