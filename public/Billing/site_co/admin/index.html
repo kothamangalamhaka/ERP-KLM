@@ -93,11 +93,11 @@
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.85);
+        background: rgba(2, 6, 23, 0.78);
         align-items: center;
         justify-content: center;
         z-index: 1000;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(8px);
       }
       .modal-box {
         background: #1e293b;
@@ -106,6 +106,45 @@
         width: 450px;
         max-width: 90vw;
         border: 1px solid #334155;
+      }
+      #adminLoginModal {
+        background:
+          radial-gradient(circle at 20% 25%, rgba(56, 189, 248, 0.22), transparent 45%),
+          radial-gradient(circle at 80% 75%, rgba(37, 99, 235, 0.24), transparent 45%),
+          rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(16px);
+      }
+      .glass-login-box {
+        background: rgba(30, 41, 59, 0.52) !important;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.16) !important;
+        box-shadow:
+          0 25px 50px -12px rgba(0, 0, 0, 0.55),
+          inset 0 1px 0 rgba(255, 255, 255, 0.14);
+        border-radius: 16px !important;
+        padding: 32px 28px !important;
+      }
+      .glass-login-box input {
+        background: rgba(15, 23, 42, 0.55) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        color: #f8fafc !important;
+        border-radius: 8px !important;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .glass-login-box input:focus {
+        border-color: #38bdf8 !important;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+      }
+      .glass-login-btn {
+        background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        border-radius: 8px !important;
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .glass-login-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(56, 189, 248, 0.4);
       }
       .site-checklist {
         max-height: 250px;
@@ -123,16 +162,50 @@
         padding: 6px 0;
         border-bottom: 1px solid #1e293b;
       }
+      .admin-toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+      }
+      .admin-toast {
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #f8fafc;
+        background: rgba(15, 23, 42, 0.88);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        transform: translateX(120%);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+        opacity: 0;
+      }
+      .admin-toast.show {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      .admin-toast.success {
+        border-left: 4px solid #10b981;
+      }
+      .admin-toast.error {
+        border-left: 4px solid #ef4444;
+      }
     </style>
   </head>
   <body>
     <!-- Super Admin Login Overlay for Admin Page -->
     <div id="adminLoginModal" class="modal-overlay" style="display: flex">
-      <div class="modal-box" style="width: 340px; text-align: center">
-        <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px">
-          Super Admin Login
+      <div class="modal-box glass-login-box" style="width: 350px; text-align: center">
+        <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px; letter-spacing: 0.3px">
+          🔐 Super Admin Login
         </h3>
-        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px">
+        <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 20px">
           Enter credentials to manage sites & users
         </p>
         <input
@@ -141,7 +214,7 @@
           placeholder="Username"
           style="
             width: 100%;
-            padding: 10px;
+            padding: 10px 12px;
             margin-bottom: 12px;
             box-sizing: border-box;
           "
@@ -152,15 +225,15 @@
           placeholder="Password"
           style="
             width: 100%;
-            padding: 10px;
+            padding: 10px 12px;
             margin-bottom: 20px;
             box-sizing: border-box;
           "
           onkeypress="if (event.key === 'Enter') executeAdminLogin();"
         />
         <button
-          class="btn btn-primary"
-          style="width: 100%; padding: 10px; font-size: 14px"
+          class="btn btn-primary glass-login-btn"
+          style="width: 100%; padding: 11px; font-size: 14px"
           onclick="executeAdminLogin()"
         >
           Login to Admin Panel
@@ -215,6 +288,23 @@
           style="width: 100%; box-sizing: border-box"
         />
 
+        <div style="display: flex; gap: 8px; margin-top: 10px">
+          <input
+            type="text"
+            id="newSiteKeywordInput"
+            placeholder="Add new site keyword (e.g. Ar Rass)..."
+            style="flex: 1; box-sizing: border-box"
+            onkeypress="if (event.key === 'Enter') addCustomSiteKeyword();"
+          />
+          <button
+            type="button"
+            class="btn btn-success"
+            onclick="addCustomSiteKeyword()"
+          >
+            + Add New
+          </button>
+        </div>
+
         <div
           style="
             display: flex;
@@ -251,7 +341,23 @@
       </div>
     </div>
 
+    <div id="adminToastContainer" class="admin-toast-container"></div>
+
     <script>
+      function showAdminToast(message, type = "success") {
+        const container = document.getElementById("adminToastContainer");
+        if (!container) return;
+        const toast = document.createElement("div");
+        toast.className = `admin-toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add("show"));
+        setTimeout(() => {
+          toast.classList.remove("show");
+          setTimeout(() => toast.remove(), 260);
+        }, 2800);
+      }
+
       let token = localStorage.getItem("view_bill_token");
       let allSystemSites = [];
       let currentEditingUserId = null;
@@ -268,7 +374,9 @@
       async function executeAdminLogin() {
         const username = document.getElementById("adminLoginUser").value.trim();
         const password = document.getElementById("adminLoginPass").value;
-        if (!username || !password) return alert("Enter credentials");
+        if (!username || !password) {
+          return showAdminToast("Enter credentials", "error");
+        }
 
         try {
           const res = await fetch("/api/view-bill/login", {
@@ -279,17 +387,20 @@
           const data = await res.json();
           if (data.success) {
             if (data.user.role !== "Super Admin") {
-              alert("Access Denied: Only Super Admin can access this page.");
+              showAdminToast(
+                "Access Denied: Only Super Admin can access this page.",
+                "error",
+              );
               return;
             }
             localStorage.setItem("view_bill_token", data.token);
             token = data.token;
             verifyAdminSession(token);
           } else {
-            alert(data.message || "Login failed");
+            showAdminToast(data.message || "Login failed", "error");
           }
         } catch (e) {
-          alert("Server Connection Error");
+          showAdminToast("Server Connection Error", "error");
         }
       }
 
@@ -394,6 +505,64 @@
         });
       }
 
+      const BASE_SITE_KEYWORDS = ["Afif", "Bisha", "Humaij", "Khushaibi", "Taif"];
+
+      function getSavedCustomKeywords() {
+        try {
+          const raw = localStorage.getItem("viewBillCustomSiteKeywords");
+          const arr = raw ? JSON.parse(raw) : [];
+          return Array.isArray(arr) ? arr : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function getUniqueSiteKeywords() {
+        const kwMap = new Map();
+        [...BASE_SITE_KEYWORDS, ...getSavedCustomKeywords()].forEach((k) => {
+          const clean = String(k || "").trim();
+          if (clean && !kwMap.has(clean.toLowerCase())) {
+            kwMap.set(clean.toLowerCase(), clean);
+          }
+        });
+        return Array.from(kwMap.values()).sort((a, b) => a.localeCompare(b));
+      }
+
+      function addCustomSiteKeyword() {
+        const input = document.getElementById("newSiteKeywordInput");
+        const val = (input.value || "").trim();
+        if (!val) return;
+
+        // Save to localStorage so it stays available for all users
+        const customList = getSavedCustomKeywords();
+        if (!customList.some((k) => k.toLowerCase() === val.toLowerCase())) {
+          customList.push(val);
+          localStorage.setItem(
+            "viewBillCustomSiteKeywords",
+            JSON.stringify(customList),
+          );
+        }
+
+        const checklist = document.getElementById("siteChecklist");
+        const existing = Array.from(checklist.querySelectorAll(".site-cb")).find(
+          (cb) => cb.value.toLowerCase() === val.toLowerCase(),
+        );
+        if (existing) {
+          existing.checked = true;
+          input.value = "";
+          return;
+        }
+
+        const div = document.createElement("div");
+        div.className = "site-item";
+        div.innerHTML = `
+          <input type="checkbox" class="site-cb" value="${val.replace(/"/g, "&quot;")}" checked />
+          <label>${val.replace(/</g, "&lt;")}</label>
+        `;
+        checklist.appendChild(div);
+        input.value = "";
+      }
+
       function openSiteModal(userId) {
         currentEditingUserId = userId;
         const user = usersListCache.find((u) => u.id === userId);
@@ -401,6 +570,9 @@
 
         document.getElementById("siteModalUserTitle").innerText =
           `Assign Sites for @${user.username}`;
+        document.getElementById("siteSearchInput").value = "";
+        document.getElementById("newSiteKeywordInput").value = "";
+
         let assigned = user.assigned_sites || [];
         if (typeof assigned === "string") {
           try {
@@ -409,19 +581,27 @@
             assigned = [];
           }
         }
+        const assignedLower = assigned.map((s) => String(s).trim().toLowerCase());
 
         const checklist = document.getElementById("siteChecklist");
-        checklist.innerHTML = "";
-
-        allSystemSites.forEach((s) => {
-          let isChecked = assigned.includes(s) ? "checked" : "";
-          checklist.innerHTML += `
-            <div class="site-item">
-              <input type="checkbox" class="site-cb" value="${s}" ${isChecked} />
-              <label>${s}</label>
-            </div>
-          `;
-        });
+        const keywords = getUniqueSiteKeywords();
+        checklist.innerHTML = keywords
+          .map((s) => {
+            const kwLower = s.toLowerCase();
+            // Check exact match OR if existing old site names contain this short keyword
+            const isChecked = assignedLower.some(
+              (a) => a === kwLower || a.includes(kwLower),
+            )
+              ? "checked"
+              : "";
+            return `
+              <div class="site-item">
+                <input type="checkbox" class="site-cb" value="${s.replace(/"/g, "&quot;")}" ${isChecked} />
+                <label>${s.replace(/</g, "&lt;")}</label>
+              </div>
+            `;
+          })
+          .join("");
 
         document.getElementById("siteModal").style.display = "flex";
       }
@@ -486,11 +666,13 @@
           });
           const data = await res.json();
           if (data.success) {
-            alert("User updated successfully!");
+            showAdminToast("User updated successfully!", "success");
             loadUsers();
-          } else alert(data.message);
+          } else {
+            showAdminToast(data.message || "Update failed", "error");
+          }
         } catch (e) {
-          alert("Error saving changes");
+          showAdminToast("Error saving changes", "error");
         }
       }
 
@@ -506,11 +688,13 @@
           );
           const data = await res.json();
           if (data.success) {
-            alert("User deleted!");
+            showAdminToast("User deleted!", "success");
             loadUsers();
-          } else alert(data.message);
+          } else {
+            showAdminToast(data.message || "Delete failed", "error");
+          }
         } catch (e) {
-          alert("Error deleting user");
+          showAdminToast("Error deleting user", "error");
         }
       }
     </script>

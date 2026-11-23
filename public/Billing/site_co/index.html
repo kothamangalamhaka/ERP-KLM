@@ -1882,16 +1882,19 @@
           tab === "cards" ? "inline-block" : "none";
       }
 
+      let viewBillAbortController = null;
+
       async function fetchViewBillData() {
         const searchVal = document.getElementById("searchInput").value.trim();
-
         const searchType = document.getElementById("searchType").value;
-
         const month = document.getElementById("selMonth").value;
-
         const year = document.getElementById("selYear").value;
-
         const token = localStorage.getItem("view_bill_token");
+
+        if (viewBillAbortController) {
+          viewBillAbortController.abort();
+        }
+        viewBillAbortController = new AbortController();
 
         document.getElementById("loaderOverlay").style.display = "flex";
 
@@ -1902,8 +1905,14 @@
               headers: {
                 Authorization: "Bearer " + token,
               },
+              signal: viewBillAbortController.signal,
             },
           );
+          if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem("view_bill_token");
+            window.location.reload();
+            return;
+          }
 
           const data = await res.json();
 
@@ -2238,8 +2247,17 @@
             return;
 
           let pKey = normalizePlateKey(r.master_plate || r.plate_no);
-          let sKey = getBaseSiteKey(sRaw);
-          let clusterKey = `${r.date}_${pKey}_${sKey}`;
+          let sNorm = sRaw.toLowerCase();
+          let isVatRow = (parseFloat(r.vat_percent) || 0) > 0;
+          let compNorm = String(
+            r.company_display_name || getCompanyFromSite(sRaw) || "",
+          )
+            .trim()
+            .toLowerCase();
+          // Non-VAT same site -> merge; VAT same site -> merge only if same company; different sites -> always separate
+          let clusterKey = isVatRow
+            ? `${r.date}_${pKey}_${sNorm}_VAT_${compNorm}`
+            : `${r.date}_${pKey}_${sNorm}_NONVAT`;
 
           const rep = getReportForSite(r) || {};
           const repVals = {
@@ -2258,12 +2276,18 @@
           } else {
             let target = mergeMap.get(clusterKey);
             target._mergedCount += 1;
-            // Logsheet hours plate-wise ആണ് (site-wise അല്ല) -> sum ചെയ്യരുത്
-            target._rep.ts_nr = Math.max(target._rep.ts_nr, repVals.ts_nr);
-            target._rep.ts_ot = Math.max(target._rep.ts_ot, repVals.ts_ot);
-            // Bill summary site-wise ആണ് -> sum ചെയ്യണം
-            target._rep.inv_nr += repVals.inv_nr;
-            target._rep.inv_ot += repVals.inv_ot;
+            target._rep.ts_nr = Number(
+              (target._rep.ts_nr + repVals.ts_nr).toFixed(2),
+            );
+            target._rep.ts_ot = Number(
+              (target._rep.ts_ot + repVals.ts_ot).toFixed(2),
+            );
+            target._rep.inv_nr = Number(
+              (target._rep.inv_nr + repVals.inv_nr).toFixed(2),
+            );
+            target._rep.inv_ot = Number(
+              (target._rep.inv_ot + repVals.inv_ot).toFixed(2),
+            );
             target.nhr = Number(
               (
                 (parseFloat(target.nhr) || 0) + (parseFloat(r.nhr) || 0)

@@ -389,8 +389,8 @@ router.get("/suggestions", verifyViewBillUser, async (req, res) => {
       if (assigned.length === 0) {
         return res.json({ success: true, plates: [], owners: [], sites: [] });
       }
-      siteFilterCondition = "TRIM(LOWER(site_name)) = ANY($1::text[])";
-      params = [assigned.map((s) => String(s).trim().toLowerCase())];
+      siteFilterCondition = "LOWER(site_name) LIKE ANY($1::text[])";
+      params = [assigned.map((s) => `%${String(s).trim().toLowerCase()}%`)];
     }
 
     const vehiclesRes = await pool.query(
@@ -746,7 +746,8 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         }
 
         if (user.role === "Site Co") {
-          if (!userAssignedSites.includes(currentSiteName.toLowerCase())) {
+          const siteLower = currentSiteName.toLowerCase();
+          if (!userAssignedSites.some((kw) => kw && siteLower.includes(kw))) {
             return;
           }
         }
@@ -971,15 +972,32 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
           remark: saved ? saved.remark || "" : "",
         });
 
-        // 🟢 Logsheet calculations
+        // 🟢 Logsheet calculations (filtered by activeSiteLog date range when vehicle has multiple sites in the month)
         let ts_nr = 0,
           ts_ot = 0;
         let vTs = timesheets.filter((t) =>
           allRelatedNorms.includes(cleanPlate(t.plate_no)),
         );
 
+        const hasMultiSiteInMonth = activeMonthSiteLogs.length > 1;
+        let siteStartBound = new Date(2000, 0, 1);
+        let siteEndBound = new Date(2100, 11, 31, 23, 59, 59, 999);
+        if (hasMultiSiteInMonth) {
+          if (activeSiteLog.work_start_date) {
+            const sd = new Date(activeSiteLog.work_start_date);
+            siteStartBound = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), 0, 0, 0, 0);
+          }
+          if (activeSiteLog.work_end_date && activeSiteLog.status !== "Running") {
+            const ed = new Date(activeSiteLog.work_end_date);
+            siteEndBound = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate(), 23, 59, 59, 999);
+          }
+        }
+
         for (let i = 1; i <= daysInMonth; i++) {
           let checkDate = new Date(parseInt(yearStr), mIdx, i);
+          if (hasMultiSiteInMonth && (checkDate < siteStartBound || checkDate > siteEndBound)) {
+            continue;
+          }
           let formattedDate = checkDate
             .toLocaleDateString("en-GB", {
               day: "2-digit",
@@ -1148,7 +1166,7 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
       });
 
       let hasAccess = Array.from(vSites).some((site) =>
-        assigned.includes(site),
+        assigned.some((kw) => kw && site.includes(kw)),
       );
       if (!hasAccess && assigned.length > 0) {
         // Status 403 മാറ്റി 200/400 നൽകുന്നു (ലോഗൗട്ട് ആകാതിരിക്കാൻ)
