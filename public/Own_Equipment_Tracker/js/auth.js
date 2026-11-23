@@ -49,9 +49,6 @@ async function handleLogin() {
         localStorage.setItem("eq_token", data.token);
       }
       localStorage.setItem("eq_user", JSON.stringify(data.user));
-      if (data.faceTrustToken) {
-        localStorage.setItem("eq_face_trust_token", data.faceTrustToken);
-      }
 
       window.location.replace(
         window.ownEquipmentSession.getLoginDestination(),

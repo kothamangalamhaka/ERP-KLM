@@ -361,7 +361,7 @@
         </div>
         <button type="submit" id="loginBtn" class="btn">Login</button>
         <div class="toggle-link" onclick="toggleView('signup')">New User? Sign Up Here</div>
-        <div class="toggle-link sub-link" onclick="openWe1ResetFaceModal()">📸 Reset / Update Face Data</div>
+        <div class="toggle-link sub-link" onclick="openWe1ResetFaceModal()">📸 Enable / Reset Face Login</div>
     </form>
 
     <form id="signupForm" onsubmit="handleSignup(event)" style="display: none;">
@@ -494,9 +494,6 @@
             if (data.success && data.token) {
                 localStorage.setItem('emp_token', data.token);
                 localStorage.setItem('emp_user', JSON.stringify(data.user));
-                if (data.faceTrustToken) {
-                    localStorage.setItem('eq_face_trust_token', data.faceTrustToken);
-                }
                 window.location.replace(getLoginDestination());
             } else {
                 showAlert(data.message || 'Login failed', 'error');

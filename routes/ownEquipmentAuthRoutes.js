@@ -181,13 +181,7 @@ router.post("/login", async (req, res) => {
       },
     }).catch(() => {});
 
-    const faceTrustToken = jwt.sign(
-      { username: user.username, purpose: "face_device_trust" },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" },
-    );
-
-    res.json({ success: true, token, user, faceTrustToken });
+    res.json({ success: true, token, user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error during login." });
