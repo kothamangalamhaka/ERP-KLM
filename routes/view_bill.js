@@ -985,17 +985,39 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         if (hasMultiSiteInMonth) {
           if (activeSiteLog.work_start_date) {
             const sd = new Date(activeSiteLog.work_start_date);
-            siteStartBound = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), 0, 0, 0, 0);
+            siteStartBound = new Date(
+              sd.getFullYear(),
+              sd.getMonth(),
+              sd.getDate(),
+              0,
+              0,
+              0,
+              0,
+            );
           }
-          if (activeSiteLog.work_end_date && activeSiteLog.status !== "Running") {
+          if (
+            activeSiteLog.work_end_date &&
+            activeSiteLog.status !== "Running"
+          ) {
             const ed = new Date(activeSiteLog.work_end_date);
-            siteEndBound = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate(), 23, 59, 59, 999);
+            siteEndBound = new Date(
+              ed.getFullYear(),
+              ed.getMonth(),
+              ed.getDate(),
+              23,
+              59,
+              59,
+              999,
+            );
           }
         }
 
         for (let i = 1; i <= daysInMonth; i++) {
           let checkDate = new Date(parseInt(yearStr), mIdx, i);
-          if (hasMultiSiteInMonth && (checkDate < siteStartBound || checkDate > siteEndBound)) {
+          if (
+            hasMultiSiteInMonth &&
+            (checkDate < siteStartBound || checkDate > siteEndBound)
+          ) {
             continue;
           }
           let formattedDate = checkDate

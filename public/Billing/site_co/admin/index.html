@@ -109,8 +109,16 @@
       }
       #adminLoginModal {
         background:
-          radial-gradient(circle at 20% 25%, rgba(56, 189, 248, 0.22), transparent 45%),
-          radial-gradient(circle at 80% 75%, rgba(37, 99, 235, 0.24), transparent 45%),
+          radial-gradient(
+            circle at 20% 25%,
+            rgba(56, 189, 248, 0.22),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 75%,
+            rgba(37, 99, 235, 0.24),
+            transparent 45%
+          ),
           rgba(15, 23, 42, 0.85);
         backdrop-filter: blur(16px);
       }
@@ -130,7 +138,9 @@
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         color: #f8fafc !important;
         border-radius: 8px !important;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
       }
       .glass-login-box input:focus {
         border-color: #38bdf8 !important;
@@ -140,7 +150,9 @@
         background: linear-gradient(135deg, #0284c7, #2563eb) !important;
         box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
         border-radius: 8px !important;
-        transition: transform 0.15s, box-shadow 0.15s;
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s;
       }
       .glass-login-btn:hover {
         transform: translateY(-1px);
@@ -183,7 +195,9 @@
         border: 1px solid rgba(255, 255, 255, 0.14);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
         transform: translateX(120%);
-        transition: transform 0.25s ease, opacity 0.25s ease;
+        transition:
+          transform 0.25s ease,
+          opacity 0.25s ease;
         opacity: 0;
       }
       .admin-toast.show {
@@ -201,8 +215,18 @@
   <body>
     <!-- Super Admin Login Overlay for Admin Page -->
     <div id="adminLoginModal" class="modal-overlay" style="display: flex">
-      <div class="modal-box glass-login-box" style="width: 350px; text-align: center">
-        <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px; letter-spacing: 0.3px">
+      <div
+        class="modal-box glass-login-box"
+        style="width: 350px; text-align: center"
+      >
+        <h3
+          style="
+            margin-top: 0;
+            color: #38bdf8;
+            font-size: 20px;
+            letter-spacing: 0.3px;
+          "
+        >
           🔐 Super Admin Login
         </h3>
         <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 20px">
@@ -505,7 +529,13 @@
         });
       }
 
-      const BASE_SITE_KEYWORDS = ["Afif", "Bisha", "Humaij", "Khushaibi", "Taif"];
+      const BASE_SITE_KEYWORDS = [
+        "Afif",
+        "Bisha",
+        "Humaij",
+        "Khushaibi",
+        "Taif",
+      ];
 
       function getSavedCustomKeywords() {
         try {
@@ -544,9 +574,9 @@
         }
 
         const checklist = document.getElementById("siteChecklist");
-        const existing = Array.from(checklist.querySelectorAll(".site-cb")).find(
-          (cb) => cb.value.toLowerCase() === val.toLowerCase(),
-        );
+        const existing = Array.from(
+          checklist.querySelectorAll(".site-cb"),
+        ).find((cb) => cb.value.toLowerCase() === val.toLowerCase());
         if (existing) {
           existing.checked = true;
           input.value = "";
@@ -581,7 +611,9 @@
             assigned = [];
           }
         }
-        const assignedLower = assigned.map((s) => String(s).trim().toLowerCase());
+        const assignedLower = assigned.map((s) =>
+          String(s).trim().toLowerCase(),
+        );
 
         const checklist = document.getElementById("siteChecklist");
         const keywords = getUniqueSiteKeywords();
