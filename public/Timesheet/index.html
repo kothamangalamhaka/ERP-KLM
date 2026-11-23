@@ -1060,6 +1060,25 @@
           ? "inline-block"
           : "none";
       }
+
+      (() => {
+        const hostname = window.location.hostname;
+        const isLocalNetwork =
+          hostname === "localhost" ||
+          hostname === "127.0.0.1" ||
+          hostname.startsWith("192.168.") ||
+          hostname.startsWith("10.") ||
+          /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+          hostname.endsWith(".local");
+
+        if (isLocalNetwork || !window.PublicKeyCredential || !window.isSecureContext) {
+          const helloLoginBtn = document.querySelector('button[onclick="loginWithWindowsHello()"]');
+          if (helloLoginBtn) helloLoginBtn.style.display = "none";
+
+          const helloSetupLink = document.querySelector('div[onclick="openBiometricSetupModal(\'webauthn\')"]');
+          if (helloSetupLink) helloSetupLink.style.display = "none";
+        }
+      })();
     </script>
   </body>
 </html>
