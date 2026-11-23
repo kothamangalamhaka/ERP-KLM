@@ -58,9 +58,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("mainAppContainer").style.display = "none";
     document.getElementById("loginUserId").focus();
     sessionStorage.removeItem("skipAutoFace");
-    const faceBtn = document.querySelector('button[onclick="startBillingAppFaceAuth(\'login\')"]');
+    const faceBtn = document.querySelector(".face-corner-btn");
     if (faceBtn) {
-      faceBtn.style.display = localStorage.getItem("invoice_face_trust_token") ? "block" : "none";
+      faceBtn.style.display = localStorage.getItem("invoice_face_trust_token") ? "flex" : "none";
     }
   }
 });
@@ -3813,8 +3813,8 @@ async function handleBillingAppFaceCapture(frame) {
         if (resetData.success) {
           if (resetData.faceTrustToken) {
             localStorage.setItem("invoice_face_trust_token", resetData.faceTrustToken);
-            const faceBtn = document.querySelector('button[onclick="startBillingAppFaceAuth(\'login\')"]');
-            if (faceBtn) faceBtn.style.display = "block";
+            const faceBtn = document.querySelector(".face-corner-btn");
+            if (faceBtn) faceBtn.style.display = "flex";
           }
           toggleAuthView("loginBox");
         }
