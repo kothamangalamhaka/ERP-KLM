@@ -56,7 +56,13 @@ def get_conn():
 def image_to_encoding(data_url: str):
     encoded = data_url.split(",", 1)[1] if "," in data_url else data_url
     img = Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
-    encs = face_recognition.face_encodings(np.array(img))
+    arr = np.array(img)
+    locs = face_recognition.face_locations(arr, number_of_times_to_upsample=1)
+    if not locs:
+        locs = face_recognition.face_locations(arr, number_of_times_to_upsample=2)
+    if not locs:
+        return None
+    encs = face_recognition.face_encodings(arr, known_face_locations=locs)
     return encs[0] if encs else None
 
 

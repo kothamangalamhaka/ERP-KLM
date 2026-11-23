@@ -193,7 +193,7 @@ async function startEqFaceAuth(action) {
     }
 
     eqCamStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: "user" },
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
       audio: false,
     });
     video.srcObject = eqCamStream;
