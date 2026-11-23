@@ -37,21 +37,35 @@
     return "Dashboard.html";
   }
 
+  function getReturnTarget() {
+    const page = window.location.pathname.slice(
+      window.location.pathname.lastIndexOf("/") + 1,
+    );
+    return returnPages.has(page)
+      ? `${page}${window.location.search}${window.location.hash}`
+      : "Dashboard.html";
+  }
+
+  function logout() {
+    localStorage.removeItem("eq_token");
+    localStorage.removeItem("eq_user");
+    const isAdminPage = window.location.pathname.endsWith("/admin/index.html");
+    window.location.replace(
+      isAdminPage
+        ? "../index.html"
+        : `index.html?redirect=${encodeURIComponent(getReturnTarget())}`,
+    );
+  }
+
   function requirePage() {
     if (localStorage.getItem("eq_token")) {
       document.documentElement.style.visibility = "";
       return true;
     }
 
-    const page = window.location.pathname.slice(
-      window.location.pathname.lastIndexOf("/") + 1,
-    );
-    const returnTarget = returnPages.has(page)
-      ? `${page}${window.location.search}${window.location.hash}`
-      : "Dashboard.html";
     document.documentElement.style.visibility = "hidden";
     window.location.replace(
-      `index.html?redirect=${encodeURIComponent(returnTarget)}`,
+      `index.html?redirect=${encodeURIComponent(getReturnTarget())}`,
     );
     return false;
   }
@@ -69,10 +83,14 @@
     if (currentPage === "index.html" && !isAdminPage) return;
 
     document.documentElement.style.visibility = "hidden";
-    window.location.replace(isAdminPage ? "../index.html" : "index.html");
+    window.location.replace(
+      isAdminPage
+        ? "../index.html"
+        : `index.html?redirect=${encodeURIComponent(getReturnTarget())}`,
+    );
   }
 
-  window.ownEquipmentSession = { getLoginDestination, requirePage };
+  window.ownEquipmentSession = { getLoginDestination, requirePage, logout };
   window.addEventListener("storage", handleSessionStorageChange);
 
   const currentPage = window.location.pathname.slice(

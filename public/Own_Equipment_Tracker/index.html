@@ -136,10 +136,27 @@
       .btn:active {
         transform: translateY(0);
       }
-      .btn-face {
-        background: linear-gradient(100deg, #10b981, #059669);
-        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.22);
-        margin-top: 10px;
+      .face-corner-btn {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 10px;
+        background: rgba(16, 185, 129, 0.18);
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+      }
+      .face-corner-btn:hover {
+        background: rgba(16, 185, 129, 0.35);
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
+        transform: translateY(-1px);
       }
       .btn-face-capture {
         background: linear-gradient(100deg, #0284c7, #0369a1);
@@ -260,6 +277,14 @@
     <div class="auth-card">
       <div id="alertBox" class="alert"></div>
       <div id="loginForm">
+        <button
+          type="button"
+          class="face-corner-btn"
+          title="Face Login"
+          onclick="startEqFaceAuth('login')"
+        >
+          📸
+        </button>
         <h2>Equipment Tracker Login</h2>
         <div class="form-group">
           <label>Username</label>
@@ -277,13 +302,6 @@
           />
         </div>
         <button class="btn" onclick="handleLogin()">Login</button>
-        <button
-          type="button"
-          class="btn btn-face"
-          onclick="startEqFaceAuth('login')"
-        >
-          📸 Face Login
-        </button>
         <div class="toggle-link" onclick="toggleView('signup')">
           New User? Sign Up Here
         </div>

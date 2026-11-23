@@ -1457,7 +1457,7 @@ window.onclick = (e) => {
 function logout() {
   localStorage.removeItem("eq_token");
   localStorage.removeItem("eq_user");
-  window.location.replace("index.html");
+  window.ownEquipmentSession.logout();
 }
 
 function populateModalFields() {

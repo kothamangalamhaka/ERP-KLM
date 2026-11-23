@@ -380,9 +380,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  if (sessionStorage.getItem("skipAutoFace")) {
-    sessionStorage.removeItem("skipAutoFace");
-  } else {
-    executeFaceLogin();
-  }
-});
+  });
