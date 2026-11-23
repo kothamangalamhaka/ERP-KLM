@@ -135,142 +135,34 @@ function closeEqResetFaceModal() {
   eqRfTempCreds = null;
 }
 
-function eqBufToB64Url(buf) {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function eqB64UrlToBuf(b64) {
-  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
-  const raw = atob(b64.replace(/-/g, "+").replace(/_/g, "/") + pad);
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0)).buffer;
-}
-
 async function verifyAndStartEqFaceReset() {
   const username = document.getElementById("eqRfUsername").value.trim();
   const password = document.getElementById("eqRfPassword").value;
 
   if (!username || !password) {
-    closeEqResetFaceModal();
     showAlert("Enter both username and password.", "error");
     return;
   }
 
-  if (!window.PublicKeyCredential) {
-    closeEqResetFaceModal();
-    showAlert("Open via HTTPS (https://fefei.tail129892.ts.net:5000) to enable Windows Hello.", "error");
-    return;
-  }
-
   try {
-    const optRes = await fetch("/api/own-equipment/auth/webauthn/register-options", {
+    const res = await fetch("/api/own-equipment/auth/verify-credentials", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
-    const optData = await optRes.json();
-    if (!optData.success) {
+    const data = await res.json();
+
+    if (data.success) {
+      eqRfTempCreds = { username, password };
+      document.getElementById("eqResetVerifyModal").style.display = "none";
+      startEqFaceAuth("reset");
+    } else {
       closeEqResetFaceModal();
-      showAlert(optData.message || "Invalid credentials.", "error");
-      return;
-    }
-
-    const opts = optData.options;
-    opts.challenge = eqB64UrlToBuf(opts.challenge);
-    opts.user.id = eqB64UrlToBuf(opts.user.id);
-    if (opts.excludeCredentials) {
-      opts.excludeCredentials = opts.excludeCredentials.map((c) => ({
-        ...c,
-        id: eqB64UrlToBuf(c.id),
-      }));
-    }
-
-    const cred = await navigator.credentials.create({ publicKey: opts });
-    const credential = {
-      id: cred.id,
-      rawId: eqBufToB64Url(cred.rawId),
-      type: cred.type,
-      response: {
-        attestationObject: eqBufToB64Url(cred.response.attestationObject),
-        clientDataJSON: eqBufToB64Url(cred.response.clientDataJSON),
-        transports: cred.response.getTransports ? cred.response.getTransports() : ["internal"],
-      },
-    };
-
-    const verRes = await fetch("/api/own-equipment/auth/webauthn/register-verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: optData.userId, credential }),
-    });
-    const verData = await verRes.json();
-    closeEqResetFaceModal();
-
-    if (verData.success) {
-      localStorage.setItem("eq_webauthn_enabled", "1");
-      const faceBtn = document.querySelector(".face-corner-btn");
-      if (faceBtn) faceBtn.style.display = "flex";
-      showAlert(verData.message, "success");
-    } else {
-      showAlert(verData.message || "Biometric setup failed.", "error");
+      showAlert(data.message || "Invalid credentials.", "error");
     }
   } catch (err) {
     closeEqResetFaceModal();
-    showAlert(err.message || "Windows Hello cancelled or unavailable.", "error");
-  }
-}
-
-async function executeEqWebAuthnLogin() {
-  if (!window.PublicKeyCredential) {
-    showAlert("Open via HTTPS (https://fefei.tail129892.ts.net:5000) for Windows Hello.", "error");
-    return;
-  }
-  try {
-    const optRes = await fetch("/api/own-equipment/auth/webauthn/login-options", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    const optData = await optRes.json();
-    if (!optData.success) {
-      showAlert(optData.message || "Failed to start Windows Hello.", "error");
-      return;
-    }
-
-    const challengeB64 = optData.options.challenge;
-    const opts = optData.options;
-    opts.challenge = eqB64UrlToBuf(opts.challenge);
-
-    const assertion = await navigator.credentials.get({ publicKey: opts });
-    const credential = {
-      id: assertion.id,
-      rawId: eqBufToB64Url(assertion.rawId),
-      type: assertion.type,
-      response: {
-        authenticatorData: eqBufToB64Url(assertion.response.authenticatorData),
-        clientDataJSON: eqBufToB64Url(assertion.response.clientDataJSON),
-        signature: eqBufToB64Url(assertion.response.signature),
-        userHandle: assertion.response.userHandle ? eqBufToB64Url(assertion.response.userHandle) : null,
-      },
-    };
-
-    const verRes = await fetch("/api/own-equipment/auth/webauthn/login-verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credential, challenge: challengeB64 }),
-    });
-    const verData = await verRes.json();
-
-    if (verData.success && verData.token) {
-      localStorage.setItem("eq_token", verData.token);
-      localStorage.setItem("eq_user", JSON.stringify(verData.user));
-      window.location.replace(window.ownEquipmentSession.getLoginDestination());
-    } else {
-      showAlert(verData.message || "Biometric login failed.", "error");
-    }
-  } catch (err) {
-    showAlert("Windows Hello cancelled or not registered on this device.", "error");
+    showAlert("Error connecting to server.", "error");
   }
 }
 
@@ -500,7 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const faceBtn = document.querySelector(".face-corner-btn");
   if (faceBtn) {
-    faceBtn.style.display = localStorage.getItem("eq_webauthn_enabled")
+    faceBtn.style.display = localStorage.getItem("eq_face_trust_token")
       ? "flex"
       : "none";
   }

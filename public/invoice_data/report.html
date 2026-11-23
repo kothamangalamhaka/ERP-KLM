@@ -1148,10 +1148,10 @@
         <button
           type="button"
           class="btn-face-corner"
-          onclick="executeReportWebAuthnLogin()"
-          title="Windows Hello / Face ID Login"
+          onclick="executeReportFaceLogin()"
+          title="Face Login"
         >
-          🛡️
+          📸
         </button>
         <h2>Invoice Report</h2>
         <input
@@ -1396,7 +1396,7 @@
               display: block;
               margin-bottom: 10px;
             "
-            >🛡️ Enable Windows Hello / Face ID</a
+            >📸 Reset / Update Face Data</a
           >
           <a
             href="#"
@@ -7406,19 +7406,6 @@
         billingRfTempCreds = null;
       }
 
-      function repBufToB64Url(buf) {
-        return btoa(String.fromCharCode(...new Uint8Array(buf)))
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=+$/, "");
-      }
-
-      function repB64UrlToBuf(b64) {
-        const pad = "=".repeat((4 - (b64.length % 4)) % 4);
-        const raw = atob(b64.replace(/-/g, "+").replace(/_/g, "/") + pad);
-        return Uint8Array.from(raw, (c) => c.charCodeAt(0)).buffer;
-      }
-
       async function verifyAndStartBillingFaceReset() {
         const u = document.getElementById("billingRfUsername").value.trim();
         const p = document.getElementById("billingRfPassword").value;
@@ -7429,127 +7416,31 @@
           msg.style.color = "#dc3545";
           return;
         }
-        if (!window.PublicKeyCredential) {
-          msg.innerText = "Open via HTTPS (https://fefei.tail129892.ts.net:5000) for Windows Hello.";
-          msg.style.color = "#dc3545";
-          return;
-        }
 
         msg.innerText = "Verifying...";
         msg.style.color = "#0ea5e9";
 
         try {
-          const optRes = await fetch("/api/invoice-auth/webauthn/register-options", {
+          const res = await fetch("/api/invoice-auth/verify-credentials", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username: u, password: p }),
           });
-          const optData = await optRes.json();
-          if (!optData.success) {
-            msg.innerText = optData.message || "Invalid credentials.";
-            msg.style.color = "#dc3545";
-            return;
-          }
+          const data = await res.json();
 
-          const opts = optData.options;
-          opts.challenge = repB64UrlToBuf(opts.challenge);
-          opts.user.id = repB64UrlToBuf(opts.user.id);
-          if (opts.excludeCredentials) {
-            opts.excludeCredentials = opts.excludeCredentials.map((c) => ({
-              ...c,
-              id: repB64UrlToBuf(c.id),
-            }));
-          }
-
-          const cred = await navigator.credentials.create({ publicKey: opts });
-          const credential = {
-            id: cred.id,
-            rawId: repBufToB64Url(cred.rawId),
-            type: cred.type,
-            response: {
-              attestationObject: repBufToB64Url(cred.response.attestationObject),
-              clientDataJSON: repBufToB64Url(cred.response.clientDataJSON),
-              transports: cred.response.getTransports ? cred.response.getTransports() : ["internal"],
-            },
-          };
-
-          const verRes = await fetch("/api/invoice-auth/webauthn/register-verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: optData.userId, credential }),
-          });
-          const verData = await verRes.json();
-          document.getElementById("billingResetVerifyModal").style.display = "none";
-
-          if (verData.success) {
-            localStorage.setItem("invoice_webauthn_enabled", "1");
-            const repBtn = document.querySelector(".btn-face-corner");
-            if (repBtn) repBtn.style.display = "flex";
-            toggleAuthView("loginBox");
-            showToast(verData.message);
+          if (data.success) {
+            billingRfTempCreds = { username: u, password: p };
+            document.getElementById("billingResetVerifyModal").style.display =
+              "none";
+            startBillingResetCamera();
           } else {
-            showToast(verData.message || "Biometric setup failed.");
+            msg.innerText = data.message || "Invalid credentials.";
+            msg.style.color = "#dc3545";
           }
         } catch (e) {
-          msg.innerText = e.message || "Windows Hello cancelled or unavailable.";
+          msg.innerText = "Error connecting to server.";
           msg.style.color = "#dc3545";
         }
-      }
-
-      async function executeReportWebAuthnLogin() {
-        if (!window.PublicKeyCredential) {
-          return showToast("Open via HTTPS (https://fefei.tail129892.ts.net:5000) for Windows Hello.");
-        }
-        try {
-          const optRes = await fetch("/api/invoice-auth/webauthn/login-options", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
-          });
-          const optData = await optRes.json();
-          if (!optData.success) return showToast(optData.message || "Failed to start Windows Hello.");
-
-          const challengeB64 = optData.options.challenge;
-          const opts = optData.options;
-          opts.challenge = repB64UrlToBuf(opts.challenge);
-
-          const assertion = await navigator.credentials.get({ publicKey: opts });
-          const credential = {
-            id: assertion.id,
-            rawId: repBufToB64Url(assertion.rawId),
-            type: assertion.type,
-            response: {
-              authenticatorData: repBufToB64Url(assertion.response.authenticatorData),
-              clientDataJSON: repBufToB64Url(assertion.response.clientDataJSON),
-              signature: repBufToB64Url(assertion.response.signature),
-              userHandle: assertion.response.userHandle ? repBufToB64Url(assertion.response.userHandle) : null,
-            },
-          };
-
-          const verRes = await fetch("/api/invoice-auth/webauthn/login-verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ credential, challenge: challengeB64 }),
-          });
-          const verData = await verRes.json();
-
-          if (verData.success && verData.token) {
-            localStorage.setItem("invoiceToken", verData.token);
-            localStorage.setItem("timesheetToken", verData.token);
-            loadApp();
-            initLiveSyncStream();
-            showToast("Welcome " + (verData.user.displayName || ""));
-          } else {
-            showToast(verData.message || "Biometric login failed.");
-          }
-        } catch (e) {
-          showToast("Windows Hello cancelled or not registered on this device.");
-        }
-      }
-
-      const repCornerBtn = document.querySelector(".btn-face-corner");
-      if (repCornerBtn) {
-        repCornerBtn.style.display = localStorage.getItem("invoice_webauthn_enabled") ? "flex" : "none";
       }
 
       async function startBillingResetCamera() {
