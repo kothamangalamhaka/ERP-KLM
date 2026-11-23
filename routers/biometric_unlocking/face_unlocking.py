@@ -467,3 +467,160 @@ def timesheet_face_login(payload: FaceRequest, request: Request):
         return {"success": False, "message": "Server error. Please try again."}
     finally:
         _face_jobs.release()
+
+
+# ---------------- Own Equipment Tracker Face Cache & Login ----------------
+OWN_EQ_FACE_CACHE = {"users": [], "encodings": [], "last_updated": 0.0}
+
+
+def get_own_eq_cache_snapshot():
+    global OWN_EQ_FACE_CACHE
+    now = time.time()
+    snap = OWN_EQ_FACE_CACHE
+    if snap["users"] and now - snap["last_updated"] <= CACHE_TTL:
+        return snap
+
+    with _cache_lock:
+        snap = OWN_EQ_FACE_CACHE
+        if snap["users"] and now - snap["last_updated"] <= CACHE_TTL:
+            return snap
+
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT id, username, role, status, face_descriptor
+                   FROM employloguser
+                   WHERE face_descriptor IS NOT NULL"""
+            )
+            raw_users = cur.fetchall()
+            cur.close()
+        except Exception:
+            raw_users = []
+        finally:
+            conn.close()
+
+        valid_users, valid_encodings = [], []
+        for user in raw_users:
+            try:
+                stored = np.array(json.loads(user[4]), dtype=float)
+                if stored.shape == (128,):
+                    valid_users.append(user)
+                    valid_encodings.append(stored)
+            except Exception:
+                continue
+
+        OWN_EQ_FACE_CACHE = {
+            "users": valid_users,
+            "encodings": valid_encodings,
+            "last_updated": time.time(),
+        }
+        return OWN_EQ_FACE_CACHE
+
+
+@router.post("/own-equipment-invalidate-cache")
+def own_equipment_invalidate_cache():
+    global OWN_EQ_FACE_CACHE
+    with _cache_lock:
+        OWN_EQ_FACE_CACHE = {"users": [], "encodings": [], "last_updated": 0.0}
+    return {"success": True, "message": "Own Equipment cache cleared"}
+
+
+@router.post("/own-equipment-face-login")
+def own_equipment_face_login(payload: FaceRequest, request: Request):
+    ip = get_client_ip(request)
+
+    remaining = check_locked(ip)
+    if remaining > 0:
+        return locked_response(remaining)
+
+    if not payload.image or len(payload.image) > MAX_IMAGE_CHARS:
+        left = record_failure(ip)
+        if left == 0:
+            return locked_response(LOCKOUT_SECONDS)
+        return {"success": False, "message": "Invalid image."}
+
+    if not _face_jobs.acquire(timeout=JOB_WAIT_SECONDS):
+        return {"success": False, "code": "BUSY", "message": "Server busy. Please try again."}
+
+    try:
+        current = image_to_encoding(payload.image)
+        if current is None:
+            left = record_failure(ip)
+            if left == 0:
+                return locked_response(LOCKOUT_SECONDS)
+            return {"success": False, "message": f"No face detected in the image. {left} attempt(s) left."}
+
+        snap = get_own_eq_cache_snapshot()
+        if not snap["encodings"]:
+            return {"success": False, "code": "NOT_RECOGNIZED", "message": "No registered face data found for Equipment Tracker users."}
+
+        distances = face_recognition.face_distance(snap["encodings"], current)
+        best_idx = int(np.argmin(distances))
+        best_dist = float(distances[best_idx])
+
+        ambiguous = False
+        if len(distances) > 1:
+            second = float(np.partition(distances, 1)[1])
+            if second - best_dist < 0.03:
+                ambiguous = True
+
+        if best_dist > MATCH_THRESHOLD or ambiguous:
+            left = record_failure(ip)
+            logger.info("Own Equipment face NOT recognized ip=%s dist=%.3f ambiguous=%s", ip, best_dist, ambiguous)
+            if left == 0:
+                return locked_response(LOCKOUT_SECONDS)
+            return {
+                "success": False,
+                "code": "NOT_RECOGNIZED",
+                "message": f"Face not recognized. {left} attempt(s) left.",
+            }
+
+        user_id = snap["users"][best_idx][0]
+
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT username, role, status FROM employloguser WHERE id = %s", (user_id,))
+            fresh = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
+
+        if not fresh:
+            record_failure(ip)
+            return {"success": False, "code": "NOT_RECOGNIZED", "message": "User record not found."}
+
+        username, role, status = fresh
+
+        if status != "approved":
+            return {
+                "success": False,
+                "code": "NOT_APPROVED",
+                "message": "Your account status is pending or rejected by Admin.",
+            }
+
+        token = jwt.encode(
+            {
+                "id": user_id,
+                "username": username,
+                "role": role,
+                "exp": datetime.now(timezone.utc) + timedelta(hours=12),
+            },
+            JWT_SECRET,
+            algorithm="HS256",
+        )
+
+        record_success(ip)
+        logger.info("Own Equipment face login success user=%s ip=%s dist=%.3f", username, ip, best_dist)
+        return {
+            "success": True,
+            "token": token,
+            "user": {"id": user_id, "username": username, "role": role, "status": status},
+            "message": "Face login successful!",
+        }
+    except Exception:
+        logger.exception("Own Equipment face login error")
+        return {"success": False, "message": "Server error. Please try again."}
+    finally:
+        _face_jobs.release()

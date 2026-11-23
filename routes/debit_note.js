@@ -6,6 +6,29 @@ const multer = require("multer");
 const { PDFDocument, PDFName } = require("pdf-lib");
 const router = express.Router();
 
+async function ensureDnFaceTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS debit_note_faces (
+      id SERIAL PRIMARY KEY,
+      face_descriptor JSONB NOT NULL,
+      device_label TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+function euclideanDistance(desc1, desc2) {
+  if (!Array.isArray(desc1) || !Array.isArray(desc2) || desc1.length !== desc2.length) {
+    return 999;
+  }
+  let sum = 0;
+  for (let i = 0; i < desc1.length; i++) {
+    const diff = Number(desc1[i]) - Number(desc2[i]);
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+}
+
 let sseClients = [];
 
 function broadcastDebitNoteUpdate(action, data, senderId = null) {
@@ -407,6 +430,93 @@ router.post("/api/verify-code", (req, res) => {
     return res.json({ success: true, message: "Authorized" });
   }
   return res.json({ success: false, message: "Invalid Security Code" });
+});
+
+// 1. Register Face Descriptor for Debit Notes (Requires valid Access Code)
+router.post("/api/face/register", async (req, res) => {
+  try {
+    const { code, faceDescriptor, deviceLabel } = req.body;
+    const validCode =
+      process.env.VAT_TRACKER_CODE || process.env.KLM_SECURITY_CODE;
+    if (!validCode || code !== validCode) {
+      return res.json({
+        success: false,
+        message: "Invalid Access Code!",
+      });
+    }
+    if (!Array.isArray(faceDescriptor) || faceDescriptor.length === 0) {
+      return res.json({
+        success: false,
+        message: "Face data not detected. Try again.",
+      });
+    }
+
+    await ensureDnFaceTable();
+    await pool.query(
+      `INSERT INTO debit_note_faces (face_descriptor, device_label) VALUES ($1::jsonb, $2)`,
+      [JSON.stringify(faceDescriptor), deviceLabel || "Authorized Face"],
+    );
+
+    res.json({
+      success: true,
+      code: validCode,
+      message: "Face Registered & Unlocked!",
+    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// 2. Verify Face Descriptor & Unlock Debit Notes
+router.post("/api/face/verify", async (req, res) => {
+  try {
+    const { faceDescriptor } = req.body;
+    if (!Array.isArray(faceDescriptor) || faceDescriptor.length === 0) {
+      return res.json({
+        success: false,
+        message: "Face not detected.",
+      });
+    }
+
+    await ensureDnFaceTable();
+    const facesRes = await pool.query(
+      "SELECT id, face_descriptor FROM debit_note_faces",
+    );
+    if (facesRes.rows.length === 0) {
+      return res.json({
+        success: false,
+        notRegistered: true,
+        message: "No face registered yet. Click ➕ with Access Code first.",
+      });
+    }
+
+    let bestDistance = 999;
+    for (const row of facesRes.rows) {
+      const storedDesc = Array.isArray(row.face_descriptor)
+        ? row.face_descriptor
+        : JSON.parse(row.face_descriptor || "[]");
+      const dist = euclideanDistance(faceDescriptor, storedDesc);
+      if (dist < bestDistance) bestDistance = dist;
+    }
+
+    // Standard face recognition threshold (0.48)
+    if (bestDistance <= 0.48) {
+      const validCode =
+        process.env.VAT_TRACKER_CODE || process.env.KLM_SECURITY_CODE || "";
+      return res.json({
+        success: true,
+        code: validCode,
+        message: "Face Verified!",
+      });
+    }
+
+    return res.json({
+      success: false,
+      message: "Face did not match!",
+    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
 });
 
 router.get("/api/records", verifyVatTrackerCode, async (req, res) => {

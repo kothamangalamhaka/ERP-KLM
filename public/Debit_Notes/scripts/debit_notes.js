@@ -200,6 +200,149 @@ async function verifyAccessCode() {
   }
 }
 
+let dnFaceStream = null;
+let dnFaceTimer = null;
+
+function closeDnFaceModal() {
+  const modal = document.getElementById("dnFaceModal");
+  if (modal) modal.style.display = "none";
+  if (dnFaceTimer) {
+    clearTimeout(dnFaceTimer);
+    dnFaceTimer = null;
+  }
+  if (dnFaceStream) {
+    dnFaceStream.getTracks().forEach((t) => t.stop());
+    dnFaceStream = null;
+  }
+}
+
+async function startDnCameraScan(mode, accessCode = "") {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showStatus("Camera blocked! Open via HTTPS.", "error");
+    return;
+  }
+
+  const modal = document.getElementById("dnFaceModal");
+  const title = document.getElementById("dnFaceTitle");
+  const status = document.getElementById("dnFaceStatus");
+  const video = document.getElementById("dnFaceVideo");
+
+  title.innerText = mode === "register" ? "Register Face Unlock" : "Face Unlock";
+  status.innerText = "Opening Camera...";
+  status.style.color = "#38bdf8";
+  modal.style.display = "flex";
+
+  try {
+    dnFaceStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: "user" },
+      audio: false,
+    });
+    video.srcObject = dnFaceStream;
+    await video.play();
+
+    status.innerText = "Look straight at the camera...";
+    status.style.color = "#10b981";
+
+    dnFaceTimer = setTimeout(async () => {
+      try {
+        status.innerText = "Scanning & Verifying...";
+        const canvas = document.getElementById("dnFaceCanvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg");
+
+        const encRes = await fetch("/py/face-encode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: imageData }),
+        }).then((r) => r.json());
+
+        if (!encRes.success || !encRes.descriptor) {
+          closeDnFaceModal();
+          showStatus(encRes.message || "Face not detected. Try again.", "error");
+          return;
+        }
+
+        const apiUrl =
+          mode === "register" ? "/debit-notes/api/face/register" : "/debit-notes/api/face/verify";
+        const bodyPayload =
+          mode === "register"
+            ? { code: accessCode, faceDescriptor: encRes.descriptor, deviceLabel: navigator.platform || "Device" }
+            : { faceDescriptor: encRes.descriptor };
+
+        const verRes = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bodyPayload),
+        }).then((r) => r.json());
+
+        closeDnFaceModal();
+
+        if (verRes.success && verRes.code) {
+          securityCode = verRes.code;
+          localStorage.setItem("debitNoteSecurityCode", verRes.code);
+          localStorage.setItem("dnBioRegistered", "1");
+          updateCornerBioButton();
+          document.getElementById("securityModal").style.display = "none";
+          showStatus(
+            mode === "register" ? "✓ Face Registered & Unlocked!" : "✓ Unlocked via Face!",
+            "saved",
+          );
+          initDebitNotes();
+        } else {
+          if (verRes.notRegistered) {
+            localStorage.removeItem("dnBioRegistered");
+            updateCornerBioButton();
+          }
+          showStatus(verRes.message || "Face verification failed", "error");
+        }
+      } catch (e) {
+        closeDnFaceModal();
+        showStatus("Server connection error during face scan", "error");
+      }
+    }, 800);
+  } catch (err) {
+    closeDnFaceModal();
+    showStatus("Camera access denied or unavailable", "error");
+  }
+}
+
+function updateCornerBioButton() {
+  const btn = document.getElementById("cornerBioBtn");
+  if (!btn) return;
+  const isRegistered = localStorage.getItem("dnBioRegistered") === "1";
+  if (isRegistered) {
+    btn.innerText = "📸";
+    btn.title = "Unlock with Face";
+  } else {
+    btn.innerText = "➕";
+    btn.title = "Setup Face Unlock";
+  }
+}
+
+function handleCornerBioClick() {
+  const isRegistered = localStorage.getItem("dnBioRegistered") === "1";
+  if (isRegistered) {
+    unlockWithWindowsHello();
+  } else {
+    registerWindowsHello();
+  }
+}
+
+function registerWindowsHello() {
+  const code = document.getElementById("securityCodeInput").value.trim();
+  if (!code) {
+    showStatus("Enter Access Code first, then click ➕", "error");
+    document.getElementById("securityCodeInput").focus();
+    return;
+  }
+  startDnCameraScan("register", code);
+}
+
+function unlockWithWindowsHello() {
+  startDnCameraScan("verify");
+}
+
 function initDebitDarkMode() {
   const saved = localStorage.getItem("debitNoteTheme") || "light";
   const isDark = saved === "dark";
@@ -295,6 +438,7 @@ function logoutDebitNotes() {
 
 window.addEventListener("DOMContentLoaded", () => {
   initDebitDarkMode();
+  updateCornerBioButton();
   if (securityCode) {
     document.getElementById("securityModal").style.display = "none";
     initDebitNotes();
@@ -532,7 +676,11 @@ function renderTable() {
     const numAmt = parseFloat(row.amount) || 0;
     const rowPlate = (row.plate_no || "").trim().toUpperCase();
     const rowMonth = (row.month_year || "").trim().toUpperCase();
-    const isDup = rowPlate && rowMonth && numAmt > 0 && duplicateCounts[`${rowPlate}|${rowMonth}|${numAmt.toFixed(2)}`] > 1;
+    const isDup =
+      rowPlate &&
+      rowMonth &&
+      numAmt > 0 &&
+      duplicateCounts[`${rowPlate}|${rowMonth}|${numAmt.toFixed(2)}`] > 1;
 
     if (isDup) {
       tr.classList.add("row-duplicate");
@@ -563,7 +711,7 @@ function renderTable() {
     // Status 'Paid' aayi nilkkumbozhe (Total - QC > 0) red fill & white text highlight varavu
     const numTotal = parseFloat(totalVal) || 0;
     const numQc = parseFloat(row.qc_entry) || 0;
-    const isQcMismatch = isRowPaid && numTotal > 0 && (numTotal - numQc) > 0.001;
+    const isQcMismatch = isRowPaid && numTotal > 0 && numTotal - numQc > 0.001;
     const qcCustomStyle = isQcMismatch
       ? "background-color: #dc2626 !important; color: #ffffff !important;"
       : "color: #15803d;";
@@ -605,9 +753,10 @@ function renderTable() {
         </div>`
       : `<span style="font-weight: 600; color: #0284c7;">${escapeHTML(row.month_year || "")}</span>`;
 
-    const autoIdLabel = !row.plate_no && row.auto_plate_id
-      ? `#${escapeHTML(row.auto_plate_id)}`
-      : "";
+    const autoIdLabel =
+      !row.plate_no && row.auto_plate_id
+        ? `#${escapeHTML(row.auto_plate_id)}`
+        : "";
     const plateHtml = isEditable
       ? `<input 
           type="text" 
@@ -967,7 +1116,9 @@ function saveRowToBackend(idx) {
 
 function openAddNewDataModal() {
   modalEditingRecordId = null;
-  const titleEl = document.querySelector("#addNewDataModal .modal-header-bar h3");
+  const titleEl = document.querySelector(
+    "#addNewDataModal .modal-header-bar h3",
+  );
   if (titleEl) titleEl.innerText = "➕ Add New Debit Note";
   const submitBtn = document.getElementById("mSubmitBtn");
   if (submitBtn) submitBtn.innerText = "Save Debit Note";
@@ -975,7 +1126,9 @@ function openAddNewDataModal() {
 
   const populateSelect = (id, category, list) => {
     const sel = document.getElementById(id);
-    const allowAddNew = ["approved_by", "site", "company", "customer"].includes(category);
+    const allowAddNew = ["approved_by", "site", "company", "customer"].includes(
+      category,
+    );
     sel.innerHTML =
       `<option value="">-- Select --</option>` +
       (list || [])
@@ -983,7 +1136,9 @@ function openAddNewDataModal() {
           (v) => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`,
         )
         .join("") +
-      (allowAddNew ? `<option value="__ADD_NEW__" style="font-weight: bold; color: #2563eb;">➕ Add New</option>` : "");
+      (allowAddNew
+        ? `<option value="__ADD_NEW__" style="font-weight: bold; color: #2563eb;">➕ Add New</option>`
+        : "");
     sel.onchange = () => handleModalDropdownChange(id, category);
   };
 
@@ -1036,7 +1191,10 @@ async function handleModalDropdownChange(selectId, category) {
           s.innerHTML =
             `<option value="">-- Select --</option>` +
             (list || [])
-              .map((v) => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`)
+              .map(
+                (v) =>
+                  `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`,
+              )
               .join("") +
             `<option value="__ADD_NEW__" style="font-weight: bold; color: #2563eb;">➕ Add New</option>`;
         };
@@ -1277,13 +1435,16 @@ function contextEditRow() {
   openAddNewDataModal();
   modalEditingRecordId = source.id ? Number(source.id) : null;
 
-  const titleEl = document.querySelector("#addNewDataModal .modal-header-bar h3");
+  const titleEl = document.querySelector(
+    "#addNewDataModal .modal-header-bar h3",
+  );
   if (titleEl) titleEl.innerText = "✏️ Edit Debit Note";
   const submitBtn = document.getElementById("mSubmitBtn");
   if (submitBtn) submitBtn.innerText = "Update Debit Note";
 
   document.getElementById("m_received_date").value = source.received_date || "";
-  document.getElementById("m_submitted_date").value = source.submitted_date || "";
+  document.getElementById("m_submitted_date").value =
+    source.submitted_date || "";
   document.getElementById("m_month_year").value = source.month_year || "";
   document.getElementById("m_approved_by").value = source.approved_by || "";
   document.getElementById("m_particulars").value = source.particulars || "";
@@ -1293,7 +1454,8 @@ function contextEditRow() {
   document.getElementById("m_company").value = source.company || "";
   document.getElementById("m_customer").value = source.customer || "";
   document.getElementById("m_amount").value = source.amount || "";
-  document.getElementById("m_vat_status").value = source.vat_status || "Included";
+  document.getElementById("m_vat_status").value =
+    source.vat_status || "Included";
   document.getElementById("m_qc_entry").value = source.qc_entry || "";
   document.getElementById("m_owner_name").value = source.owner_name || "";
   document.getElementById("m_status").value = source.status || "Received";
@@ -1316,7 +1478,8 @@ function contextCloneRow() {
 
   // തിരഞ്ഞെടുത്ത വരിയിലെ ഡാറ്റാ മോഡലിലേക്ക് ഫിൽ ചെയ്തു കൊടുക്കുക
   document.getElementById("m_received_date").value = source.received_date || "";
-  document.getElementById("m_submitted_date").value = source.submitted_date || "";
+  document.getElementById("m_submitted_date").value =
+    source.submitted_date || "";
   document.getElementById("m_month_year").value = source.month_year || "";
   document.getElementById("m_approved_by").value = source.approved_by || "";
   document.getElementById("m_particulars").value = source.particulars || "";
@@ -1326,11 +1489,12 @@ function contextCloneRow() {
   document.getElementById("m_company").value = source.company || "";
   document.getElementById("m_customer").value = source.customer || "";
   document.getElementById("m_amount").value = source.amount || "";
-  document.getElementById("m_vat_status").value = source.vat_status || "Included";
+  document.getElementById("m_vat_status").value =
+    source.vat_status || "Included";
   document.getElementById("m_qc_entry").value = source.qc_entry || "";
   document.getElementById("m_owner_name").value = source.owner_name || "";
   document.getElementById("m_status").value = source.status || "Received";
-  
+
   if (document.getElementById("m_ref_no")) {
     document.getElementById("m_ref_no").value = source.ref_no || "";
   }
@@ -1376,10 +1540,24 @@ async function contextDeleteRow() {
 }
 
 const DATE_FILTER_COLS = ["received_date", "submitted_date"];
-const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function buildDateTreeHTML(values, col) {
-  const isChecked = (v) => !activeFilters[col] || activeFilters[col].includes(v);
+  const isChecked = (v) =>
+    !activeFilters[col] || activeFilters[col].includes(v);
 
   const leaf = (value, label) => `
     <div class="filter-item tree-leaf">
@@ -1405,7 +1583,8 @@ function buildDateTreeHTML(values, col) {
     if (v === "(Blanks)") return blanks.push(v);
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
     if (!m) return others.push(v);
-    const y = m[1], mo = parseInt(m[2], 10) - 1;
+    const y = m[1],
+      mo = parseInt(m[2], 10) - 1;
     tree[y] = tree[y] || {};
     tree[y][mo] = tree[y][mo] || [];
     tree[y][mo].push(v);
@@ -1415,14 +1594,22 @@ function buildDateTreeHTML(values, col) {
   blanks.forEach((v) => (html += leaf(v, "(Blanks)")));
   others.forEach((v) => (html += leaf(v, v)));
 
-  Object.keys(tree).sort().forEach((y) => {
-    let monthsHtml = "";
-    Object.keys(tree[y]).map(Number).sort((a, b) => a - b).forEach((mo) => {
-      const daysHtml = tree[y][mo].sort().map((v) => leaf(v, formatDateDisplay(v))).join("");
-      monthsHtml += node(MONTH_SHORT[mo], daysHtml, false);
+  Object.keys(tree)
+    .sort()
+    .forEach((y) => {
+      let monthsHtml = "";
+      Object.keys(tree[y])
+        .map(Number)
+        .sort((a, b) => a - b)
+        .forEach((mo) => {
+          const daysHtml = tree[y][mo]
+            .sort()
+            .map((v) => leaf(v, formatDateDisplay(v)))
+            .join("");
+          monthsHtml += node(MONTH_SHORT[mo], daysHtml, false);
+        });
+      html += node(y, monthsHtml, false);
     });
-    html += node(y, monthsHtml, false);
-  });
 
   return html;
 }
@@ -1451,7 +1638,9 @@ function onLeafChange() {
 }
 
 function updateTreeStates() {
-  const nodes = Array.from(document.querySelectorAll("#filterList .tree-node")).reverse();
+  const nodes = Array.from(
+    document.querySelectorAll("#filterList .tree-node"),
+  ).reverse();
   nodes.forEach((node) => {
     const cb = node.querySelector(":scope > .tree-row > .tree-cb");
     const leaves = Array.from(node.querySelectorAll(".col-filter-cb"));
@@ -1524,7 +1713,9 @@ function searchFilterList() {
     item.style.display = lbl.includes(q) || raw.includes(q) ? "flex" : "none";
   });
 
-  const nodes = Array.from(document.querySelectorAll("#filterList .tree-node")).reverse();
+  const nodes = Array.from(
+    document.querySelectorAll("#filterList .tree-node"),
+  ).reverse();
   nodes.forEach((node) => {
     const anyVisible = Array.from(node.querySelectorAll(".tree-leaf")).some(
       (l) => l.style.display !== "none",
@@ -1553,7 +1744,9 @@ function toggleSelectAllFilters(checkState) {
 }
 
 function syncSelectAllCheckbox() {
-  const visibleCbs = Array.from(document.querySelectorAll("#filterList .filter-item"))
+  const visibleCbs = Array.from(
+    document.querySelectorAll("#filterList .filter-item"),
+  )
     .filter((item) => item.style.display !== "none")
     .map((item) => item.querySelector(".col-filter-cb"))
     .filter(Boolean);
@@ -1562,7 +1755,8 @@ function syncSelectAllCheckbox() {
   if (selectAllCb && visibleCbs.length > 0) {
     const checkedCount = visibleCbs.filter((cb) => cb.checked).length;
     selectAllCb.checked = checkedCount === visibleCbs.length;
-    selectAllCb.indeterminate = checkedCount > 0 && checkedCount < visibleCbs.length;
+    selectAllCb.indeterminate =
+      checkedCount > 0 && checkedCount < visibleCbs.length;
   }
   updateTreeStates();
 }
@@ -1609,7 +1803,9 @@ function applyFiltersAndSearch() {
 
     for (let col in activeFilters) {
       if (col === "attachment") {
-        const hasFile = Boolean(row.attachment_path && String(row.attachment_path).trim() !== "");
+        const hasFile = Boolean(
+          row.attachment_path && String(row.attachment_path).trim() !== "",
+        );
         const statusVal = hasFile ? "Has Attachment" : "No Attachment";
         if (!activeFilters[col].includes(statusVal)) {
           visible = false;
@@ -1631,7 +1827,8 @@ function applyFiltersAndSearch() {
         const rowStr = Object.values(row).join(" ").toUpperCase();
         if (!rowStr.includes(q)) visible = false;
       } else if (searchType === "plate_no") {
-        const combinedPlate = `${row.plate_no || ""} #${row.auto_plate_id || ""} ${row.auto_plate_id || ""}`.toUpperCase();
+        const combinedPlate =
+          `${row.plate_no || ""} #${row.auto_plate_id || ""} ${row.auto_plate_id || ""}`.toUpperCase();
         if (!combinedPlate.includes(q)) visible = false;
       } else {
         const val = (row[searchType] || "").toUpperCase();
@@ -1670,7 +1867,9 @@ function toggleStatusEditMode() {
     document.body.classList.remove("editable-active");
   }
   const btn = document.getElementById("statusEditModeBtn");
-  btn.innerText = isStatusEditMode ? "💾 Lock Status / QC" : "⚡ Edit Status / QC";
+  btn.innerText = isStatusEditMode
+    ? "💾 Lock Status / QC"
+    : "⚡ Edit Status / QC";
   btn.style.background = isStatusEditMode ? "#0284c7" : "transparent";
   btn.style.color = isStatusEditMode ? "#ffffff" : "#0284c7";
   ensureEmptyRowBuffer();
@@ -1773,7 +1972,8 @@ async function downloadAttachmentWithCustomName(
     .toUpperCase();
 
   const ext = fileUrl.split(".").pop().split(/\#|\?/)[0] || "pdf";
-  const downloadFileName = cleanFileFromUrl || `${cleanPlate}_${cleanMonth}.${ext}`;
+  const downloadFileName =
+    cleanFileFromUrl || `${cleanPlate}_${cleanMonth}.${ext}`;
 
   showStatus("Downloading file...", "saving");
 
@@ -1815,7 +2015,8 @@ function openPdfViewerModal(fileUrl, plateNo, monthYear) {
   activeViewerPlate = plateNo || "";
   activeViewerMonth = monthYear || "";
 
-  document.getElementById("pdfViewerTitle").innerText = `${plateNo || "VEHICLE"} - ${monthYear || "ATTACHMENT"}`;
+  document.getElementById("pdfViewerTitle").innerText =
+    `${plateNo || "VEHICLE"} - ${monthYear || "ATTACHMENT"}`;
   document.getElementById("pdfViewerFrame").src = fileUrl;
   document.getElementById("pdfViewerModal").style.display = "flex";
 }
@@ -1847,13 +2048,16 @@ async function viewerCopyAsImage() {
 
   try {
     // PDF ആണെങ്കിൽ ക്യാൻവാസിലേക്ക് റെൻഡർ ചെയ്യാനായി pdfjs ഉപയോഗിക്കാം അല്ലെങ്കിൽ സാധാരണ ഇമേജ് ആണെങ്കിൽ നേരിട്ട് കോപ്പി ചെയ്യാം
-    const isPdf = activeViewerUrl.toLowerCase().split(/[#?]/)[0].endsWith(".pdf");
+    const isPdf = activeViewerUrl
+      .toLowerCase()
+      .split(/[#?]/)[0]
+      .endsWith(".pdf");
 
     if (!isPdf) {
       const resp = await fetch(activeViewerUrl);
       const blob = await resp.blob();
       await navigator.clipboard.write([
-        new ClipboardItem({ [blob.type]: blob })
+        new ClipboardItem({ [blob.type]: blob }),
       ]);
       showStatus("✓ Image Copied to Clipboard", "saved");
       return;
@@ -1863,7 +2067,8 @@ async function viewerCopyAsImage() {
     if (!window.pdfjsLib) {
       await new Promise((resolve, reject) => {
         const script = document.createElement("script");
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js";
+        script.src =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js";
         script.onload = () => {
           window.pdfjsLib.GlobalWorkerOptions.workerSrc =
             "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
@@ -1893,7 +2098,7 @@ async function viewerCopyAsImage() {
       }
       try {
         await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": blob })
+          new ClipboardItem({ "image/png": blob }),
         ]);
         showStatus("✓ PDF Page 1 Copied as Image", "saved");
       } catch (err) {
@@ -1923,18 +2128,21 @@ function copyCellTextOnContextMenu(e, label) {
     return;
   }
 
-  navigator.clipboard.writeText(text).then(() => {
-    showStatus(`✓ Copied ${label}: ${text}`, "saved");
-  }).catch(() => {
-    // Fallback for older browsers
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    showStatus(`✓ Copied ${label}: ${text}`, "saved");
-  });
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      showStatus(`✓ Copied ${label}: ${text}`, "saved");
+    })
+    .catch(() => {
+      // Fallback for older browsers
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showStatus(`✓ Copied ${label}: ${text}`, "saved");
+    });
 }
 
 // ==========================================
@@ -2055,7 +2263,11 @@ function renderRefNoMatchingRows(selectedRef) {
       : r.auto_plate_id
         ? `#${escapeHTML(r.auto_plate_id)}`
         : "-";
-    const totDisp = (parseFloat(r.total_amount) || parseFloat(r.amount) || 0).toFixed(2);
+    const totDisp = (
+      parseFloat(r.total_amount) ||
+      parseFloat(r.amount) ||
+      0
+    ).toFixed(2);
     const fileStatus = r.attachment_path
       ? `<span style="color: #15803d; font-weight: 600;">Attached</span>`
       : `<span style="color: #94a3b8;">None</span>`;

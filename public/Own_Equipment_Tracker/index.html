@@ -136,8 +136,37 @@
       .btn:active {
         transform: translateY(0);
       }
+      .btn-face {
+        background: linear-gradient(100deg, #10b981, #059669);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.22);
+        margin-top: 10px;
+      }
+      .btn-face-capture {
+        background: linear-gradient(100deg, #0284c7, #0369a1);
+        box-shadow: 0 8px 20px rgba(2, 132, 199, 0.22);
+        margin-top: 2px;
+        margin-bottom: 10px;
+        padding: 10px;
+        font-size: 14px;
+      }
+      .btn-cancel {
+        background: linear-gradient(100deg, #ef4444, #dc2626);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.22);
+      }
+      .btn-secondary {
+        background: rgba(100, 116, 139, 0.72);
+        box-shadow: none;
+      }
+      .face-status {
+        display: none;
+        margin-bottom: 10px;
+        color: #4ade80;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+      }
       .toggle-link {
-        margin-top: 18px;
+        margin-top: 16px;
         color: #67e8f9;
         cursor: pointer;
         font-size: 13px;
@@ -147,6 +176,11 @@
       .toggle-link:hover {
         color: #cffafe;
         text-decoration: underline;
+      }
+      .sub-link {
+        margin-top: 10px;
+        color: #93c5fd;
+        font-size: 12.5px;
       }
       .alert {
         display: none;
@@ -165,6 +199,48 @@
         border-color: rgba(74, 222, 128, 0.3);
         color: #bbf7d0;
         background: rgba(20, 83, 45, 0.42);
+      }
+      .face-modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10002;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        background: rgba(7, 11, 20, 0.84);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+      }
+      .face-modal-card {
+        width: min(100%, 360px);
+        padding: 26px 24px;
+        text-align: center;
+      }
+      .face-modal-card h2 {
+        margin-bottom: 8px;
+        font-size: 20px;
+      }
+      .face-modal-subtitle {
+        margin: 0 0 18px;
+        color: #cbd5e1;
+        font-size: 13px;
+      }
+      .face-instruction {
+        min-height: 20px;
+        margin: 6px 0 14px;
+        color: #38bdf8;
+        font-size: 13.5px;
+        font-weight: 700;
+      }
+      .face-video {
+        width: 100%;
+        max-width: 300px;
+        height: auto;
+        border: 2px solid rgba(56, 189, 248, 0.55);
+        border-radius: 12px;
+        background: #020617;
+        transform: scaleX(-1);
       }
       @media (max-width: 480px) {
         body {
@@ -201,8 +277,21 @@
           />
         </div>
         <button class="btn" onclick="handleLogin()">Login</button>
+        <button
+          type="button"
+          class="btn btn-face"
+          onclick="startEqFaceAuth('login')"
+        >
+          📸 Face Login
+        </button>
         <div class="toggle-link" onclick="toggleView('signup')">
           New User? Sign Up Here
+        </div>
+        <div
+          class="toggle-link sub-link"
+          onclick="openEqResetFaceModal()"
+        >
+          📸 Reset / Update Face Data
         </div>
       </div>
 
@@ -224,6 +313,17 @@
           />
         </div>
         <button
+          type="button"
+          id="regFaceBtn"
+          class="btn btn-face-capture"
+          onclick="startEqFaceAuth('register')"
+        >
+          📷 Capture Face for Signup
+        </button>
+        <div id="regFaceStatus" class="face-status">
+          ✓ Face Captured Successfully!
+        </div>
+        <button
           class="btn"
           style="background: #2980b9"
           onclick="handleSignup()"
@@ -232,6 +332,82 @@
         </button>
         <div class="toggle-link" onclick="toggleView('login')">
           Already have an account? Login
+        </div>
+      </div>
+    </div>
+
+    <!-- Credentials Modal for Reset / Update Face Data -->
+    <div id="eqResetVerifyModal" class="face-modal-backdrop">
+      <div class="auth-card face-modal-card">
+        <h2>Verify Credentials</h2>
+        <p class="face-modal-subtitle">
+          Enter username and password to re-register Face ID.
+        </p>
+        <div class="form-group" style="text-align: left">
+          <label>Username</label>
+          <input
+            type="text"
+            id="eqRfUsername"
+            placeholder="Username"
+            autocomplete="off"
+          />
+        </div>
+        <div class="form-group" style="text-align: left">
+          <label>Password</label>
+          <input
+            type="password"
+            id="eqRfPassword"
+            placeholder="Password"
+            autocomplete="new-password"
+          />
+        </div>
+        <button
+          type="button"
+          class="btn btn-face-capture"
+          onclick="verifyAndStartEqFaceReset()"
+        >
+          Continue to Face Scan
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          onclick="closeEqResetFaceModal()"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- Universal Direct Camera Face Verification Modal -->
+    <div id="eqUniversalFaceModal" class="face-modal-backdrop">
+      <div class="auth-card face-modal-card">
+        <h2 id="eqFaceModalTitle">Face Verification</h2>
+        <div id="eqUniversalInstruction" class="face-instruction">
+          Initializing Camera...
+        </div>
+        <video
+          id="eqUniversalVideo"
+          class="face-video"
+          width="320"
+          height="240"
+          autoplay
+          muted
+          playsinline
+        ></video>
+        <canvas
+          id="eqUniversalCanvas"
+          width="320"
+          height="240"
+          style="display: none"
+        ></canvas>
+        <div style="margin-top: 16px">
+          <button
+            type="button"
+            class="btn btn-cancel"
+            onclick="closeEqUniversalFace()"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
