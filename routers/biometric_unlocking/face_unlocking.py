@@ -530,6 +530,9 @@ def own_equipment_invalidate_cache():
 def reset_face_lock(request: Request):
     ip = get_client_ip(request)
     record_success(ip)
+    if request.client and request.client.host:
+        record_success(request.client.host)
+    record_success("127.0.0.1")
     return {"success": True, "message": "Face lock cleared"}
 
 

@@ -157,9 +157,11 @@ async function verifyAndStartEqFaceReset() {
       document.getElementById("eqResetVerifyModal").style.display = "none";
       startEqFaceAuth("reset");
     } else {
+      closeEqResetFaceModal();
       showAlert(data.message || "Invalid credentials.", "error");
     }
   } catch (err) {
+    closeEqResetFaceModal();
     showAlert("Error connecting to server.", "error");
   }
 }
@@ -233,9 +235,14 @@ async function startEqFaceAuth(action) {
 async function handleEqFaceCapture(frame) {
   isEqProcessing = true;
   const canvas = document.getElementById("eqUniversalCanvas");
+  const vw = frame.videoWidth || 320;
+  const vh = frame.videoHeight || 240;
+  const scale = Math.min(1, 480 / Math.max(vw, vh));
+  canvas.width = Math.round(vw * scale);
+  canvas.height = Math.round(vh * scale);
   const ctx = canvas.getContext("2d");
   ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
-  const imageData = canvas.toDataURL("image/jpeg");
+  const imageData = canvas.toDataURL("image/jpeg", 0.92);
 
   if (activeEqFaceAction === "login") {
     try {
