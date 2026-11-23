@@ -566,7 +566,8 @@
     <!-- Custom Right Click Context Menu -->
     <div id="contextMenu" class="context-menu">
       <div class="context-menu-item" onclick="triggerUpload()">
-        <i class="fa-solid fa-upload"></i><span id="ctxUploadLabel">Upload / Replace</span>
+        <i class="fa-solid fa-upload"></i
+        ><span id="ctxUploadLabel">Upload / Replace</span>
       </div>
       <div
         id="ctxDeleteItem"
@@ -2453,7 +2454,9 @@
         document.getElementById("contextMenu").style.display = "none";
         if (!currentContextTarget || !currentContextTarget.url) return;
 
-        const docLabel = String(currentContextTarget.type || "Document").toUpperCase();
+        const docLabel = String(
+          currentContextTarget.type || "Document",
+        ).toUpperCase();
         const confirmRes = await Swal.fire({
           icon: "warning",
           title: `Delete ${docLabel}?`,
@@ -2490,7 +2493,11 @@
             });
           }
         } catch (err) {
-          Swal.fire({ icon: "error", title: "Delete Error", text: err.message });
+          Swal.fire({
+            icon: "error",
+            title: "Delete Error",
+            text: err.message,
+          });
         }
       }
 
