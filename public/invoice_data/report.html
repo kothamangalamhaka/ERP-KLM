@@ -183,10 +183,13 @@
       }
 
       .container {
-        padding: 20px;
+        padding: 8px 12px;
         max-width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
+      }
+      body.compact-mode .container {
+        padding-top: 4px;
       }
       .controls-card {
         background: var(--card-bg);
@@ -495,36 +498,39 @@
 
       table {
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
         min-width: 1600px;
         table-layout: fixed;
       }
       th,
       td {
-        border: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
         padding: 10px 8px;
         text-align: center;
         vertical-align: middle;
         word-wrap: break-word;
         overflow-wrap: break-word;
       }
-      /* 🟢 രണ്ട് ഹെഡ്ഡർ വരികളും ഒന്നിച്ച് ഫ്രീസ് ചെയ്തു നിർത്താൻ */
+      th:first-child,
+      td:first-child {
+        border-left: 1px solid var(--border-color);
+      }
       thead tr:first-child th {
+        border-top: 1px solid var(--border-color);
+      }
+      /* 🟢 രണ്ട് ഹെഡ്ഡർ വരികളും ഒറ്റ ബ്ലോക്കായി ഫ്രീസ് ചെയ്തു നിർത്താൻ */
+      thead {
         position: sticky;
         top: 0;
-        z-index: 12;
-      }
-      thead tr:nth-child(2) th {
-        position: sticky;
-        top: 50px;
-        z-index: 11;
+        z-index: 25;
       }
       th {
         font-weight: 600;
         font-size: 12px;
         cursor: pointer;
         user-select: none;
-        transform: translateZ(0);
         background-clip: padding-box;
       }
 
@@ -4813,6 +4819,45 @@
         }
       }
 
+      // Live evaluate For Driver AMT on Enter or leaving the cell (works in both Master & Inline edit modes)
+      function evaluateDriverAmountLive(cell) {
+        if (!cell || !cell.classList.contains("driver-amount-cell")) return;
+        const raw = cell.innerText.trim();
+        if (!raw) return;
+        const parsed = normalizeInvoiceAmountCell(cell);
+        if (parsed.valid && parsed.value !== null) {
+          cell.innerText = Number(parsed.value).toFixed(2);
+          cell.dataset.myEdited = "true";
+          const tr = cell.closest("tr");
+          if (tr) {
+            tr.classList.add("row-edited");
+            if (typeof isMasterEditMode !== "undefined" && isMasterEditMode) {
+              tr.classList.add("special-row-edited");
+            }
+            if (typeof emitTypingUpdate === "function") {
+              emitTypingUpdate(tr, "driver_amount", cell.innerText);
+            }
+          }
+        }
+      }
+
+      document.addEventListener("focusout", function (e) {
+        const cell = e.target.closest && e.target.closest(".driver-amount-cell");
+        if (cell && cell.isContentEditable) {
+          evaluateDriverAmountLive(cell);
+        }
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter") return;
+        const cell = e.target.closest && e.target.closest(".driver-amount-cell");
+        if (cell && cell.isContentEditable) {
+          e.preventDefault();
+          evaluateDriverAmountLive(cell);
+          cell.blur();
+        }
+      });
+
       function activateEditModeCells() {
         document.querySelectorAll(".editable-field").forEach((td) => {
           td.classList.add("edit-active");
@@ -4827,6 +4872,15 @@
           });
 
           td.addEventListener("blur", function () {
+            if (
+              this.classList.contains("driver-amount-cell") &&
+              this.dataset.myEdited === "true"
+            ) {
+              const parsed = normalizeInvoiceAmountCell(this);
+              if (parsed.valid && parsed.value !== null) {
+                this.innerText = Number(parsed.value).toFixed(2);
+              }
+            }
             const tr = this.closest("tr");
             emitCellLock(tr, this.dataset.field, "UNLOCK");
           });
@@ -6808,13 +6862,15 @@
 
             const driverAmountTd = tr.querySelector(".driver-amount-cell");
             if (driverAmountTd && driverAmountTd.dataset.myEdited === "true") {
-              let dAmtVal = driverAmountTd.innerText.trim().replace(/,/g, "");
+              const parsedDrvAmt = normalizeInvoiceAmountCell(driverAmountTd);
+              if (!parsedDrvAmt.valid) {
+                window.alert("Invalid formula in For Driver AMT column!");
+                return;
+              }
               billRec.driver_amount =
-                dAmtVal === ""
+                parsedDrvAmt.value === null
                   ? null
-                  : isNaN(parseFloat(dAmtVal))
-                    ? null
-                    : parseFloat(dAmtVal);
+                  : Number(parsedDrvAmt.value.toFixed(2));
               hasBillChange = true;
             }
 
@@ -7089,9 +7145,15 @@
           }
 
           if (driverAmountTd && driverAmountTd.dataset.myEdited === "true") {
-            let t = driverAmountTd.innerText.trim().replace(/,/g, "");
-            specialPayload.driver_amount =
-              t === "" ? null : isNaN(parseFloat(t)) ? null : parseFloat(t);
+            const parsedDrvAmt = normalizeInvoiceAmountCell(driverAmountTd);
+            if (!parsedDrvAmt.valid) {
+              hasInvalidFormula = true;
+            } else {
+              specialPayload.driver_amount =
+                parsedDrvAmt.value === null
+                  ? null
+                  : Number(parsedDrvAmt.value.toFixed(2));
+            }
           }
 
           if (deductTd && deductTd.dataset.myEdited === "true") {
