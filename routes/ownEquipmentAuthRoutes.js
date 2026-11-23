@@ -170,6 +170,14 @@ router.post("/login", async (req, res) => {
       { expiresIn: "12h" },
     );
 
+    const clientIp = (req.headers["x-forwarded-for"] || req.ip || "")
+      .split(",")[0]
+      .trim();
+    fetch("http://127.0.0.1:8001/py/reset-face-lock", {
+      method: "POST",
+      headers: clientIp ? { "x-forwarded-for": clientIp } : {},
+    }).catch(() => {});
+
     res.json({ success: true, token, user });
   } catch (err) {
     console.error(err);

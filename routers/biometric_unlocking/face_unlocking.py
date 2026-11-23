@@ -526,6 +526,13 @@ def own_equipment_invalidate_cache():
     return {"success": True, "message": "Own Equipment cache cleared"}
 
 
+@router.post("/reset-face-lock")
+def reset_face_lock(request: Request):
+    ip = get_client_ip(request)
+    record_success(ip)
+    return {"success": True, "message": "Face lock cleared"}
+
+
 @router.post("/own-equipment-face-login")
 def own_equipment_face_login(payload: FaceRequest, request: Request):
     ip = get_client_ip(request)

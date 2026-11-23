@@ -203,7 +203,7 @@ async function startEqFaceAuth(action) {
     if (eqCaptureTimer) clearTimeout(eqCaptureTimer);
     eqCaptureTimer = setTimeout(async () => {
       if (!eqCamStream || eqLivenessPassed || isEqProcessing) return;
-      if (video.readyState >= 2) {
+      if (video.readyState >= 2 && video.videoWidth > 0) {
         eqLivenessPassed = true;
         instruction.innerText = "Capturing & Verifying...";
         await handleEqFaceCapture(video);
@@ -219,7 +219,7 @@ async function startEqFaceAuth(action) {
           { once: true },
         );
       }
-    }, 700);
+    }, 1200);
   } catch (err) {
     console.error("Camera Init Error:", err);
     closeEqUniversalFace();
