@@ -1724,27 +1724,43 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
       return res.json({ success: false, message: "Invalid column parameter" });
 
     const username = req.user.username;
+    const cleanPlate = String(plate_no || "").trim().toUpperCase();
 
-    // Fetch previous value of this specific cell directly from DB without extra joins
+    // Fetch previous value, existing modified_by, and edit_history directly from DB
     const oldRowRes = await pool.query(
-      `SELECT "${col_name}" FROM timesheet_daily_records WHERE month=$1 AND year=$2 AND plate_no=$3 AND record_date=$4`,
-      [month, year, plate_no, record_date],
+      `SELECT "${col_name}", modified_by, edit_history, updated_at FROM timesheet_daily_records WHERE month=$1 AND year=$2 AND UPPER(TRIM(plate_no))=$3 AND record_date=$4`,
+      [month, year, cleanPlate, record_date],
     );
-    const prevVal =
-      oldRowRes.rows.length > 0 ? (oldRowRes.rows[0][col_name] ?? "") : "";
+    const existingRow = oldRowRes.rows.length > 0 ? oldRowRes.rows[0] : null;
+    const prevVal = existingRow ? (existingRow[col_name] ?? "") : "";
     const newVal =
       col_value === null || col_value === undefined ? "" : String(col_value);
 
-    // Build audit entry containing column, old value, and new value
-    const newAuditEntry = JSON.stringify([
-      {
-        u: username,
-        t: new Date().toISOString(),
-        c: col_name,
-        o: String(prevVal),
-        v: newVal,
-      },
-    ]);
+    const historyItems = [];
+    // If existing row has a previous user in modified_by but empty edit_history, preserve first user first!
+    if (
+      existingRow &&
+      existingRow.modified_by &&
+      (!Array.isArray(existingRow.edit_history) || existingRow.edit_history.length === 0)
+    ) {
+      historyItems.push({
+        u: existingRow.modified_by,
+        t: existingRow.updated_at ? new Date(existingRow.updated_at).toISOString() : new Date().toISOString(),
+        c: "Initial Entry",
+        o: "",
+        v: "Previous Record",
+      });
+    }
+
+    historyItems.push({
+      u: username,
+      t: new Date().toISOString(),
+      c: col_name,
+      o: String(prevVal),
+      v: newVal,
+    });
+
+    const newAuditEntry = JSON.stringify(historyItems);
 
     const query = `
             INSERT INTO timesheet_daily_records (month, year, plate_no, record_date, "${col_name}", calc_distance, calc_time, modified_by, edit_history) 
@@ -1766,7 +1782,7 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
     const upsertRes = await pool.query(query, [
       month,
       year,
-      plate_no,
+      cleanPlate,
       record_date,
       col_value,
       calc_distance,

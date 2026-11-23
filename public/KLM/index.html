@@ -34,32 +34,9 @@
   </head>
 
   <body>
-    <div id="authModal" class="modal-overlay">
-      <div class="security-box" id="securityBox">
-        <div class="sec-icon-wrap">🔒</div>
-        <h3>KLM Branch Office</h3>
-        <p>Enter the authorized KLM security passcode to continue.</p>
-        <input
-          type="password"
-          id="securityCode"
-          placeholder="••••••••"
-          autocomplete="off"
-          onkeydown="handleEnter(event)"
-        />
-        <div class="sec-actions">
-          <a href="../index.html" class="btn-sec-back">← Home</a>
-          <button id="verifyBtn" onclick="verifyCode()">Verify &amp; Access</button>
-        </div>
-        <div id="error-msg">Incorrect Code. Redirecting...</div>
-      </div>
-    </div>
-
-    <div id="main-content" class="klm-wrapper" style="display: none">
+    <div id="main-content" class="klm-wrapper">
       <nav class="klm-topbar">
         <a href="../index.html" class="nav-pill">← Main Portal</a>
-        <button type="button" class="nav-pill nav-lock" onclick="lockBranchWindow()">
-          🔒 Lock Window
-        </button>
       </nav>
 
       <header class="klm-header animate animate-title">
@@ -73,7 +50,7 @@
       <main>
         <div class="action-grid-box animate animate-actions">
           <!-- 1. KLM EMP TS -->
-          <a href="../EMP/Employee_Timesheet_Card.html" class="action-card">
+          <a href="./EMP/Employee_Timesheet_Card.html" class="action-card">
             <div class="card-icon">👥</div>
             <div class="card-content">
               <h3>KLM EMP TS</h3>
@@ -82,7 +59,7 @@
           </a>
 
           <!-- 2. KLM EMP Payroll -->
-          <a href="../EMP/staff_salary.html" class="action-card">
+          <a href="./EMP/staff_salary.html" class="action-card">
             <div class="card-icon">💵</div>
             <div class="card-content">
               <h3>KLM EMP Payroll</h3>
@@ -106,103 +83,5 @@
       </main>
     </div>
 
-    <script>
-      let autoLogoutTimer;
-
-      document.addEventListener("DOMContentLoaded", () => {
-        const expiry = sessionStorage.getItem("klm_auth_expiry");
-        const codeInput = document.getElementById("securityCode");
-
-        if (expiry && Date.now() < parseInt(expiry, 10)) {
-          const timeLeft = parseInt(expiry, 10) - Date.now();
-          grantAccess(timeLeft);
-        } else {
-          sessionStorage.removeItem("klm_auth_expiry");
-          if (codeInput) setTimeout(() => codeInput.focus(), 100);
-        }
-      });
-
-      function handleEnter(event) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          verifyCode();
-        }
-      }
-
-      async function verifyCode() {
-        const codeInputEl = document.getElementById("securityCode");
-        const codeInput = codeInputEl.value.trim();
-        const errorMsg = document.getElementById("error-msg");
-        const btn = document.getElementById("verifyBtn");
-        const box = document.getElementById("securityBox");
-
-        if (!codeInput) {
-          codeInputEl.focus();
-          return;
-        }
-
-        btn.innerText = "Verifying...";
-        btn.disabled = true;
-        errorMsg.style.display = "none";
-
-        try {
-          const response = await fetch("/timesheet/api/verify-klm", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: codeInput }),
-          });
-
-          const data = await response.json();
-
-          if (data.success) {
-            const sessionDuration = 30 * 60 * 1000;
-            sessionStorage.setItem(
-              "klm_auth_expiry",
-              String(Date.now() + sessionDuration),
-            );
-            grantAccess(sessionDuration);
-          } else {
-            errorMsg.style.display = "block";
-            box.classList.remove("shake");
-            void box.offsetWidth;
-            box.classList.add("shake");
-            setTimeout(() => {
-              window.location.replace("../index.html");
-            }, 1500);
-          }
-        } catch (error) {
-          console.error("Authentication Error", error);
-          errorMsg.innerText = "Server unreachable. Redirecting...";
-          errorMsg.style.display = "block";
-          setTimeout(() => {
-            window.location.replace("../index.html");
-          }, 1500);
-        } finally {
-          btn.innerText = "Verify & Access";
-          btn.disabled = false;
-        }
-      }
-
-      function grantAccess(timeLeft) {
-        document.getElementById("authModal").style.display = "none";
-        document.getElementById("main-content").style.display = "block";
-
-        clearTimeout(autoLogoutTimer);
-        autoLogoutTimer = setTimeout(() => {
-          executeLogout();
-        }, timeLeft);
-      }
-
-      function lockBranchWindow() {
-        clearTimeout(autoLogoutTimer);
-        sessionStorage.removeItem("klm_auth_expiry");
-        window.location.reload();
-      }
-
-      function executeLogout() {
-        sessionStorage.removeItem("klm_auth_expiry");
-        window.location.reload();
-      }
-    </script>
-  </body>
+    </body>
 </html>

@@ -289,6 +289,16 @@ router.post("/save-inline-edits", async (req, res) => {
 router.post("/notify-sync", (req, res) => {
   const { eventType, records } = req.body;
   if (records && Array.isArray(records)) {
+    records.forEach((r) => {
+      const p = String(r.plate || r.plate_no || "").trim();
+      const s = String(r.site || r.site_name || "").trim();
+      const m = String(r.month || "").trim();
+      Object.keys(activeLiveDrafts).forEach((k) => {
+        if (k.startsWith(`${p}_${s}_${m}_`)) {
+          delete activeLiveDrafts[k];
+        }
+      });
+    });
     broadcastReportSync({ type: eventType || "INLINE_EDITS_SAVED", records });
   }
   res.json({ success: true });
@@ -634,38 +644,56 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
         [row.plate_no, row.month, row.site_name],
       );
 
-      if (checkBill.rows.length > 0) {
-        await client.query(
-          `UPDATE billing_records
-           SET remark=$1, nhr=$5, othr=$6, driver_ot=$7, driver_amount=$8
-           WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4`,
-          [
-            row.remark,
-            row.plate_no,
-            row.month,
-            row.site_name,
-            row.bill_nr,
-            row.bill_ot,
-            row.driver_ot,
-            row.driver_amount,
-          ],
-        );
-      } else {
-        await client.query(
-          `INSERT INTO billing_records
-           (plate_no, billing_month, site_name, remark, nhr, othr, driver_ot, driver_amount)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [
-            row.plate_no,
-            row.month,
-            row.site_name,
-            row.remark,
-            row.bill_nr,
-            row.bill_ot,
-            row.driver_ot,
-            row.driver_amount,
-          ],
-        );
+      const hasBillingChange =
+        row.remark !== undefined ||
+        row.bill_nr !== undefined ||
+        row.bill_ot !== undefined ||
+        row.driver_ot !== undefined ||
+        row.driver_amount !== undefined;
+
+      if (hasBillingChange) {
+        if (checkBill.rows.length > 0) {
+          await client.query(
+            `UPDATE billing_records
+             SET remark = CASE WHEN $5 THEN $1 ELSE remark END,
+                 nhr = CASE WHEN $6 THEN $7 ELSE nhr END,
+                 othr = CASE WHEN $8 THEN $9 ELSE othr END,
+                 driver_ot = CASE WHEN $10 THEN $11 ELSE driver_ot END,
+                 driver_amount = CASE WHEN $12 THEN $13 ELSE driver_amount END
+             WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4`,
+            [
+              row.remark ?? "-",
+              row.plate_no,
+              row.month,
+              row.site_name,
+              row.remark !== undefined,
+              row.bill_nr !== undefined,
+              row.bill_nr ?? null,
+              row.bill_ot !== undefined,
+              row.bill_ot ?? null,
+              row.driver_ot !== undefined,
+              row.driver_ot ?? null,
+              row.driver_amount !== undefined,
+              row.driver_amount ?? null,
+            ],
+          );
+        } else {
+          await client.query(
+            `INSERT INTO billing_records
+             (plate_no, billing_month, site_name, remark, nhr, othr, driver_ot, driver_amount)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+              row.plate_no,
+              row.month,
+              row.site_name,
+              row.remark ?? "-",
+              row.bill_nr ?? null,
+              row.bill_ot ?? null,
+              row.driver_ot ?? null,
+              row.driver_amount ?? null,
+            ],
+          );
+        }
       }
 
       if (
@@ -679,14 +707,22 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
         );
         if (checkInv.rows.length > 0) {
           await client.query(
-            "UPDATE invoice_records SET inv_deduct = COALESCE($1, inv_deduct), deduct_reason = COALESCE($2, deduct_reason), crn_no = COALESCE($3, crn_no), updated_at = CURRENT_TIMESTAMP WHERE plate_no = $4 AND month = $5 AND site_name = $6",
+            `UPDATE invoice_records SET 
+              inv_deduct = CASE WHEN $7 THEN $1 ELSE inv_deduct END,
+              deduct_reason = CASE WHEN $8 THEN $2 ELSE deduct_reason END,
+              crn_no = CASE WHEN $9 THEN $3 ELSE crn_no END,
+              updated_at = CURRENT_TIMESTAMP 
+             WHERE plate_no = $4 AND month = $5 AND site_name = $6`,
             [
-              row.inv_deduct,
-              row.deduct_reason,
-              row.crn_no,
+              row.inv_deduct ?? 0,
+              row.deduct_reason ?? "",
+              row.crn_no ?? "",
               row.plate_no,
               row.month,
               row.site_name,
+              row.inv_deduct !== undefined,
+              row.deduct_reason !== undefined,
+              row.crn_no !== undefined,
             ],
           );
         } else {
@@ -696,9 +732,9 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
               row.plate_no,
               row.month,
               row.site_name,
-              row.inv_deduct || 0,
-              row.deduct_reason || "",
-              row.crn_no || "",
+              row.inv_deduct ?? 0,
+              row.deduct_reason ?? "",
+              row.crn_no ?? "",
             ],
           );
         }
@@ -808,10 +844,20 @@ router.post("/save-master-edits", async (req, res) => {
 
         if (checkInv.rows.length > 0) {
           await client.query(
-            "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, inv_deduct=$6, deduct_reason=$7, crn_no=$8, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$9 AND month=$10 AND site_name=$11",
+            `UPDATE invoice_records SET 
+              invoice_no = CASE WHEN $12 THEN $1 ELSE invoice_no END,
+              bill_no = CASE WHEN $13 THEN $2 ELSE bill_no END,
+              bill_nr = CASE WHEN $14 THEN $3 ELSE bill_nr END,
+              bill_ot = CASE WHEN $15 THEN $4 ELSE bill_ot END,
+              invoice_amount = CASE WHEN $16 THEN $5 ELSE invoice_amount END,
+              inv_deduct = CASE WHEN $17 THEN $6 ELSE inv_deduct END,
+              deduct_reason = CASE WHEN $18 THEN $7 ELSE deduct_reason END,
+              crn_no = CASE WHEN $19 THEN $8 ELSE crn_no END,
+              updated_at = CURRENT_TIMESTAMP 
+             WHERE plate_no=$9 AND month=$10 AND site_name=$11`,
             [
-              inv_no,
-              bill_no,
+              inv_no ?? "",
+              bill_no ?? "",
               inv_nr ?? null,
               inv_ot ?? null,
               inv_amount ?? null,
@@ -821,6 +867,14 @@ router.post("/save-master-edits", async (req, res) => {
               plate,
               month,
               site,
+              inv_no !== undefined,
+              bill_no !== undefined,
+              inv_nr !== undefined,
+              inv_ot !== undefined,
+              inv_amount !== undefined,
+              inv_deduct !== undefined,
+              deduct_reason !== undefined,
+              crn_no !== undefined,
             ],
           );
         } else {
@@ -830,11 +884,11 @@ router.post("/save-master-edits", async (req, res) => {
               plate,
               month,
               site,
-              inv_no,
-              bill_no,
-              inv_nr,
-              inv_ot,
-              inv_amount,
+              inv_no ?? "",
+              bill_no ?? "",
+              inv_nr ?? null,
+              inv_ot ?? null,
+              inv_amount ?? null,
               inv_deduct ?? 0,
               deduct_reason ?? "",
               crn_no ?? "",
@@ -855,17 +909,26 @@ router.post("/save-master-edits", async (req, res) => {
         if (checkBill.rows.length > 0) {
           await client.query(
             `UPDATE billing_records
-             SET remark=$1, nhr=$5, othr=$6, driver_ot=$7, driver_amount=$8
+             SET remark = CASE WHEN $5 THEN $1 ELSE remark END,
+                 nhr = CASE WHEN $6 THEN $7 ELSE nhr END,
+                 othr = CASE WHEN $8 THEN $9 ELSE othr END,
+                 driver_ot = CASE WHEN $10 THEN $11 ELSE driver_ot END,
+                 driver_amount = CASE WHEN $12 THEN $13 ELSE driver_amount END
              WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4`,
             [
-              row.remark,
+              row.remark ?? "-",
               row.plate_no,
               row.month,
               row.site_name,
-              row.bill_nr,
-              row.bill_ot,
-              row.driver_ot,
-              row.driver_amount,
+              row.remark !== undefined,
+              row.bill_nr !== undefined,
+              row.bill_nr ?? null,
+              row.bill_ot !== undefined,
+              row.bill_ot ?? null,
+              row.driver_ot !== undefined,
+              row.driver_ot ?? null,
+              row.driver_amount !== undefined,
+              row.driver_amount ?? null,
             ],
           );
         } else {
@@ -877,11 +940,11 @@ router.post("/save-master-edits", async (req, res) => {
               row.plate_no,
               row.month,
               row.site_name,
-              row.remark,
-              row.bill_nr,
-              row.bill_ot,
-              row.driver_ot,
-              row.driver_amount,
+              row.remark ?? "-",
+              row.bill_nr ?? null,
+              row.bill_ot ?? null,
+              row.driver_ot ?? null,
+              row.driver_amount ?? null,
             ],
           );
         }

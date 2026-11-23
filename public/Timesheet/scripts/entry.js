@@ -1,3 +1,5 @@
+let currentLockedRecord = null;
+
 // 🟢 FIX: Token dynamic getter aakkunnu, token refresh aayal ellaa requestilum puthiya token kittum
 function getAuthToken() {
   return localStorage.getItem("timesheetToken") || "";
@@ -13,7 +15,7 @@ if (!token || !userStr) {
 }
 
 // 🟢 Verify session immediately on page load, back-forward cache, or tab wake-up (before user feeds data)
-async function verifyEntrySessionOnLoad() {
+async function verifyEntrySessionOnLoad(runInitAfter = false) {
   const activeToken = getAuthToken();
   const activeUser = localStorage.getItem("timesheetUser");
   if (!activeToken || !activeUser) {
@@ -29,13 +31,20 @@ async function verifyEntrySessionOnLoad() {
     });
     if (res.status === 401 || res.status === 403) {
       openTimesheetReLoginModal(() => init());
+      return false;
     }
+    if (runInitAfter) {
+      await init();
+    }
+    return true;
   } catch (e) {
     console.warn("Session verify network bypass:", e.message);
+    if (runInitAfter) {
+      await init();
+    }
+    return true;
   }
 }
-
-verifyEntrySessionOnLoad();
 
 window.addEventListener("pageshow", function (event) {
   if (event.persisted || !getAuthToken()) {
@@ -83,7 +92,6 @@ let systemLockData = { month: null, year: null };
 let isEditingInvoice = false;
 let currentInvoices = [];
 let loggedRowsTracker = new Set();
-let currentLockedRecord = null;
 let recordPollGeneration = 0; // 🟢 പുതിയ വേരിയബിൾ: പഴയ പോളിംഗ് തടയാൻ
 
 // 🟢 NEW: Variables for Live Lock Transfer
@@ -1662,9 +1670,14 @@ function attachGridEvents() {
       const col = this.getAttribute("data-col");
       let currentVal = this.type === "checkbox" ? this.checked : this.value;
 
-      // Check if this row actually exists in DB or if modified_by is empty
+      // Check if this row actually exists in DB (neither modified_by nor audit history exists)
       const modUser = document.getElementById(`mod_${row}`)?.value || "";
-      const isUnsavedAutoValue = !modUser && currentVal !== "";
+      const hasHistory =
+        window.rowAuditTrails &&
+        window.rowAuditTrails[row] &&
+        Array.isArray(window.rowAuditTrails[row].hist) &&
+        window.rowAuditTrails[row].hist.length > 0;
+      const isUnsavedAutoValue = !modUser && !hasHistory && currentVal !== "";
 
       if (
         String(this.dataset.oldVal) !== String(currentVal) ||
@@ -2717,7 +2730,7 @@ async function importExcel() {
   }
 }
 
-init();
+verifyEntrySessionOnLoad(true);
 
 // ==========================================
 // 🔒 LOCK PERIOD CHECKER (UPDATED)
@@ -3221,7 +3234,7 @@ function formatColName(c) {
   return map[c] || c || "Cell";
 }
 
-// Format ISO date into: 07-Nov-2026 11:15 AM
+// Format ISO date into: 07-Nov-2026 11:15:30 AM
 function formatAuditTime(tStr) {
   if (!tStr) return "";
   const d = new Date(tStr);
@@ -3231,7 +3244,7 @@ function formatAuditTime(tStr) {
   let hh = d.getHours();
   const ampm = hh >= 12 ? "PM" : "AM";
   hh = hh % 12 || 12;
-  return `${pad(d.getDate())}-${monthsArr[d.getMonth()]}-${d.getFullYear()} ${pad(hh)}:${pad(d.getMinutes())} ${ampm}`;
+  return `${pad(d.getDate())}-${monthsArr[d.getMonth()]}-${d.getFullYear()} ${pad(hh)}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${ampm}`;
 }
 
 // Global memory store for row-level audit trails to avoid inline JSON string escape issues
@@ -3311,8 +3324,8 @@ function showAuditModal(rowIdx) {
         <thead>
           <tr style="background: #0f172a; color: #ffffff;">
             <th style="padding: 8px 6px; border: 1px solid #0f172a; width: 35px; text-align:center;">#</th>
-            <th style="padding: 8px; border: 1px solid #0f172a; width: 155px; text-align:left;">User</th>
-            <th style="padding: 8px; border: 1px solid #0f172a; width: 140px; text-align:left;">Date & Time</th>
+            <th style="padding: 8px; border: 1px solid #0f172a; width: 135px; text-align:center;">User</th>
+            <th style="padding: 8px; border: 1px solid #0f172a; width: 175px; text-align:center;">Date & Time</th>
             <th style="padding: 8px; border: 1px solid #0f172a; text-align:left;">Changes (Column :: Old ➔ New)</th>
           </tr>
         </thead>

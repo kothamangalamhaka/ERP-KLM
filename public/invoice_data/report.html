@@ -39,52 +39,108 @@
       #loginScreen {
         position: fixed;
         inset: 0;
-        background: #0f172a;
+        background:
+          radial-gradient(circle at 20% 25%, #0284c7 0%, transparent 40%),
+          radial-gradient(circle at 80% 75%, #6366f1 0%, transparent 45%),
+          linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e293b 100%);
         display: flex;
         justify-content: center;
         align-items: center;
         z-index: 9999;
+        overflow: hidden;
       }
       .login-box {
-        background: white;
+        position: relative;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
         padding: 40px;
-        border-radius: 12px;
+        border-radius: 16px;
         width: 350px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        box-shadow:
+          0 25px 50px -12px rgba(0, 0, 0, 0.6),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
         text-align: center;
+        color: #f8fafc;
+      }
+      .btn-face-corner {
+        position: absolute !important;
+        top: 15px;
+        right: 15px;
+        width: 38px !important;
+        height: 38px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        background: rgba(255, 255, 255, 0.12) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .btn-face-corner:hover {
+        background: rgba(16, 185, 129, 0.35) !important;
+        border-color: #10b981 !important;
+        transform: scale(1.08) !important;
       }
       .login-box h2 {
         margin-top: 0;
-        color: #1e293b;
+        color: #ffffff;
         margin-bottom: 25px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
       }
       .login-box input {
         width: 100%;
-        padding: 12px;
+        padding: 12px 14px;
         margin-bottom: 15px;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        font-size: 15px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 8px;
+        font-size: 14px;
+        color: #ffffff;
         box-sizing: border-box;
         outline: none;
+        transition: all 0.2s ease;
+      }
+      .login-box input::placeholder {
+        color: #94a3b8;
       }
       .login-box input:focus {
-        border-color: var(--primary);
+        border-color: #38bdf8;
+        background: rgba(15, 23, 42, 0.75);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
       }
       .login-box button {
         width: 100%;
         padding: 12px;
-        background: var(--primary);
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
         color: white;
-        border: none;
-        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
-        transition: 0.2s;
+        box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
+        transition: all 0.2s ease;
       }
       .login-box button:hover {
-        background: var(--primary-hover);
+        background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+      }
+      .login-box a {
+        color: #7dd3fc !important;
+        transition: color 0.2s;
+      }
+      .login-box a:hover {
+        color: #ffffff !important;
+        text-decoration: underline !important;
       }
 
       #mainAppContainer {
@@ -1089,6 +1145,14 @@
 
     <div id="loginScreen">
       <div class="login-box" id="loginBox">
+        <button
+          type="button"
+          class="btn-face-corner"
+          onclick="executeReportFaceLogin()"
+          title="Face Login"
+        >
+          📸
+        </button>
         <h2>Invoice Report</h2>
         <input
           type="text"
@@ -1103,12 +1167,6 @@
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
         <button onclick="executeLogin()">Secure Login</button>
-        <button
-          onclick="executeReportFaceLogin()"
-          style="background: #10b981; margin-top: 10px"
-        >
-          📸 Face Login
-        </button>
 
         <!-- Hidden Video & Canvas for Face Capture -->
         <div
@@ -2370,7 +2428,7 @@
             </thead>
             <tbody id="reportBody">
               <tr>
-                <td colspan="40" style="padding: 30px; color: #64748b">
+                <td colspan="41" style="padding: 30px; color: #64748b">
                   Click "Load Data" to fetch reports.
                 </td>
               </tr>
@@ -4437,7 +4495,7 @@
         tbody.innerHTML = "";
         if (data.length === 0) {
           tbody.innerHTML =
-            '<tr><td colspan="40" style="padding: 20px;">No data found.</td></tr>';
+            '<tr><td colspan="41" style="padding: 20px;">No data found.</td></tr>';
           return;
         }
         const fragment = document.createDocumentFragment();
@@ -4935,72 +4993,58 @@
                   `${tr.dataset.month} ${tr.dataset.year}`,
             ) || {};
 
-          let inv_nr_text = getCellVal(
-            "inv_nr",
-            originalObj.inv_nr || "",
-          ).replace(/,/g, "");
-          let parsed_nr = parseFloat(inv_nr_text);
-          let inv_nr =
-            inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
+          let preciseMonth = `${tr.dataset.month} ${tr.dataset.year}`;
+          let recordPayload = { month: preciseMonth, site, plate };
 
-          let inv_ot_text = getCellVal(
-            "inv_ot",
-            originalObj.inv_ot || "",
-          ).replace(/,/g, "");
-          let parsed_ot = parseFloat(inv_ot_text);
-          let inv_ot =
-            inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
+          const invNrTd = tr.querySelector('[data-field="inv_nr"]');
+          if (invNrTd && invNrTd.dataset.myEdited === "true") {
+            let t = invNrTd.innerText.trim().replace(/,/g, "");
+            let p = parseFloat(t);
+            recordPayload.inv_nr = t === "" ? null : isNaN(p) ? null : p;
+          }
+
+          const invOtTd = tr.querySelector('[data-field="inv_ot"]');
+          if (invOtTd && invOtTd.dataset.myEdited === "true") {
+            let t = invOtTd.innerText.trim().replace(/,/g, "");
+            let p = parseFloat(t);
+            recordPayload.inv_ot = t === "" ? null : isNaN(p) ? null : p;
+          }
 
           const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
-          let inv_amount = null;
           if (invAmountCell && invAmountCell.dataset.myEdited === "true") {
             const parsedAmount = normalizeInvoiceAmountCell(invAmountCell);
             if (!parsedAmount.valid) hasInvalidFormula = true;
-            inv_amount = parsedAmount.value;
-          } else {
-            inv_amount =
-              originalObj.inv_subtotal !== undefined &&
-              originalObj.inv_subtotal !== ""
-                ? parseFloat(originalObj.inv_subtotal)
-                : null;
+            recordPayload.inv_amount = parsedAmount.value;
           }
 
-          let crn_no = getCellVal("crn_no", originalObj.crn_no || "");
-          let reasonTd = tr.querySelector(".deduct-reason-cell");
-          let deduct_reason =
-            reasonTd && reasonTd.dataset.myEdited === "true"
-              ? reasonTd.innerText.trim()
-              : originalObj.deduct_reason || "";
-          let inv_no = getCellVal("inv_no", originalObj.inv_no || "");
-          let bill_no = getCellVal("bill_no", originalObj.bill_no || "");
+          const crnTd = tr.querySelector('[data-field="crn_no"]');
+          if (crnTd && crnTd.dataset.myEdited === "true") {
+            recordPayload.crn_no = crnTd.innerText.trim();
+          }
 
-          let deductTd = tr.querySelector(".inv-deduct-cell");
-          let deductVal =
-            deductTd && deductTd.dataset.myEdited === "true"
-              ? deductTd.innerText.trim().replace(/,/g, "")
-              : originalObj.inv_deduct || "0";
-          let inv_deduct =
-            deductVal === ""
-              ? 0
-              : isNaN(parseFloat(deductVal))
-                ? 0
-                : parseFloat(deductVal);
+          const reasonTd = tr.querySelector(".deduct-reason-cell");
+          if (reasonTd && reasonTd.dataset.myEdited === "true") {
+            recordPayload.deduct_reason = reasonTd.innerText.trim();
+          }
 
-          let preciseMonth = `${tr.dataset.month} ${tr.dataset.year}`;
+          const invNoTd = tr.querySelector('[data-field="inv_no"]');
+          if (invNoTd && invNoTd.dataset.myEdited === "true") {
+            recordPayload.inv_no = invNoTd.innerText.trim();
+          }
 
-          updates.push({
-            month: preciseMonth,
-            site,
-            plate,
-            inv_nr,
-            inv_ot,
-            inv_amount,
-            inv_deduct,
-            deduct_reason,
-            crn_no,
-            inv_no,
-            bill_no,
-          });
+          const billNoTd = tr.querySelector('[data-field="bill_no"]');
+          if (billNoTd && billNoTd.dataset.myEdited === "true") {
+            recordPayload.bill_no = billNoTd.innerText.trim();
+          }
+
+          const deductTd = tr.querySelector(".inv-deduct-cell");
+          if (deductTd && deductTd.dataset.myEdited === "true") {
+            let dVal = deductTd.innerText.trim().replace(/,/g, "");
+            recordPayload.inv_deduct =
+              dVal === "" ? 0 : isNaN(parseFloat(dVal)) ? 0 : parseFloat(dVal);
+          }
+
+          updates.push(recordPayload);
         });
 
         // 🟢 FIX: Restore hidden state
@@ -6640,119 +6684,143 @@
           uniqueRows.forEach((tr) => {
             if (!tr.cells || tr.cells.length < 6) return;
 
-            // 1. Normal Invoice Data
-            let inv_nr_text =
-              tr
-                .querySelector('[data-field="inv_nr"]')
-                ?.innerText.trim()
-                .replace(/,/g, "") || "";
-            let parsed_nr = parseFloat(inv_nr_text);
-            let inv_nr =
-              inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
+            const preciseMonth = `${tr.dataset.month} ${tr.dataset.year}`;
+            const site = tr.dataset.site;
+            const plate = tr.dataset.masterPlate;
 
-            let inv_ot_text =
-              tr
-                .querySelector('[data-field="inv_ot"]')
-                ?.innerText.trim()
-                .replace(/,/g, "") || "";
-            let parsed_ot = parseFloat(inv_ot_text);
-            let inv_ot =
-              inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
+            // 1. Normal Invoice Data (Only edited cells)
+            let invRec = { month: preciseMonth, site, plate };
+            let hasInvChange = false;
+
+            const invNrTd = tr.querySelector('[data-field="inv_nr"]');
+            if (invNrTd && invNrTd.dataset.myEdited === "true") {
+              let t = invNrTd.innerText.trim().replace(/,/g, "");
+              let p = parseFloat(t);
+              invRec.inv_nr = t === "" ? null : isNaN(p) ? null : p;
+              hasInvChange = true;
+            }
+
+            const invOtTd = tr.querySelector('[data-field="inv_ot"]');
+            if (invOtTd && invOtTd.dataset.myEdited === "true") {
+              let t = invOtTd.innerText.trim().replace(/,/g, "");
+              let p = parseFloat(t);
+              invRec.inv_ot = t === "" ? null : isNaN(p) ? null : p;
+              hasInvChange = true;
+            }
 
             const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
-            const parsedAmount = invAmountCell
-              ? normalizeInvoiceAmountCell(invAmountCell)
-              : { value: null };
-            const inv_amount = parsedAmount.value;
+            if (invAmountCell && invAmountCell.dataset.myEdited === "true") {
+              const parsedAmount = normalizeInvoiceAmountCell(invAmountCell);
+              invRec.inv_amount = parsedAmount.value;
+              hasInvChange = true;
+            }
 
-            let inv_no =
-              tr.querySelector('[data-field="inv_no"]')?.innerText.trim() || "";
-            let bill_no =
-              tr.querySelector('[data-field="bill_no"]')?.innerText.trim() ||
-              "";
+            const invNoTd = tr.querySelector('[data-field="inv_no"]');
+            if (invNoTd && invNoTd.dataset.myEdited === "true") {
+              invRec.inv_no = invNoTd.innerText.trim();
+              hasInvChange = true;
+            }
 
-            let deductTd = tr.querySelector(".inv-deduct-cell");
-            let deductVal = deductTd
-              ? deductTd.innerText.trim().replace(/,/g, "")
-              : "";
-            let parsedDeduct =
-              deductVal === ""
-                ? 0
-                : isNaN(parseFloat(deductVal))
+            const billNoTd = tr.querySelector('[data-field="bill_no"]');
+            if (billNoTd && billNoTd.dataset.myEdited === "true") {
+              invRec.bill_no = billNoTd.innerText.trim();
+              hasInvChange = true;
+            }
+
+            const deductTd = tr.querySelector(".inv-deduct-cell");
+            if (deductTd && deductTd.dataset.myEdited === "true") {
+              let dVal = deductTd.innerText.trim().replace(/,/g, "");
+              invRec.inv_deduct =
+                dVal === ""
                   ? 0
-                  : parseFloat(deductVal);
-            let reasonTd = tr.querySelector(".deduct-reason-cell");
-            let reasonVal = reasonTd ? reasonTd.innerText.trim() : "";
-            let crnTd = tr.querySelector(".crn-no-cell");
-            let crn_no = crnTd ? crnTd.innerText.trim() : "";
+                  : isNaN(parseFloat(dVal))
+                    ? 0
+                    : parseFloat(dVal);
+              hasInvChange = true;
+            }
 
-            normalUpdates.push({
-              month: `${tr.dataset.month} ${tr.dataset.year}`,
-              site: tr.dataset.site,
-              plate: tr.dataset.masterPlate,
-              inv_nr,
-              inv_ot,
-              inv_amount,
-              inv_deduct: parsedDeduct,
-              deduct_reason: reasonVal,
-              crn_no,
-              inv_no,
-              bill_no,
-            });
+            const reasonTd = tr.querySelector(".deduct-reason-cell");
+            if (reasonTd && reasonTd.dataset.myEdited === "true") {
+              invRec.deduct_reason = reasonTd.innerText.trim();
+              hasInvChange = true;
+            }
 
-            // 2. Special Billing & Driver Data
-            let vbillTd = tr.querySelector(".vbill-cell");
-            let billNrTd = tr.querySelector(".bill-nr-cell");
-            let billOtTd = tr.querySelector(".bill-ot-cell");
-            let driverOtTd = tr.querySelector(".driver-ot-cell");
-            let driverAmountTd = tr.querySelector(".driver-amount-cell");
+            const crnTd = tr.querySelector(".crn-no-cell");
+            if (crnTd && crnTd.dataset.myEdited === "true") {
+              invRec.crn_no = crnTd.innerText.trim();
+              hasInvChange = true;
+            }
 
-            let newNote = vbillTd ? vbillTd.innerText.trim() : "-";
-            if (newNote === "") newNote = "-";
+            if (hasInvChange) {
+              normalUpdates.push(invRec);
+            }
 
-            let nrVal = billNrTd
-              ? billNrTd.innerText.trim().replace(/,/g, "")
-              : "";
-            let otVal = billOtTd
-              ? billOtTd.innerText.trim().replace(/,/g, "")
-              : "";
-            let driverOtVal = driverOtTd
-              ? driverOtTd.innerText.trim().replace(/,/g, "")
-              : "";
-            let driverAmountVal = driverAmountTd
-              ? driverAmountTd.innerText.trim().replace(/,/g, "")
-              : "";
+            // 2. Special Billing & Driver Data (Only edited cells)
+            let billRec = {
+              plate_no: plate,
+              site_name: site,
+              month: preciseMonth,
+            };
+            let hasBillChange = false;
 
-            specialUpdates.push({
-              plate_no: tr.dataset.masterPlate,
-              site_name: tr.dataset.site,
-              month: `${tr.dataset.month} ${tr.dataset.year}`,
-              remark: newNote,
-              bill_nr:
+            const vbillTd = tr.querySelector(".vbill-cell");
+            if (vbillTd && vbillTd.dataset.myEdited === "true") {
+              let note = vbillTd.innerText.trim();
+              billRec.remark = note === "" ? "-" : note;
+              hasBillChange = true;
+            }
+
+            const billNrTd = tr.querySelector(".bill-nr-cell");
+            if (billNrTd && billNrTd.dataset.myEdited === "true") {
+              let nrVal = billNrTd.innerText.trim().replace(/,/g, "");
+              billRec.bill_nr =
                 nrVal === ""
                   ? null
                   : isNaN(parseFloat(nrVal))
                     ? null
-                    : parseFloat(nrVal),
-              bill_ot:
+                    : parseFloat(nrVal);
+              hasBillChange = true;
+            }
+
+            const billOtTd = tr.querySelector(".bill-ot-cell");
+            if (billOtTd && billOtTd.dataset.myEdited === "true") {
+              let otVal = billOtTd.innerText.trim().replace(/,/g, "");
+              billRec.bill_ot =
                 otVal === ""
                   ? null
                   : isNaN(parseFloat(otVal))
                     ? null
-                    : parseFloat(otVal),
-              driver_ot:
-                driverOtVal === ""
+                    : parseFloat(otVal);
+              hasBillChange = true;
+            }
+
+            const driverOtTd = tr.querySelector(".driver-ot-cell");
+            if (driverOtTd && driverOtTd.dataset.myEdited === "true") {
+              let dOtVal = driverOtTd.innerText.trim().replace(/,/g, "");
+              billRec.driver_ot =
+                dOtVal === ""
                   ? null
-                  : isNaN(parseFloat(driverOtVal))
+                  : isNaN(parseFloat(dOtVal))
                     ? null
-                    : parseFloat(driverOtVal),
-              driver_amount:
-                driverAmountVal === ""
+                    : parseFloat(dOtVal);
+              hasBillChange = true;
+            }
+
+            const driverAmountTd = tr.querySelector(".driver-amount-cell");
+            if (driverAmountTd && driverAmountTd.dataset.myEdited === "true") {
+              let dAmtVal = driverAmountTd.innerText.trim().replace(/,/g, "");
+              billRec.driver_amount =
+                dAmtVal === ""
                   ? null
-                  : isNaN(parseFloat(driverAmountVal))
+                  : isNaN(parseFloat(dAmtVal))
                     ? null
-                    : parseFloat(driverAmountVal),
-            });
+                    : parseFloat(dAmtVal);
+              hasBillChange = true;
+            }
+
+            if (hasBillChange) {
+              specialUpdates.push(billRec);
+            }
           });
 
           // 🟢 FIX: Restore hidden state before API call to ensure UI resets correctly
@@ -6827,38 +6895,54 @@
           .querySelectorAll(".clear-checkbox")
           .forEach((cb) => (cb.disabled = false));
 
+        const getSpecialFieldKey = (el) => {
+          if (el.dataset.field) return el.dataset.field;
+          if (el.classList.contains("vbill-cell")) return "vbill_notes";
+          if (el.classList.contains("bill-nr-cell")) return "bill_nr";
+          if (el.classList.contains("bill-ot-cell")) return "bill_ot";
+          if (el.classList.contains("driver-ot-cell")) return "driver_ot";
+          if (el.classList.contains("driver-amount-cell"))
+            return "driver_amount";
+          if (el.classList.contains("inv-deduct-cell")) return "inv_deduct";
+          if (el.classList.contains("deduct-reason-cell"))
+            return "deduct_reason";
+          if (el.classList.contains("crn-no-cell")) return "crn_no";
+          return "";
+        };
+
         document
           .querySelectorAll(
             ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell, .crn-no-cell",
           )
           .forEach((td) => {
-            td.setAttribute("contenteditable", "true");
+            if (td.dataset.isLockedByOther !== "true") {
+              td.setAttribute("contenteditable", "true");
+            }
             td.classList.add("edit-active");
+
+            td.onfocus = function () {
+              if (this.dataset.isLockedByOther === "true") {
+                this.blur();
+                return;
+              }
+              const tr = this.closest("tr");
+              const fKey = getSpecialFieldKey(this);
+              if (fKey) emitCellLock(tr, fKey, "LOCK");
+            };
+
+            td.onblur = function () {
+              const tr = this.closest("tr");
+              const fKey = getSpecialFieldKey(this);
+              if (fKey) emitCellLock(tr, fKey, "UNLOCK");
+            };
+
             td.oninput = function () {
               const tr = this.closest("tr");
               this.dataset.myEdited = "true";
               delete this.dataset.remoteDraft;
               tr.classList.add("special-row-edited");
 
-              let fieldName = this.dataset.field;
-              if (!fieldName) {
-                if (this.classList.contains("vbill-cell"))
-                  fieldName = "vbill_notes";
-                else if (this.classList.contains("bill-nr-cell"))
-                  fieldName = "bill_nr";
-                else if (this.classList.contains("bill-ot-cell"))
-                  fieldName = "bill_ot";
-                else if (this.classList.contains("driver-ot-cell"))
-                  fieldName = "driver_ot";
-                else if (this.classList.contains("driver-amount-cell"))
-                  fieldName = "driver_amount";
-                else if (this.classList.contains("inv-deduct-cell"))
-                  fieldName = "inv_deduct";
-                else if (this.classList.contains("deduct-reason-cell"))
-                  fieldName = "deduct_reason";
-                else if (this.classList.contains("crn-no-cell"))
-                  fieldName = "crn_no";
-              }
+              let fieldName = getSpecialFieldKey(this);
 
               if (this.classList.contains("inv-deduct-cell")) {
                 let subCell = tr.querySelector('[data-field="inv_amount"]');
@@ -6975,75 +7059,56 @@
           let rMonth = vbillTd.dataset.month;
           let rYear = vbillTd.dataset.year;
 
-          let originalObj =
-            masterData.find(
-              (d) =>
-                (d.master_plate === plate || d.plate === plate) &&
-                d.site === site &&
-                `${d.raw_month} ${d.raw_year}` === `${rMonth} ${rYear}`,
-            ) || {};
-
-          const getSpecialVal = (elem, fallbackVal) => {
-            return elem && elem.dataset.myEdited === "true"
-              ? elem.innerText.trim()
-              : fallbackVal;
-          };
-
-          let newNote = getSpecialVal(vbillTd, originalObj.vbill_notes || "-");
-          if (newNote === "") newNote = "-";
-
-          let nrText = getSpecialVal(
-            billNrTd,
-            originalObj.bill_db_nr || "",
-          ).replace(/,/g, "");
-          let otText = getSpecialVal(
-            billOtTd,
-            originalObj.bill_db_ot || "",
-          ).replace(/,/g, "");
-          let driverOtText = getSpecialVal(
-            driverOtTd,
-            originalObj.driver_ot || "",
-          ).replace(/,/g, "");
-          let driverAmtText = getSpecialVal(
-            driverAmountTd,
-            originalObj.driver_amount || "",
-          ).replace(/,/g, "");
-          let deductText = getSpecialVal(
-            deductTd,
-            originalObj.inv_deduct || "0",
-          ).replace(/,/g, "");
-          let reasonVal = getSpecialVal(
-            reasonTd,
-            originalObj.deduct_reason || "",
-          );
-          let crnVal = getSpecialVal(crnTd, originalObj.crn_no || "");
-
-          let nrVal = nrText === "" ? null : parseFloat(nrText);
-          let otVal = otText === "" ? null : parseFloat(otText);
-          let driverOtVal =
-            driverOtText === "" ? null : parseFloat(driverOtText);
-          let driverAmountVal =
-            driverAmtText === "" ? null : parseFloat(driverAmtText);
-          let parsedDeduct =
-            deductText === ""
-              ? 0
-              : isNaN(parseFloat(deductText))
-                ? 0
-                : parseFloat(deductText);
-
-          updates.push({
+          let specialPayload = {
             plate_no: plate,
             site_name: site,
             month: `${rMonth} ${rYear}`,
-            remark: newNote,
-            bill_nr: isNaN(nrVal) ? null : nrVal,
-            bill_ot: isNaN(otVal) ? null : otVal,
-            driver_ot: isNaN(driverOtVal) ? null : driverOtVal,
-            driver_amount: isNaN(driverAmountVal) ? null : driverAmountVal,
-            inv_deduct: parsedDeduct,
-            deduct_reason: reasonVal,
-            crn_no: crnVal,
-          });
+          };
+
+          if (vbillTd && vbillTd.dataset.myEdited === "true") {
+            let n = vbillTd.innerText.trim();
+            specialPayload.remark = n === "" ? "-" : n;
+          }
+
+          if (billNrTd && billNrTd.dataset.myEdited === "true") {
+            let t = billNrTd.innerText.trim().replace(/,/g, "");
+            specialPayload.bill_nr =
+              t === "" ? null : isNaN(parseFloat(t)) ? null : parseFloat(t);
+          }
+
+          if (billOtTd && billOtTd.dataset.myEdited === "true") {
+            let t = billOtTd.innerText.trim().replace(/,/g, "");
+            specialPayload.bill_ot =
+              t === "" ? null : isNaN(parseFloat(t)) ? null : parseFloat(t);
+          }
+
+          if (driverOtTd && driverOtTd.dataset.myEdited === "true") {
+            let t = driverOtTd.innerText.trim().replace(/,/g, "");
+            specialPayload.driver_ot =
+              t === "" ? null : isNaN(parseFloat(t)) ? null : parseFloat(t);
+          }
+
+          if (driverAmountTd && driverAmountTd.dataset.myEdited === "true") {
+            let t = driverAmountTd.innerText.trim().replace(/,/g, "");
+            specialPayload.driver_amount =
+              t === "" ? null : isNaN(parseFloat(t)) ? null : parseFloat(t);
+          }
+
+          if (deductTd && deductTd.dataset.myEdited === "true") {
+            let t = deductTd.innerText.trim().replace(/,/g, "");
+            specialPayload.inv_deduct =
+              t === "" ? 0 : isNaN(parseFloat(t)) ? 0 : parseFloat(t);
+          }
+
+          if (reasonTd && reasonTd.dataset.myEdited === "true") {
+            specialPayload.deduct_reason = reasonTd.innerText.trim();
+          }
+
+          if (crnTd && crnTd.dataset.myEdited === "true") {
+            specialPayload.crn_no = crnTd.innerText.trim();
+          }
+
+          updates.push(specialPayload);
         });
 
         // 🟢 FIX: Restore hidden state
@@ -7771,7 +7836,12 @@
           );
           data.records.forEach((rec) => {
             const tr = findRowElement(rec.plate, rec.site, rec.month);
-            if (!tr || tr.classList.contains("row-edited")) return; // Don't disrupt active editor
+            if (!tr) return;
+
+            const canUpdateCell = (el) =>
+              el &&
+              document.activeElement !== el &&
+              el.dataset.myEdited !== "true";
 
             const invNrTd = tr.querySelector('[data-field="inv_nr"]');
             const invOtTd = tr.querySelector('[data-field="inv_ot"]');
@@ -7779,17 +7849,17 @@
             const invNoTd = tr.querySelector('[data-field="inv_no"]');
             const billNoTd = tr.querySelector('[data-field="bill_no"]');
 
-            if (invNrTd && rec.inv_nr !== undefined)
+            if (canUpdateCell(invNrTd) && rec.inv_nr !== undefined)
               invNrTd.innerText = rec.inv_nr !== null ? rec.inv_nr : "";
-            if (invOtTd && rec.inv_ot !== undefined)
+            if (canUpdateCell(invOtTd) && rec.inv_ot !== undefined)
               invOtTd.innerText = rec.inv_ot !== null ? rec.inv_ot : "";
-            if (invAmtTd && rec.inv_amount !== undefined)
+            if (canUpdateCell(invAmtTd) && rec.inv_amount !== undefined)
               invAmtTd.innerText = rec.inv_amount
                 ? Number(rec.inv_amount).toFixed(2)
                 : "";
-            if (invNoTd && rec.inv_no !== undefined)
+            if (canUpdateCell(invNoTd) && rec.inv_no !== undefined)
               invNoTd.innerText = rec.inv_no || "";
-            if (billNoTd && rec.bill_no !== undefined)
+            if (canUpdateCell(billNoTd) && rec.bill_no !== undefined)
               billNoTd.innerText = rec.bill_no || "";
 
             tr.classList.add("live-sync-pulse");
@@ -7801,7 +7871,12 @@
         ) {
           data.records.forEach((rec) => {
             const tr = findRowElement(rec.plate_no, rec.site_name, rec.month);
-            if (!tr || tr.classList.contains("special-row-edited")) return;
+            if (!tr) return;
+
+            const canUpdateCell = (el) =>
+              el &&
+              document.activeElement !== el &&
+              el.dataset.myEdited !== "true";
 
             const vbillTd = tr.querySelector(".vbill-cell");
             const billNrTd = tr.querySelector(".bill-nr-cell");
@@ -7812,24 +7887,24 @@
             const reasonTd = tr.querySelector(".deduct-reason-cell");
             const crnTd = tr.querySelector(".crn-no-cell");
 
-            if (vbillTd && rec.remark !== undefined)
+            if (canUpdateCell(vbillTd) && rec.remark !== undefined)
               vbillTd.innerText = rec.remark || "-";
-            if (billNrTd && rec.bill_nr !== undefined)
+            if (canUpdateCell(billNrTd) && rec.bill_nr !== undefined)
               billNrTd.innerText = rec.bill_nr !== null ? rec.bill_nr : "";
-            if (billOtTd && rec.bill_ot !== undefined)
+            if (canUpdateCell(billOtTd) && rec.bill_ot !== undefined)
               billOtTd.innerText = rec.bill_ot !== null ? rec.bill_ot : "";
-            if (drvOtTd && rec.driver_ot !== undefined)
+            if (canUpdateCell(drvOtTd) && rec.driver_ot !== undefined)
               drvOtTd.innerText = rec.driver_ot !== null ? rec.driver_ot : "";
-            if (drvAmtTd && rec.driver_amount !== undefined)
+            if (canUpdateCell(drvAmtTd) && rec.driver_amount !== undefined)
               drvAmtTd.innerText =
                 rec.driver_amount !== null
                   ? Number(rec.driver_amount).toFixed(2)
                   : "";
-            if (dedTd && rec.inv_deduct !== undefined)
+            if (canUpdateCell(dedTd) && rec.inv_deduct !== undefined)
               dedTd.innerText = rec.inv_deduct || "";
-            if (reasonTd && rec.deduct_reason !== undefined)
+            if (canUpdateCell(reasonTd) && rec.deduct_reason !== undefined)
               reasonTd.innerText = rec.deduct_reason || "";
-            if (crnTd && rec.crn_no !== undefined)
+            if (canUpdateCell(crnTd) && rec.crn_no !== undefined)
               crnTd.innerText = rec.crn_no || "";
 
             tr.classList.add("live-sync-pulse");

@@ -10,7 +10,8 @@
     <script src="/node_xlsx_scripts/pdf-lib.min.js"></script>
     <script src="/node_xlsx_scripts/pdf.min.js"></script>
     <script>
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "/node_xlsx_scripts/pdf.worker.min.js";
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "/node_xlsx_scripts/pdf.worker.min.js";
     </script>
     <style>
       @font-face {
@@ -62,19 +63,25 @@
       }
 
       .controls-wrapper {
-        background: linear-gradient(135deg, #0b1329 0%, #132238 55%, #0f172a 100%);
+        position: relative;
+        background: linear-gradient(
+          135deg,
+          #0b1329 0%,
+          #132238 55%,
+          #0f172a 100%
+        );
         color: white;
         padding: 12px 18px;
         border-bottom: 1px solid rgba(148, 163, 184, 0.22);
         box-shadow: 0 8px 24px rgba(2, 6, 23, 0.35);
-        z-index: 100;
+        z-index: 1000;
         flex-shrink: 0;
         display: flex;
         gap: 8px;
         align-items: flex-end;
         flex-wrap: nowrap;
         justify-content: center;
-        overflow-x: auto;
+        overflow: visible;
       }
 
       .ribbon-divider {
@@ -392,7 +399,7 @@
       .info-row {
         display: flex;
         font-size: 12.5px;
-        align-items: flex-start; 
+        align-items: flex-start;
       }
       .info-lbl {
         width: 65px;
@@ -543,7 +550,7 @@
         border: none;
         transition: 0.2s;
       }
-      
+
       .hm {
         background-color: #2563eb;
       }
@@ -752,137 +759,230 @@
       }
 
       /* 🟢 DARK MODE STYLES */
-      body.dark-mode { background-color: #0f172a; }
-      body.dark-mode #leftCardsArea { background-color: #0f172a; }
-      body.dark-mode .ts-card { background: #1e293b; color: #e2e8f0; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5); }
-      body.dark-mode .ts-month-title, body.dark-mode .asset-code { color: #ffffff; }
-      body.dark-mode .info-lbl, body.dark-mode .info-colon { color: #94a3b8; }
-      body.dark-mode .info-val { color: #e2e8f0; }
-      body.dark-mode .ts-table { border-color: #475569; }
-      body.dark-mode .ts-table th, body.dark-mode .ts-table td { border-color: #475569; }
-      body.dark-mode .ts-table th { background-color: #334155; color: #ffffff; }
-      body.dark-mode .ts-table tr:nth-child(even) { background-color: #0f172a; }
-      body.dark-mode .card-dl-btn { background: #334155; color: white; }
-      body.dark-mode .card-dl-btn:hover { background: #475569; }
-      body.dark-mode .invoice-box { background: #334155; border-color: #94a3b8; }
-      body.dark-mode .red-border-box-bottom { border-color: #ef4444; color: #fca5a5; }
-      body.dark-mode .logsheet-viewer-panel { background: #0f172a; }
-      body.dark-mode .logsheet-sidebar-panel { background: #1e293b; border-color: #334155; }
-      body.dark-mode .logsheet-file-item { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+      body.dark-mode {
+        background-color: #0f172a;
+      }
+      body.dark-mode #leftCardsArea {
+        background-color: #0f172a;
+      }
+      body.dark-mode .ts-card {
+        background: #1e293b;
+        color: #e2e8f0;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+      }
+      body.dark-mode .ts-month-title,
+      body.dark-mode .asset-code {
+        color: #ffffff;
+      }
+      body.dark-mode .info-lbl,
+      body.dark-mode .info-colon {
+        color: #94a3b8;
+      }
+      body.dark-mode .info-val {
+        color: #e2e8f0;
+      }
+      body.dark-mode .ts-table {
+        border-color: #475569;
+      }
+      body.dark-mode .ts-table th,
+      body.dark-mode .ts-table td {
+        border-color: #475569;
+      }
+      body.dark-mode .ts-table th {
+        background-color: #334155;
+        color: #ffffff;
+      }
+      body.dark-mode .ts-table tr:nth-child(even) {
+        background-color: #0f172a;
+      }
+      body.dark-mode .card-dl-btn {
+        background: #334155;
+        color: white;
+      }
+      body.dark-mode .card-dl-btn:hover {
+        background: #475569;
+      }
+      body.dark-mode .invoice-box {
+        background: #334155;
+        border-color: #94a3b8;
+      }
+      body.dark-mode .red-border-box-bottom {
+        border-color: #ef4444;
+        color: #fca5a5;
+      }
+      body.dark-mode .logsheet-viewer-panel {
+        background: #0f172a;
+      }
+      body.dark-mode .logsheet-sidebar-panel {
+        background: #1e293b;
+        border-color: #334155;
+      }
+      body.dark-mode .logsheet-file-item {
+        background: #0f172a;
+        color: #e2e8f0;
+        border-color: #475569;
+      }
     </style>
   </head>
 
   <body>
     <div class="controls-wrapper">
-        <button type="button" class="btn-arrow" onclick="changeMonth(-1)" title="Previous Month">◀</button>
-        <div class="form-group" style="width: 110px">
-          <label>Month</label>
-          <select id="selMonth">
-            <option value="January">January</option>
-            <option value="February">February</option>
-            <option value="March">March</option>
-            <option value="April">April</option>
-            <option value="May">May</option>
-            <option value="June">June</option>
-            <option value="July">July</option>
-            <option value="August">August</option>
-            <option value="September">September</option>
-            <option value="October">October</option>
-            <option value="November">November</option>
-            <option value="December">December</option>
-          </select>
-        </div>
-        <div class="form-group" style="width: 80px">
-          <label>Year</label>
-          <input type="number" id="selYear" value="2026" />
-        </div>
-        <button type="button" class="btn-arrow" onclick="changeMonth(1)" title="Next Month">▶</button>
-        <div class="form-group" style="width: 140px">
-          <label>Filter By</label>
-          <select id="filterType" onchange="setupFilterUI()">
-            <option value="All">All Vehicles</option>
-            <option value="Plate No">Plate No</option>
-            <option value="Owner Name">Owner Name</option>
-            <option value="Asset Code">Asset Code</option>
-            <option value="Site Name">Site Name</option>
-            <option value="Bulk Mode">Bulk Mode</option>
-            <option value="Plate Range">Month Range (Plate No)</option>
-            <option value="Asset Range">Month Range (Asset Code)</option>
-          </select>
-        </div>
+      <button
+        type="button"
+        class="btn-arrow"
+        onclick="changeMonth(-1)"
+        title="Previous Month"
+      >
+        ◀
+      </button>
+      <div class="form-group" style="width: 110px">
+        <label>Month</label>
+        <select id="selMonth">
+          <option value="January">January</option>
+          <option value="February">February</option>
+          <option value="March">March</option>
+          <option value="April">April</option>
+          <option value="May">May</option>
+          <option value="June">June</option>
+          <option value="July">July</option>
+          <option value="August">August</option>
+          <option value="September">September</option>
+          <option value="October">October</option>
+          <option value="November">November</option>
+          <option value="December">December</option>
+        </select>
+      </div>
+      <div class="form-group" style="width: 80px">
+        <label>Year</label>
+        <input type="number" id="selYear" value="2026" />
+      </div>
+      <button
+        type="button"
+        class="btn-arrow"
+        onclick="changeMonth(1)"
+        title="Next Month"
+      >
+        ▶
+      </button>
+      <div class="form-group" style="width: 140px">
+        <label>Filter By</label>
+        <select id="filterType" onchange="setupFilterUI()">
+          <option value="All">All Vehicles</option>
+          <option value="Plate No">Plate No</option>
+          <option value="Owner Name">Owner Name</option>
+          <option value="Asset Code">Asset Code</option>
+          <option value="Site Name">Site Name</option>
+          <option value="Bulk Mode">Bulk Mode</option>
+          <option value="Plate Range">Month Range (Plate No)</option>
+          <option value="Asset Range">Month Range (Asset Code)</option>
+        </select>
+      </div>
 
+      <div
+        class="form-group"
+        id="filterValGroup"
+        style="display: none; width: 220px"
+      >
+        <label id="filterLbl">Value</label>
+        <input
+          type="text"
+          id="filterVal"
+          placeholder="Type here..."
+          autocomplete="off"
+          style="text-transform: uppercase"
+        />
+        <div id="filterSuggestions" class="suggestions"></div>
         <div
-          class="form-group"
-          id="filterValGroup"
-          style="display: none; width: 220px"
-        >
-          <label id="filterLbl">Value</label>
-          <input
-            type="text"
-            id="filterVal"
-            placeholder="Type here..."
-            autocomplete="off"
-            style="text-transform: uppercase"
-          />
-          <div id="filterSuggestions" class="suggestions"></div>
-          <div
-            id="multiSiteDropdown"
-            class="suggestions"
-            style="padding: 5px"
-          ></div>
-          <textarea
-            id="filterBulk"
-            placeholder="Plate1, Asset1, Plate2..."
-            style="display: none; height: 35px; resize: none"
-          ></textarea>
-        </div>
+          id="multiSiteDropdown"
+          class="suggestions"
+          style="padding: 5px"
+        ></div>
+        <textarea
+          id="filterBulk"
+          placeholder="Plate1, Asset1, Plate2..."
+          style="display: none; height: 35px; resize: none"
+        ></textarea>
+      </div>
 
-        <div class="form-group" id="rangeEndGroup" style="display: none; width: 210px">
-          <label>End Month / Year</label>
-          <div style="display: flex; gap: 6px">
-            <select id="rangeEndMonth" style="flex: 1"></select>
-            <input type="number" id="rangeEndYear" style="width: 70px" />
-          </div>
+      <div
+        class="form-group"
+        id="rangeEndGroup"
+        style="display: none; width: 210px"
+      >
+        <label>End Month / Year</label>
+        <div style="display: flex; gap: 6px">
+          <select id="rangeEndMonth" style="flex: 1"></select>
+          <input type="number" id="rangeEndYear" style="width: 70px" />
         </div>
+      </div>
 
+      <div
+        class="form-group"
+        id="secondarySiteGroup"
+        style="display: none; width: 200px"
+      >
+        <label>Site Filter (Optional)</label>
+        <input
+          type="text"
+          id="secondarySiteVal"
+          placeholder="All Sites"
+          readonly
+          style="cursor: pointer; text-transform: uppercase"
+        />
         <div
-          class="form-group"
-          id="secondarySiteGroup"
-          style="display: none; width: 200px"
-        >
-          <label>Site Filter (Optional)</label>
-          <input
-            type="text"
-            id="secondarySiteVal"
-            placeholder="All Sites"
-            readonly
-            style="cursor: pointer; text-transform: uppercase"
-          />
-          <div
-            id="secondarySiteDropdown"
-            class="suggestions"
-            style="padding: 5px"
-          ></div>
-        </div>
+          id="secondarySiteDropdown"
+          class="suggestions"
+          style="padding: 5px"
+        ></div>
+      </div>
 
-        <button class="btn-generate" onclick="generateReport()" id="btnGen">
-          <span class="loader" id="genLoader"></span> Generate Report
-        </button>
+      <button class="btn-generate" onclick="generateReport()" id="btnGen">
+        <span class="loader" id="genLoader"></span> Generate Report
+      </button>
 
-        <div class="ribbon-divider"></div>
+      <div class="ribbon-divider"></div>
 
-        <button class="btn-ribbon" onclick="toggleDarkMode()" style="background: #1e293b; padding: 0 11px;" title="Toggle Theme">🌗</button>
-        <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf" title="Download All Timesheet Cards as PDF">
-          <span class="loader" id="pdfLoader"></span> 📄 Timesheet PDF
-        </button>
-        <button type="button" id="btnToggleLtView" class="btn-ribbon" onclick="toggleTimesheetMode()" style="background: #0f3d7a;">
-          🔄️ LT View
-        </button>
-        <a href="index.html" class="btn-ribbon" style="background: #1d4ed8;">🏠 Home</a>
-        <a href="./entry.html" class="btn-ribbon" style="background: #3b0764;">📝 Grid Entry</a>
-        <button type="button" id="btnAllLogsheetPdf" class="btn-ribbon" onclick="downloadAllCardsLogsheetsPDF()" style="background: linear-gradient(135deg, #7c3aed, #5b21b6);" title="Download Individual Logsheet PDF for each listed card">
-          📁 Logsheet PDF
-        </button>
+      <button
+        class="btn-ribbon"
+        onclick="toggleDarkMode()"
+        style="background: #1e293b; padding: 0 11px"
+        title="Toggle Theme"
+      >
+        🌗
+      </button>
+      <button
+        class="btn-pdf"
+        onclick="downloadAllPDF()"
+        id="btnPdf"
+        title="Download All Timesheet Cards as PDF"
+      >
+        <span class="loader" id="pdfLoader"></span> 📄 Timesheet PDF
+      </button>
+      <button
+        type="button"
+        id="btnToggleLtView"
+        class="btn-ribbon"
+        onclick="toggleTimesheetMode()"
+        style="background: #0f3d7a"
+      >
+        🔄️ LT View
+      </button>
+      <a href="index.html" class="btn-ribbon" style="background: #1d4ed8"
+        >🏠 Home</a
+      >
+      <a href="./entry.html" class="btn-ribbon" style="background: #3b0764"
+        >📝 Grid Entry</a
+      >
+      <button
+        type="button"
+        id="btnAllLogsheetPdf"
+        class="btn-ribbon"
+        onclick="downloadAllCardsLogsheetsPDF()"
+        style="background: linear-gradient(135deg, #7c3aed, #5b21b6)"
+        title="Download Individual Logsheet PDF for each listed card"
+      >
+        📁 Logsheet PDF
+      </button>
     </div>
 
     <div id="splitContainer">
@@ -1056,12 +1156,17 @@
       })();
 
       function cleanSiteNameDisplay(siteStr) {
-        if (!siteStr || siteStr === "N/A" || siteStr === "-") return siteStr || "N/A";
+        if (!siteStr || siteStr === "N/A" || siteStr === "-")
+          return siteStr || "N/A";
         let s = siteStr.trim();
         return s.replace(/^[zZ][\s\-_]*/, "").trim();
       }
 
-      function getEffectivePlateForMonth(masterPlate, targetMonthStr, targetYearStr) {
+      function getEffectivePlateForMonth(
+        masterPlate,
+        targetMonthStr,
+        targetYearStr,
+      ) {
         if (!masterPlate) return "";
         let mClean = masterPlate.trim().toUpperCase();
         let mIdx = months.indexOf(targetMonthStr);
@@ -1072,7 +1177,7 @@
         let vPlateChanges = (dbPlateLogs || []).filter(
           (pl) =>
             (pl.old_plate_no || "").trim().toUpperCase() === mClean ||
-            (pl.new_plate_no || "").trim().toUpperCase() === mClean
+            (pl.new_plate_no || "").trim().toUpperCase() === mClean,
         );
 
         let effective = mClean;
@@ -1161,7 +1266,8 @@
             inp.placeholder = `Type ${type === "Plate Range" ? "Plate No" : type === "Asset Range" ? "Asset Code" : type}...`;
             if (type === "Owner Name") secGroup.style.display = "flex";
             if (type === "Plate Range" || type === "Asset Range") {
-              lbl.innerText = type === "Plate Range" ? "Plate No" : "Asset Code";
+              lbl.innerText =
+                type === "Plate Range" ? "Plate No" : "Asset Code";
               document.getElementById("rangeEndGroup").style.display = "flex";
             }
           }
@@ -1191,19 +1297,24 @@
             dbVehicles.forEach((v) => {
               if (v.plate_no) {
                 // തിരഞ്ഞെടുത്ത മാസത്തിന് അനുയോജ്യമായ പ്ലേറ്റ് നമ്പർ എടുക്കുന്നു
-                let effPlate = getEffectivePlateForMonth(v.plate_no, curM, curY);
+                let effPlate = getEffectivePlateForMonth(
+                  v.plate_no,
+                  curM,
+                  curY,
+                );
                 plateSet.add(effPlate);
                 plateSet.add(v.plate_no.trim().toUpperCase());
               }
             });
             // പ്ലേറ്റ് ചേഞ്ച് ലോഗിലുള്ള പഴയതും പുതിയതുമായ പ്ലേറ്റുകളും ഉൾപ്പെടുത്തുന്നു
-            (dbPlateLogs || []).forEach(pl => {
-              if (pl.old_plate_no) plateSet.add(pl.old_plate_no.trim().toUpperCase());
-              if (pl.new_plate_no) plateSet.add(pl.new_plate_no.trim().toUpperCase());
+            (dbPlateLogs || []).forEach((pl) => {
+              if (pl.old_plate_no)
+                plateSet.add(pl.old_plate_no.trim().toUpperCase());
+              if (pl.new_plate_no)
+                plateSet.add(pl.new_plate_no.trim().toUpperCase());
             });
             matches = [...plateSet];
-          }
-          else if (type === "Owner Name")
+          } else if (type === "Owner Name")
             matches = [...new Set(dbVehicles.map((v) => v.owner_name))].filter(
               Boolean,
             );
@@ -1457,7 +1568,7 @@
         if (!sActive) {
           if (isReplaced) return "R";
           if (sGap) return "SC";
-          if (isBeforeStart) return "WS";  
+          if (isBeforeStart) return "WS";
           if (isAfterEnd) return "Re";
           return "AB";
         }
@@ -1690,7 +1801,16 @@
             const dLogs = data.logs.drivers.filter((l) => l.plate_no === plate);
             const sLogs = data.logs.sites.filter((l) => l.plate_no === plate);
             const pLogs = data.logs.plates || [];
-            allCardsHTML += buildCardHTML(v, m, y, vRecords, dLogs, sLogs, [], pLogs);
+            allCardsHTML += buildCardHTML(
+              v,
+              m,
+              y,
+              vRecords,
+              dLogs,
+              sLogs,
+              [],
+              pLogs,
+            );
           });
 
           area.innerHTML = allCardsHTML;
@@ -1705,7 +1825,16 @@
         }
       }
 
-      function buildCardHTML(vehicle, month, year, records, dLogs, sLogs, oLogs = [], pLogs = []) {
+      function buildCardHTML(
+        vehicle,
+        month,
+        year,
+        records,
+        dLogs,
+        sLogs,
+        oLogs = [],
+        pLogs = [],
+      ) {
         let mIdx = months.indexOf(month);
         let curYearInt = parseInt(year);
         let monthStart = new Date(year, mIdx, 1);
@@ -1718,7 +1847,7 @@
         let vPlateChanges = (pLogs || []).filter(
           (pl) =>
             (pl.old_plate_no || "").trim().toUpperCase() === masterPlate ||
-            (pl.new_plate_no || "").trim().toUpperCase() === masterPlate
+            (pl.new_plate_no || "").trim().toUpperCase() === masterPlate,
         );
 
         if (vPlateChanges.length > 0) {
@@ -1727,7 +1856,7 @@
             let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
             let cDate = new Date(cYear, cMonth - 1, cDay);
 
-            if (cYear === curYearInt && (cMonth - 1) === mIdx) {
+            if (cYear === curYearInt && cMonth - 1 === mIdx) {
               displayPlate = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
             } else if (monthEnd < cDate) {
               displayPlate = pl.old_plate_no.trim().toUpperCase();
@@ -1795,7 +1924,8 @@
           : vehicle.site_name || "N/A";
         let currSite = cleanSiteNameDisplay(rawCurrSite);
 
-        let rawPrevSite = activeSites.length > 1 ? activeSites[1].site_name : "";
+        let rawPrevSite =
+          activeSites.length > 1 ? activeSites[1].site_name : "";
         let prevSite = cleanSiteNameDisplay(rawPrevSite);
 
         let bottomBoxTextArr = [];
@@ -1832,8 +1962,14 @@
         });
 
         let dispVType = vehicle.vehicle_type || "N/A";
-        let dispOName = activeOwners.length > 0 && activeOwners[0].owner_name ? activeOwners[0].owner_name : (vehicle.owner_name || "N/A");
-        let dispOMob = activeOwners.length > 0 && activeOwners[0].owner_mobile ? activeOwners[0].owner_mobile : (vehicle.owner_mobile || "");
+        let dispOName =
+          activeOwners.length > 0 && activeOwners[0].owner_name
+            ? activeOwners[0].owner_name
+            : vehicle.owner_name || "N/A";
+        let dispOMob =
+          activeOwners.length > 0 && activeOwners[0].owner_mobile
+            ? activeOwners[0].owner_mobile
+            : vehicle.owner_mobile || "";
         let dispFieldCo =
           activeSites.length > 0 && activeSites[0].field_co
             ? activeSites[0].field_co
@@ -1877,7 +2013,9 @@
           );
 
           // 🟢 LT View-ൽ വെള്ളിയാഴ്ച മാത്രമേ ഫുൾ OT വരൂ (31-ാം തീയതി Normal ആയി കണക്കാക്കും)
-          let isFullOT = isLtMode ? (dayName === "Fri") : (dayName === "Fri" || i === 31);
+          let isFullOT = isLtMode
+            ? dayName === "Fri"
+            : dayName === "Fri" || i === 31;
           if (specialRule && specialRule.rule_type === "FULL_OT")
             isFullOT = true;
 
@@ -1886,8 +2024,10 @@
             otHr = 0;
           let dist = parseFloat(rec.calc_distance) || 0;
           let fuel = parseFloat(rec.fuel) || 0;
-          let bdStr = String(rec.bd || "").trim().toUpperCase();
-          
+          let bdStr = String(rec.bd || "")
+            .trim()
+            .toUpperCase();
+
           if (bdStr === "B") bdStr = "BD";
           else if (bdStr === "N") bdStr = "NW";
           else if (bdStr === "S") bdStr = "NS";
@@ -1917,7 +2057,11 @@
             else if (statusCode === "Re")
               noteStr = "Released" + (noteStr ? " - " + noteStr : "");
 
-            if (["BD", "NW", "NS", "NR", "H", "ID", "NP", "Fri", "FRI"].includes(bdStr)) {
+            if (
+              ["BD", "NW", "NS", "NR", "H", "ID", "NP", "Fri", "FRI"].includes(
+                bdStr,
+              )
+            ) {
               timeDisplay = bdStr === "FRI" ? "Fri" : bdStr;
             }
 
@@ -1959,7 +2103,17 @@
 
           let isGapCode = ["AB", "SC", "DC", "WS", "Re"].includes(timeDisplay);
           let isRepCode = timeDisplay === "R";
-          let isBdCode = ["BD", "NW", "NS", "NR", "H", "ID", "NP", "Fri", "FRI"].includes(timeDisplay);
+          let isBdCode = [
+            "BD",
+            "NW",
+            "NS",
+            "NR",
+            "H",
+            "ID",
+            "NP",
+            "Fri",
+            "FRI",
+          ].includes(timeDisplay);
 
           let timeStyle = "";
           if (isGapCode || isBdCode)
@@ -1983,7 +2137,9 @@
 
         // 🟢 ADDED data-plate AND LOG WINDOW BUTTON
         // ➔ ഉള്ള കോമ്പിനേഷൻ പ്ലേറ്റ് ആണെങ്കിൽ ഫയൽ എടുക്കാനായി പഴയ പ്ലേറ്റ് ഫസ്റ്റ് പാർട്ട് ആയി എടുക്കുന്നു
-        let rawLogPlate = displayPlate.includes("➔") ? displayPlate.split("➔")[0].trim() : displayPlate;
+        let rawLogPlate = displayPlate.includes("➔")
+          ? displayPlate.split("➔")[0].trim()
+          : displayPlate;
 
         return `
         <div class="ts-card" id="card_${vehicle.plate_no}_${month}_${year}" data-plate="${rawLogPlate}" data-month="${month}" data-year="${year}">
@@ -2030,7 +2186,9 @@
                 </div>
             </div>
 
-            ${!isLtMode ? `
+            ${
+              !isLtMode
+                ? `
             <div class="ts-owner-details">
                 <div>Owner :: ${dispOName} ${dispOMob ? "(" + dispOMob + ")" : ""}</div>
                 <div class="co-details"><span>Field Co :: ${dispFieldCo}</span><span>Site Co :: ${dispSiteCo}</span></div>
@@ -2038,7 +2196,9 @@
             </div>
 
             <div class="red-border-box-bottom">${bottomBoxTextHTML}</div>
-            ` : ""}
+            `
+                : ""
+            }
             
             <div class="card-actions-wrapper" style="position: absolute; bottom: 10mm; right: 12mm; display: flex; gap: 8px;">
                 <button class="card-dl-btn" style="position: relative; bottom: auto; right: auto;" onclick="copyCardImage(this)" title="Copy Image">📋</button>
@@ -2050,32 +2210,33 @@
       async function downloadAllPDF() {
         const area = document.getElementById("reportArea");
         const cardElements = area.querySelectorAll(".ts-card");
-        if (cardElements.length === 0) return alert("No reports generated yet.");
+        if (cardElements.length === 0)
+          return alert("No reports generated yet.");
 
         const cards = Array.from(cardElements); // Convert to Array for chunking
         const btn = document.getElementById("btnPdf");
-        const originalBtnText = btn.innerHTML; 
+        const originalBtnText = btn.innerHTML;
         btn.disabled = true;
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF("p", "mm", "a4", true);
 
         // 🟢 CHUNKING: 5 കാർഡുകൾ വീതം ഒരേസമയം (Parallel) ചെയ്യും
-        const CHUNK_SIZE = 5; 
+        const CHUNK_SIZE = 5;
 
         try {
           for (let i = 0; i < cards.length; i += CHUNK_SIZE) {
             // Get the next batch of cards (e.g., 5 cards)
             const chunk = cards.slice(i, i + CHUNK_SIZE);
-            
+
             // Update UI Progress
             btn.innerHTML = `<span class="loader" style="display:inline-block;"></span> PDF (${Math.min(i + CHUNK_SIZE, cards.length)}/${cards.length})`;
-            
+
             // Yield to main thread to prevent UI freeze
-            await new Promise(resolve => setTimeout(resolve, 30));
+            await new Promise((resolve) => setTimeout(resolve, 30));
 
             // 🟢 PARALLEL PROCESSING: ബാച്ചിലുള്ള കാർഡുകൾ ഒരേസമയം ഇമേജ് ആക്കുന്നു
-            const canvasPromises = chunk.map(card => {
+            const canvasPromises = chunk.map((card) => {
               const cardId = card.id;
               return html2canvas(card, {
                 scale: 2.0,
@@ -2090,11 +2251,13 @@
                     clonedCard.style.minHeight = "297mm";
                     clonedCard.style.margin = "0";
                     clonedCard.style.boxShadow = "none";
-                    
-                    const btns = clonedCard.querySelectorAll(".card-dl-btn, .btn-log-window");
+
+                    const btns = clonedCard.querySelectorAll(
+                      ".card-dl-btn, .btn-log-window",
+                    );
                     btns.forEach((b) => (b.style.display = "none"));
                   }
-                }
+                },
               });
             });
 
@@ -2111,11 +2274,15 @@
           }
 
           btn.innerHTML = `<span class="loader" style="display:inline-block;"></span> Saving...`;
-          await new Promise(resolve => setTimeout(resolve, 50)); 
+          await new Promise((resolve) => setTimeout(resolve, 50));
 
           const m = document.getElementById("selMonth").value;
           const y = document.getElementById("selYear").value;
-          if (["Plate Range", "Asset Range"].includes(document.getElementById("filterType").value)) {
+          if (
+            ["Plate Range", "Asset Range"].includes(
+              document.getElementById("filterType").value,
+            )
+          ) {
             const pn = document.getElementById("filterVal").value.trim();
             const em = document.getElementById("rangeEndMonth").value;
             const ey = document.getElementById("rangeEndYear").value;
@@ -2123,13 +2290,12 @@
           } else {
             pdf.save(`Timesheet_Reports_${m}_${y}.pdf`);
           }
-          
         } catch (err) {
           alert("Error generating PDF.");
           console.error(err);
         } finally {
           btn.disabled = false;
-          btn.innerHTML = originalBtnText; 
+          btn.innerHTML = originalBtnText;
         }
       }
 
@@ -2207,7 +2373,16 @@
               unit: "mm",
               format: [wMm, hMm],
             });
-            singleImgPdf.addImage(imgData, "JPEG", 0, 0, wMm, hMm, undefined, "FAST");
+            singleImgPdf.addImage(
+              imgData,
+              "JPEG",
+              0,
+              0,
+              wMm,
+              hMm,
+              undefined,
+              "FAST",
+            );
 
             const tempPdf = await PDFDocument.load(
               singleImgPdf.output("arraybuffer"),
@@ -2260,7 +2435,11 @@
             const results = await Promise.all(
               batch.map((card) =>
                 buildSingleCardLogsheetPdf(card, token).catch((err) => {
-                  console.warn("Logsheet PDF error for", card.dataset.plate, err);
+                  console.warn(
+                    "Logsheet PDF error for",
+                    card.dataset.plate,
+                    err,
+                  );
                   return false;
                 }),
               ),
@@ -2302,12 +2481,16 @@
                 clonedDoc.body.classList.remove("dark-mode");
                 const clonedCard = clonedDoc.getElementById(cardId);
                 if (clonedCard) {
-                    const clonedLogBtn = clonedCard.querySelector(".btn-log-window");
-                    if (clonedLogBtn) clonedLogBtn.style.display = "none";
-                    const clonedActionContainer = clonedCard.querySelector(".card-actions-wrapper");
-                    if (clonedActionContainer) clonedActionContainer.style.display = "none";
+                  const clonedLogBtn =
+                    clonedCard.querySelector(".btn-log-window");
+                  if (clonedLogBtn) clonedLogBtn.style.display = "none";
+                  const clonedActionContainer = clonedCard.querySelector(
+                    ".card-actions-wrapper",
+                  );
+                  if (clonedActionContainer)
+                    clonedActionContainer.style.display = "none";
                 }
-              }
+              },
             });
             const link = document.createElement("a");
             link.download = `Timesheet_${plateNo}_${card.dataset.month}_${card.dataset.year}.png`;
@@ -2327,7 +2510,7 @@
         const card = btnElement.closest(".ts-card");
         const cardId = card.id;
         const originalText = btnElement.innerHTML;
-        
+
         btnElement.innerHTML = "⏳";
         btnElement.disabled = true;
 
@@ -2341,27 +2524,38 @@
                 clonedDoc.body.classList.remove("dark-mode");
                 const clonedCard = clonedDoc.getElementById(cardId);
                 if (clonedCard) {
-                    const clonedLogBtn = clonedCard.querySelector(".btn-log-window");
-                    if (clonedLogBtn) clonedLogBtn.style.display = "none";
-                    const clonedActionContainer = clonedCard.querySelector(".card-actions-wrapper");
-                    if (clonedActionContainer) clonedActionContainer.style.display = "none";
+                  const clonedLogBtn =
+                    clonedCard.querySelector(".btn-log-window");
+                  if (clonedLogBtn) clonedLogBtn.style.display = "none";
+                  const clonedActionContainer = clonedCard.querySelector(
+                    ".card-actions-wrapper",
+                  );
+                  if (clonedActionContainer)
+                    clonedActionContainer.style.display = "none";
                 }
-              }
+              },
             });
-            
-            canvas.toBlob(async (blob) => {
-                try {
-                    const item = new ClipboardItem({ "image/png": blob });
-                    await navigator.clipboard.write([item]);
-                    btnElement.innerHTML = "✅"; // Success icon
-                } catch (err) {
-                    console.error(err);
-                    alert("Copy failed. Your browser might not support clipboard API.");
-                    btnElement.innerHTML = originalText;
-                }
-                setTimeout(() => { btnElement.innerHTML = originalText; }, 1500); // Reset text after 1.5s
-            }, "image/png", 1.0);
 
+            canvas.toBlob(
+              async (blob) => {
+                try {
+                  const item = new ClipboardItem({ "image/png": blob });
+                  await navigator.clipboard.write([item]);
+                  btnElement.innerHTML = "✅"; // Success icon
+                } catch (err) {
+                  console.error(err);
+                  alert(
+                    "Copy failed. Your browser might not support clipboard API.",
+                  );
+                  btnElement.innerHTML = originalText;
+                }
+                setTimeout(() => {
+                  btnElement.innerHTML = originalText;
+                }, 1500); // Reset text after 1.5s
+              },
+              "image/png",
+              1.0,
+            );
           } catch (e) {
             alert("Error copying image.");
             btnElement.innerHTML = originalText;
@@ -2656,7 +2850,8 @@
       }
 
       async function savePanelCurrentRotation() {
-        if (panelCurrentFileIndex === -1 || !panelFiles[panelCurrentFileIndex]) return;
+        if (panelCurrentFileIndex === -1 || !panelFiles[panelCurrentFileIndex])
+          return;
         const file = panelFiles[panelCurrentFileIndex];
 
         const angle = currentRotation % 360;
@@ -2865,7 +3060,10 @@
       }
 
       async function copyPanelCurrentToClipboard() {
-        if (panelCurrentFileIndex === -1 || !panelFiles[panelCurrentFileIndex]) {
+        if (
+          panelCurrentFileIndex === -1 ||
+          !panelFiles[panelCurrentFileIndex]
+        ) {
           alert("No file selected.");
           return;
         }
@@ -2892,7 +3090,8 @@
 
           if (file.mime && file.mime.includes("pdf")) {
             const arrayBuffer = await blob.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer })
+              .promise;
             const page = await pdf.getPage(1);
             const viewport = page.getViewport({ scale: 2.5 });
 
@@ -2902,7 +3101,8 @@
             const ctx = sourceCanvas.getContext("2d");
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            await page.render({ canvasContext: ctx, viewport: viewport })
+              .promise;
           } else {
             const bitmap = await createImageBitmap(blob, {
               imageOrientation: "from-image",
@@ -2961,7 +3161,7 @@
         const isDark = document.body.classList.toggle("dark-mode");
         localStorage.setItem("tsCardTheme", isDark ? "dark" : "light");
       }
-      
+
       (function initTheme() {
         const savedTheme = localStorage.getItem("tsCardTheme");
         if (savedTheme === "dark") {
