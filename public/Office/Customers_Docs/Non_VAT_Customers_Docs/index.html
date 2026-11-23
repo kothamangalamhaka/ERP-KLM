@@ -906,16 +906,29 @@
               </div>
             </form>
           </div>
-          <div class="modal-footer border-top">
-            <button class="btn btn-secondary" data-bs-dismiss="modal">
-              Cancel
-            </button>
-            <button
-              class="btn btn-primary px-4 fw-semibold"
-              onclick="saveSiteEngagement()"
-            >
-              Save Site
-            </button>
+          <div class="modal-footer border-top d-flex justify-content-between align-items-center">
+            <div>
+              <button
+                type="button"
+                id="btnDeleteSite"
+                class="btn btn-danger fw-semibold"
+                style="display: none"
+                onclick="deleteCurrentSite()"
+              >
+                <i class="fa-solid fa-trash me-1"></i> Delete Site
+              </button>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button
+                class="btn btn-primary px-4 fw-semibold"
+                onclick="saveSiteEngagement()"
+              >
+                Save Site
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2389,6 +2402,7 @@
         const custInp = document.getElementById("site_cust_name");
         custInp.value = cust.customer_name;
         custInp.readOnly = true;
+        document.getElementById("btnDeleteSite").style.display = "none";
         document.getElementById("siteEngagementModalTitle").innerText =
           `Add Site / Project for ${cust.customer_name}`;
         const modalEl = document.getElementById("siteEngagementModal");
@@ -2405,6 +2419,7 @@
 
         document.getElementById("siteEngagementForm").reset();
         document.getElementById("site_row_id").value = siteRec.id;
+        document.getElementById("btnDeleteSite").style.display = "inline-flex";
         const custInp = document.getElementById("site_cust_name");
         custInp.value = siteRec.customer_name || "";
         custInp.readOnly = true;
@@ -2428,6 +2443,51 @@
         (
           bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
         ).show();
+      }
+
+      async function deleteCurrentSite() {
+        const siteId = document.getElementById("site_row_id").value;
+        const siteName =
+          document.getElementById("engagement_site").value.trim() || "this site";
+        if (!siteId) return;
+
+        const confirmRes = await Swal.fire({
+          icon: "warning",
+          title: `Delete "${siteName}"?`,
+          text: "This will permanently delete this site and its uploaded site documents & bills from server storage. Customer common docs & other sites will remain safe.",
+          showCancelButton: true,
+          confirmButtonColor: "#dc2626",
+          confirmButtonText: "Yes, Delete Site",
+        });
+        if (!confirmRes.isConfirmed) return;
+
+        try {
+          const res = await fetch(`${API_BASE}/delete-site`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customer_id: Number(siteId) }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            const modalEl = document.getElementById("siteEngagementModal");
+            (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).hide();
+            Swal.fire({
+              icon: "success",
+              title: "Site Deleted",
+              timer: 1300,
+              showConfirmButton: false,
+            });
+            fetchTableData();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Delete Failed",
+              text: json.error || "Error deleting site",
+            });
+          }
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "Delete Error", text: err.message });
+        }
       }
 
       async function saveSiteEngagement() {

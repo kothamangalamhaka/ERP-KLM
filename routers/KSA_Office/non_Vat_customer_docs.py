@@ -581,6 +581,110 @@ def delete_doc(payload: DocDeletePayload):
             conn.close()
 
 
+class SiteDeletePayload(BaseModel):
+    customer_id: int
+
+
+@router.post("/delete-site")
+def delete_site(payload: SiteDeletePayload):
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            """
+            SELECT id, customer_name, agreement_doc, rfq_doc, po_doc, last_doc, bills_data
+            FROM non_vat_customer_records
+            WHERE id = %s
+        """,
+            (payload.customer_id,),
+        )
+        rec = cur.fetchone()
+        if not rec:
+            return {"success": False, "error": "Site record not found"}
+
+        upload_root = os.path.normpath(UPLOAD_BASE)
+
+        def _safe_unlink_url(rel_url):
+            if not rel_url:
+                return
+            full_path = os.path.normpath(
+                os.path.join(PUBLIC_ROOT, str(rel_url).lstrip("/"))
+            )
+            if full_path.startswith(upload_root) and os.path.exists(full_path):
+                try:
+                    os.remove(full_path)
+                except Exception:
+                    pass
+
+        # 1. Delete ONLY this site's uploaded docs (preserve common Ishtimara/Other docs)
+        for col in ["agreement_doc", "rfq_doc", "po_doc", "last_doc"]:
+            _safe_unlink_url(rec.get(col))
+
+        # 2. Delete ONLY this site's uploaded bill files
+        bills = rec.get("bills_data") or []
+        if isinstance(bills, list):
+            for b in bills:
+                f_path = b.get("file_path")
+                if f_path:
+                    norm_p = os.path.normpath(f_path)
+                    if norm_p.startswith(upload_root) and os.path.exists(norm_p):
+                        try:
+                            os.remove(norm_p)
+                        except Exception:
+                            pass
+                _safe_unlink_url(b.get("file_url"))
+
+        # 3. Check how many rows exist for this customer
+        cur.execute(
+            "SELECT COUNT(*) AS cnt FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s)",
+            (rec["customer_name"],),
+        )
+        cnt_row = cur.fetchone()
+        total_rows = cnt_row["cnt"] if cnt_row else 1
+
+        if total_rows > 1:
+            cur.execute(
+                "DELETE FROM non_vat_customer_records WHERE id = %s",
+                (payload.customer_id,),
+            )
+        else:
+            # Keep the customer master row & common docs intact, clear only site-specific fields
+            cur.execute(
+                """
+                UPDATE non_vat_customer_records
+                SET site = '',
+                    company = '',
+                    status = 'Active',
+                    joining_date = NULL,
+                    release_date = NULL,
+                    remark = '',
+                    project_name = '',
+                    agreement_doc = NULL,
+                    rfq_doc = NULL,
+                    po_doc = NULL,
+                    last_doc = NULL,
+                    bills_data = '[]'::jsonb,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """,
+                (payload.customer_id,),
+            )
+
+        conn.commit()
+        return {"success": True}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
 class BillUploadPayload(BaseModel):
     customer_id: int
     month_year: str
