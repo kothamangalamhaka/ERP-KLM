@@ -40,6 +40,7 @@ class FaceRequest(BaseModel):
     image: Optional[str] = None
     frames: Optional[List[str]] = None
     face_trust_token: Optional[str] = None
+    require_admin: Optional[bool] = False
 
 
 def get_conn():
@@ -225,6 +226,24 @@ def face_encode(payload: FaceRequest, request: Request):
 def face_login(payload: FaceRequest, request: Request):
     ip = get_client_ip(request)
 
+    if not payload.face_trust_token:
+        return {
+            "success": False,
+            "code": "DEVICE_NOT_TRUSTED",
+            "message": "Please enable Face Login on this device via Reset / Update Face Data first.",
+        }
+    try:
+        trust = jwt.decode(payload.face_trust_token, JWT_SECRET, algorithms=["HS256"])
+        if trust.get("purpose") != "invoice_face_device_trust" or not trust.get("username"):
+            raise ValueError("Invalid trust token")
+        trusted_username = trust["username"]
+    except Exception:
+        return {
+            "success": False,
+            "code": "DEVICE_NOT_TRUSTED",
+            "message": "Face Login session expired. Please re-enable via Reset / Update Face Data.",
+        }
+
     # 1. ആദ്യം ലോക്ക് പരിശോധന: ലോക്ക് ആണെങ്കിൽ face processing ചെയ്യില്ല
     remaining = check_locked(ip)
     if remaining > 0:
@@ -248,23 +267,17 @@ def face_login(payload: FaceRequest, request: Request):
             return {"success": False, "message": f"No face detected in the image. {left} attempt(s) left."}
 
         snap = get_cache_snapshot()
-        if not snap["encodings"]:
-            return {"success": False, "code": "NOT_RECOGNIZED", "message": "No valid face data in database."}
+        matched_idx = next(
+            (i for i, u in enumerate(snap["users"]) if u[1] == trusted_username),
+            None,
+        )
+        if matched_idx is None:
+            return {"success": False, "code": "NOT_RECOGNIZED", "message": "No face data registered for this user."}
 
-        distances = face_recognition.face_distance(snap["encodings"], current)
-        best_idx = int(np.argmin(distances))
-        best_dist = float(distances[best_idx])
-
-        # Margin check: രണ്ടാമത്തെ ഏറ്റവും അടുത്ത ആളുമായി വ്യത്യാസം കുറവാണെങ്കിൽ നിരസിക്കുന്നു
-        ambiguous = False
-        if len(distances) > 1:
-            second = float(np.partition(distances, 1)[1])
-            if second - best_dist < 0.03:
-                ambiguous = True
-
-        if best_dist > MATCH_THRESHOLD or ambiguous:
+        best_dist = float(face_recognition.face_distance([snap["encodings"][matched_idx]], current)[0])
+        if best_dist > MATCH_THRESHOLD:
             left = record_failure(ip)
-            logger.info("Face NOT recognized ip=%s dist=%.3f ambiguous=%s", ip, best_dist, ambiguous)
+            logger.info("Face NOT recognized user=%s ip=%s dist=%.3f", trusted_username, ip, best_dist)
             if left == 0:
                 return locked_response(LOCKOUT_SECONDS)
             return {
@@ -273,7 +286,7 @@ def face_login(payload: FaceRequest, request: Request):
                 "message": f"Face not recognized. {left} attempt(s) left.",
             }
 
-        db_id = snap["users"][best_idx][0]
+        db_id = snap["users"][matched_idx][0]
 
         # Status DB-യിൽ നിന്ന് പുതുതായി എടുക്കുന്നു (cache stale ആകാതിരിക്കാൻ)
         fresh = get_fresh_user_status(db_id)
@@ -288,6 +301,13 @@ def face_login(payload: FaceRequest, request: Request):
                 "success": False,
                 "code": "NOT_APPROVED",
                 "message": f"Hello {display_name}, your account is {status}. Access denied. Contact admin for approval.",
+            }
+
+        if payload.require_admin and role != "Super Admin":
+            return {
+                "success": False,
+                "code": "NOT_ADMIN",
+                "message": "Access Denied: Super Admin Only.",
             }
 
         token = jwt.encode(
@@ -376,6 +396,24 @@ def timesheet_invalidate_cache():
 def timesheet_face_login(payload: FaceRequest, request: Request):
     ip = get_client_ip(request)
 
+    if not payload.face_trust_token:
+        return {
+            "success": False,
+            "code": "DEVICE_NOT_TRUSTED",
+            "message": "Please enable Camera Face ID on this device via Reset / Update Camera Face Data first.",
+        }
+    try:
+        trust = jwt.decode(payload.face_trust_token, JWT_SECRET, algorithms=["HS256"])
+        if trust.get("purpose") != "timesheet_face_device_trust" or not trust.get("username"):
+            raise ValueError("Invalid trust token")
+        trusted_username = trust["username"]
+    except Exception:
+        return {
+            "success": False,
+            "code": "DEVICE_NOT_TRUSTED",
+            "message": "Face Login session expired. Please re-enable Camera Face ID.",
+        }
+
     remaining = check_locked(ip)
     if remaining > 0:
         return locked_response(remaining)
@@ -396,20 +434,15 @@ def timesheet_face_login(payload: FaceRequest, request: Request):
             return {"success": False, "message": f"No face detected in the image. {left} attempt(s) left."}
 
         snap = get_timesheet_cache_snapshot()
-        if not snap["encodings"]:
-            return {"success": False, "code": "NOT_RECOGNIZED", "message": "No registered face data found for Timesheet users."}
+        matched_idx = next(
+            (i for i, u in enumerate(snap["users"]) if u[1] == trusted_username),
+            None,
+        )
+        if matched_idx is None:
+            return {"success": False, "code": "NOT_RECOGNIZED", "message": "No face data registered for this user."}
 
-        distances = face_recognition.face_distance(snap["encodings"], current)
-        best_idx = int(np.argmin(distances))
-        best_dist = float(distances[best_idx])
-
-        ambiguous = False
-        if len(distances) > 1:
-            second = float(np.partition(distances, 1)[1])
-            if second - best_dist < 0.03:
-                ambiguous = True
-
-        if best_dist > MATCH_THRESHOLD or ambiguous:
+        best_dist = float(face_recognition.face_distance([snap["encodings"][matched_idx]], current)[0])
+        if best_dist > MATCH_THRESHOLD:
             left = record_failure(ip)
             if left == 0:
                 return locked_response(LOCKOUT_SECONDS)
@@ -419,7 +452,7 @@ def timesheet_face_login(payload: FaceRequest, request: Request):
                 "message": f"Face not recognized. {left} attempt(s) left.",
             }
 
-        matched_user = snap["users"][best_idx]
+        matched_user = snap["users"][matched_idx]
         user_id = matched_user[0]
 
         # Fetch latest status directly from DB

@@ -57,11 +57,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("mainAppContainer").style.display = "none";
     document.getElementById("loginUserId").focus();
-    if (sessionStorage.getItem("skipAutoFace")) {
-      // Logout-il ninnu vannathu: auto scan venda
-      sessionStorage.removeItem("skipAutoFace");
-    } else {
-      executeFaceLogin(); // Windows Hello pole auto face scan
+    sessionStorage.removeItem("skipAutoFace");
+    const faceBtn = document.querySelector('button[onclick="startBillingAppFaceAuth(\'login\')"]');
+    if (faceBtn) {
+      faceBtn.style.display = localStorage.getItem("invoice_face_trust_token") ? "block" : "none";
     }
   }
 });
@@ -3743,7 +3742,10 @@ async function handleBillingAppFaceCapture(frame) {
       const res = await fetch("/py/face-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageData }),
+        body: JSON.stringify({
+          image: imageData,
+          face_trust_token: localStorage.getItem("invoice_face_trust_token"),
+        }),
       });
       const data = await res.json();
       closeBillingAppUniversalFace();
@@ -3800,6 +3802,11 @@ async function handleBillingAppFaceCapture(frame) {
         const resetData = await resetRes.json();
         showToast(resetData.message);
         if (resetData.success) {
+          if (resetData.faceTrustToken) {
+            localStorage.setItem("invoice_face_trust_token", resetData.faceTrustToken);
+            const faceBtn = document.querySelector('button[onclick="startBillingAppFaceAuth(\'login\')"]');
+            if (faceBtn) faceBtn.style.display = "block";
+          }
           toggleAuthView("loginBox");
         }
       }

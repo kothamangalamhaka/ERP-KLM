@@ -142,7 +142,19 @@ router.post("/reset-face-data", async (req, res) => {
       "RESET_FACE",
       `Face data re-registered for ${username}`,
     );
-    res.json({ success: true, message: "Face data updated successfully!" });
+    const faceTrustToken =
+      user.status === "Active"
+        ? jwt.sign(
+            { username: user.username, purpose: "timesheet_face_device_trust" },
+            process.env.JWT_SECRET,
+            { expiresIn: "30d" },
+          )
+        : null;
+    res.json({
+      success: true,
+      message: "Face data updated successfully!",
+      faceTrustToken,
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

@@ -95,7 +95,15 @@ router.post("/reset-face-data", async (req, res) => {
         } catch (e) {
             console.warn("Billing cache invalidate failed:", e.message);
         }
-        res.json({ success: true, message: "Face data updated successfully!" });
+        const faceTrustToken =
+            user.status === "Approved"
+                ? jwt.sign(
+                      { username: user.username, purpose: "invoice_face_device_trust" },
+                      JWT_SECRET,
+                      { expiresIn: "30d" }
+                  )
+                : null;
+        res.json({ success: true, message: "Face data updated successfully!", faceTrustToken });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }

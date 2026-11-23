@@ -795,7 +795,10 @@
             const res = await fetch("/py/timesheet-face-login", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ image: imageData }),
+              body: JSON.stringify({
+                image: imageData,
+                face_trust_token: localStorage.getItem("timesheet_face_trust_token"),
+              }),
             });
             const data = await res.json();
             closeUniversalFace();
@@ -847,6 +850,11 @@
               const resetData = await resetRes.json();
               alert(resetData.message);
               if (resetData.success) {
+                if (resetData.faceTrustToken) {
+                  localStorage.setItem("timesheet_face_trust_token", resetData.faceTrustToken);
+                  const tsFaceBtn = document.querySelector('button[onclick="startTsFaceAuth(\'login\')"]');
+                  if (tsFaceBtn) tsFaceBtn.style.display = "inline-block";
+                }
                 switchSection("loginSection");
               }
             }
@@ -1044,6 +1052,13 @@
           msgDiv.innerText = "Error connecting to server.";
           msgDiv.style.color = "#dc3545";
         }
+      }
+
+      const tsFaceBtn = document.querySelector('button[onclick="startTsFaceAuth(\'login\')"]');
+      if (tsFaceBtn) {
+        tsFaceBtn.style.display = localStorage.getItem("timesheet_face_trust_token")
+          ? "inline-block"
+          : "none";
       }
     </script>
   </body>

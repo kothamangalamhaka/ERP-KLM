@@ -7352,7 +7352,10 @@
           const res = await fetch("/py/face-login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: imageData }),
+            body: JSON.stringify({
+              image: imageData,
+              face_trust_token: localStorage.getItem("invoice_face_trust_token"),
+            }),
           });
           const data = await res.json();
           document.getElementById("loader").style.display = "none";
@@ -7551,6 +7554,9 @@
 
           closeBillingResetFaceModalAll();
           if (resetData.success) {
+            if (resetData.faceTrustToken) {
+              localStorage.setItem("invoice_face_trust_token", resetData.faceTrustToken);
+            }
             toggleAuthView("loginBox");
           }
         } catch (e) {

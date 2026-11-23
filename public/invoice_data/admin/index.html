@@ -392,7 +392,11 @@
           const res = await fetch("/py/face-login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: imageData }),
+            body: JSON.stringify({
+              image: imageData,
+              face_trust_token: localStorage.getItem("invoice_face_trust_token"),
+              require_admin: true,
+            }),
           });
           const data = await res.json();
 
@@ -579,11 +583,10 @@
         }
       }
 
-      // fetchUsers(); is now called only after successful adminLogin()
-      if (sessionStorage.getItem("skipAdminAutoFace")) {
-        sessionStorage.removeItem("skipAdminAutoFace");
-      } else {
-        startAdminFaceLogin(); // auto face scan on page open
+      sessionStorage.removeItem("skipAdminAutoFace");
+      const adminFaceBtn = document.querySelector('button[onclick="startAdminFaceLogin()"]');
+      if (adminFaceBtn) {
+        adminFaceBtn.style.display = localStorage.getItem("invoice_face_trust_token") ? "block" : "none";
       }
     </script>
   </body>
