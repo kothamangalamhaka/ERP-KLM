@@ -357,6 +357,7 @@ function updateSelectTexts() {
 }
 
 let billingAbortController = null;
+let isBillingSaving = false;
 
 function fetchDataFromERP(autoArrangeOwners = []) {
   const textEl = document.getElementById("selectedMonthText");
@@ -2440,6 +2441,8 @@ function submitBulkData() {
 
   if (!fullMonth || cards.length === 0)
     return showToast("No generated bills to save.");
+  if (isBillingSaving) return showToast("Save already in progress...");
+  isBillingSaving = true;
 
   const dataToUpdate = [];
 
@@ -2580,13 +2583,14 @@ function submitBulkData() {
     .then(async (res) => {
       document.getElementById("loader").style.display = "none";
       if (res.status === 401 || res.status === 403) {
-        // 🟢 ടോക്കൺ എക്സ്പയർ ആയാൽ വർക്ക് നഷ്ടപ്പെടാതെ പോപ്പ്അപ്പ് തുറക്കുന്നു
+        isBillingSaving = false;
         openReLoginModal(() => submitBulkData());
         return null;
       }
       return res.json();
     })
     .then((res) => {
+      isBillingSaving = false;
       if (!res) return;
       if (res.success) {
         showToast("All Bulk Bills Saved to ERP!");
@@ -2596,6 +2600,7 @@ function submitBulkData() {
       }
     })
     .catch((err) => {
+      isBillingSaving = false;
       document.getElementById("loader").style.display = "none";
       showToast("Error saving data.");
     });
@@ -2693,7 +2698,8 @@ function goToDashboard() {
 function fetchDataSilently() {
   const textEl = document.getElementById("selectedMonthText");
   const fullMonth = (textEl.dataset.fullMonth || textEl.innerText).trim();
-  const token = localStorage.getItem("token");
+  const token =
+    localStorage.getItem("invoiceToken") || localStorage.getItem("token");
   if (!fullMonth || fullMonth === "Loading...") return;
 
   fetch("/billing/vehicles?month=" + encodeURIComponent(fullMonth), {
