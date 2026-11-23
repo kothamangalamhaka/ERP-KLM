@@ -1,29 +1,79 @@
 const express = require("express");
+const crypto = require("crypto");
 const router = express.Router();
 const pool = require("../config/db");
 const jwt = require("jsonwebtoken");
-const ExcelJS = require("exceljs"); // 🟢 Excel Export Library
+const ExcelJS = require("exceljs");
 const { verifyToken } = require("../middlewares/auth");
 
-const JWT_SECRET = process.env.JWT_SECRET || "expense_secure_secret_key";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// Isolated constant-time string comparison (anti-timing attack)
+function _safeEqual(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// Isolated in-memory rate limiter for /login and /delete (anti-brute-force)
+const _attemptStore = new Map();
+function _checkRateLimit(key, maxAttempts = 5, windowMs = 10 * 60 * 1000) {
+  const now = Date.now();
+  const entry = _attemptStore.get(key);
+  if (!entry || now > entry.resetAt) {
+    _attemptStore.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= maxAttempts) return false;
+  entry.count += 1;
+  return true;
+}
+
+function _validateEntryPayload(body) {
+  const { date, particulars, ledger, type, amount } = body || {};
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) {
+    return "Invalid date format";
+  }
+  const numAmount = Number(amount);
+  if (!Number.isFinite(numAmount) || numAmount <= 0) {
+    return "Amount must be a positive number";
+  }
+  const cleanPart = String(particulars || "").trim();
+  if (!cleanPart || cleanPart.length > 255) {
+    return "Particulars must be between 1 and 255 characters";
+  }
+  if (!type || !ledger) {
+    return "Category and Source are required";
+  }
+  return null;
+}
 
 // 🟢 Secure Admin Login Route
 router.post("/login", (req, res) => {
-  const { passcode } = req.body;
-
-  // 🟢 .env ൽ നിന്നും KLM_EXPENSE_CODE എടുക്കുന്നു
-  const validPasscode = process.env.KLM_EXPENSE_CODE;
-
-  if (!validPasscode) {
-    return res.status(500).json({
+  const clientIp = req.ip || "unknown";
+  if (!_checkRateLimit(`login:${clientIp}`)) {
+    return res.status(429).json({
       success: false,
-      message: "Passcode not configured on server.",
+      message: "Too many login attempts. Try again later.",
     });
   }
 
-  if (passcode === validPasscode) {
+  const { passcode } = req.body || {};
+  const validPasscode = process.env.KLM_EXPENSE_CODE;
+
+  if (!validPasscode || !JWT_SECRET) {
+    return res.status(500).json({
+      success: false,
+      message: "Server security configuration missing.",
+    });
+  }
+
+  if (_safeEqual(passcode, validPasscode)) {
+    _attemptStore.delete(`login:${clientIp}`);
     const token = jwt.sign({ role: "expense_admin" }, JWT_SECRET, {
-      expiresIn: "30m", // പുതിയ കോഡ് (30 മിനിറ്റ്)
+      expiresIn: "30m",
     });
     res.json({ success: true, token });
   } else {
@@ -32,6 +82,14 @@ router.post("/login", (req, res) => {
 });
 
 router.use(verifyToken);
+
+// Isolated role check: only tokens issued by /expenses/login can access /expenses/*
+router.use((req, res, next) => {
+  if (!req.user || req.user.role !== "expense_admin") {
+    return res.status(403).json({ success: false, message: "Access Denied" });
+  }
+  next();
+});
 
 // 1. Get all entries
 router.get("/", async (req, res) => {
@@ -49,11 +107,15 @@ router.get("/", async (req, res) => {
 
 // 2. Add New Entry
 router.post("/add", async (req, res) => {
+  const validationError = _validateEntryPayload(req.body);
+  if (validationError) {
+    return res.status(400).json({ success: false, message: validationError });
+  }
   try {
     const { date, particulars, ledger, type, amount } = req.body;
     await pool.query(
       "INSERT INTO journal_entries (entry_date, particulars, ledger_head, entry_type, amount) VALUES ($1, $2, $3, $4, $5)",
-      [date, particulars, ledger, type, amount],
+      [date, String(particulars).trim(), ledger, type, Number(amount)],
     );
     res.json({ success: true, message: "Entry Added Successfully" });
   } catch (err) {
@@ -63,13 +125,23 @@ router.post("/add", async (req, res) => {
 
 // 3. Update Existing Entry
 router.put("/update/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ success: false, message: "Invalid Entry ID" });
+  }
+  const validationError = _validateEntryPayload(req.body);
+  if (validationError) {
+    return res.status(400).json({ success: false, message: validationError });
+  }
   try {
-    const { id } = req.params;
     const { date, particulars, ledger, type, amount } = req.body;
-    await pool.query(
+    const result = await pool.query(
       "UPDATE journal_entries SET entry_date=$1, particulars=$2, ledger_head=$3, entry_type=$4, amount=$5 WHERE id=$6",
-      [date, particulars, ledger, type, amount, id],
+      [date, String(particulars).trim(), ledger, type, Number(amount), id],
     );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "Entry not found" });
+    }
     res.json({ success: true, message: "Entry Updated Successfully" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to update entry" });
@@ -78,11 +150,19 @@ router.put("/update/:id", async (req, res) => {
 
 // 4. Secure Delete Entry with Environment Key validation
 router.delete("/delete/:id", async (req, res) => {
+  const clientIp = req.ip || "unknown";
+  if (!_checkRateLimit(`delete:${clientIp}`)) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many delete attempts. Try again later.",
+    });
+  }
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ success: false, message: "Invalid Entry ID" });
+  }
   try {
-    const { id } = req.params;
-    const { key } = req.body;
-
-    // 🟢 .env ഫയലിൽ നിന്നും പാസ്‌വേഡ് ചെക്ക് ചെയ്യുന്നു
+    const { key } = req.body || {};
     const validKey = process.env.DELETE_KEY;
     if (!validKey) {
       return res.status(500).json({
@@ -91,13 +171,17 @@ router.delete("/delete/:id", async (req, res) => {
       });
     }
 
-    if (key !== validKey) {
+    if (!_safeEqual(key, validKey)) {
       return res
         .status(401)
         .json({ success: false, message: "Invalid Delete Security Key" });
     }
 
-    await pool.query("DELETE FROM journal_entries WHERE id=$1", [id]);
+    _attemptStore.delete(`delete:${clientIp}`);
+    const result = await pool.query("DELETE FROM journal_entries WHERE id=$1", [id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "Entry not found" });
+    }
     res.json({ success: true, message: "Entry Deleted Successfully" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to delete entry" });
@@ -108,6 +192,10 @@ router.delete("/delete/:id", async (req, res) => {
 router.get("/export-excel", async (req, res) => {
   try {
     const { from, to } = req.query;
+    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+    if ((from && !dateRe.test(from)) || (to && !dateRe.test(to))) {
+      return res.status(400).send("Invalid date filter");
+    }
 
     let query = "SELECT * FROM journal_entries";
     let params = [];
@@ -178,7 +266,7 @@ router.get("/export-excel", async (req, res) => {
     res.end();
   } catch (error) {
     console.error("Export Error:", error);
-    res.status(500).send("Error generating Excel: " + error.message);
+    res.status(500).send("Error generating Excel");
   }
 });
 

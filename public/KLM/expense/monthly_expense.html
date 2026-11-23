@@ -4,11 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KLM ERP - Advanced Ledger</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
 
     <!-- 🟢 Link to External CSS -->
     <link rel="stylesheet" href="style/monthly_expense.css" />
@@ -92,6 +89,7 @@
               id="deleteConfirmKey"
               placeholder="Security Key"
               style="text-align: center; font-weight: bold"
+              onkeydown="if (event.key === 'Enter') executeDelete();"
             />
           </div>
           <div style="display: flex; gap: 10px">

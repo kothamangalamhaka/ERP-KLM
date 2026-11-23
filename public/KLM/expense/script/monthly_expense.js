@@ -4,12 +4,21 @@ let journalEntries = [];
 let activeTableFilters = {};
 let currentFilterCol = "";
 
+function _escHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function showToast(msg, bg = "#10b981") {
   const c = document.getElementById("toastContainer");
   const t = document.createElement("div");
   t.className = "toast";
   t.style.background = bg;
-  t.innerHTML = msg;
+  t.textContent = msg;
   c.appendChild(t);
   setTimeout(() => t.classList.add("show"), 10);
   setTimeout(() => {
@@ -64,6 +73,8 @@ async function executeLogin() {
 }
 
 function executeLogout() {
+  clearTimeout(autoLogoutTimer);
+  activeTableFilters = {};
   sessionStorage.removeItem("expense_token");
   window.location.reload();
 }
@@ -100,17 +111,22 @@ async function loadDataFromServer() {
     const data = await res.json();
     journalEntries = data.map((item) => ({
       id: item.id,
-      date: item.entry_date,
+      date: String(item.entry_date || "").slice(0, 10),
       particulars: item.particulars,
       category: item.entry_type,
       source: item.ledger_head,
-      amount: parseFloat(item.amount),
+      amount: parseFloat(item.amount) || 0,
     }));
     renderTable();
   } catch (e) {
     showToast("Session Expired. Please login.", "#ef4444");
     executeLogout();
   }
+}
+
+function openEntryModalById(id) {
+  const entry = journalEntries.find((item) => String(item.id) === String(id));
+  if (entry) openEntryModal(entry);
 }
 
 function openEntryModal(editData = null) {
@@ -123,9 +139,13 @@ function openEntryModal(editData = null) {
     document.getElementById("popSource").value = editData.source;
     document.getElementById("popParticulars").value = editData.particulars;
   } else {
+    const now = new Date();
+    const localYmd = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 10);
     document.getElementById("modalTitle").innerText = "New Transaction";
     document.getElementById("editId").value = "";
-    document.getElementById("popDate").valueAsDate = new Date();
+    document.getElementById("popDate").value = localYmd;
     document.getElementById("popAmount").value = "";
     document.getElementById("popParticulars").value = "";
   }
@@ -174,15 +194,16 @@ async function handleEntrySave() {
       body: JSON.stringify(entry),
     });
 
-    if (res.ok) {
+    const resData = await res.json().catch(() => ({}));
+    if (res.ok && resData.success !== false) {
       showToast(editId ? "Updated Successfully!" : "Saved Successfully!");
       closeModal("entryModal");
       await loadDataFromServer();
     } else {
-      throw new Error("Server Error");
+      throw new Error(resData.message || "Failed to save to database.");
     }
   } catch (err) {
-    showToast("Failed to save to database.", "#ef4444");
+    showToast(err.message || "Failed to save to database.", "#ef4444");
   } finally {
     btn.innerText = "Save to DB";
     btn.disabled = false;
@@ -258,12 +279,11 @@ function renderTable() {
     return true;
   });
 
-  // 3. Render Table
+  // 3. Render Table (Single-pass DOM update + XSS safe)
   const tbody = document.getElementById("gridBody");
-  tbody.innerHTML = "";
   const dataToRender = filtered.slice().reverse();
 
-  dataToRender.forEach((e) => {
+  const rowsHtml = dataToRender.map((e) => {
     let badgeClass = "bg-orange";
     if (e.category === "Office Account" || e.category === "Opening Balance")
       badgeClass = "bg-green";
@@ -274,27 +294,28 @@ function renderTable() {
       e.category === "Office Electricity"
     )
       badgeClass = "bg-red";
-    // 🟢 Fixed Assets badge logic
     else if (e.category === "Fixed Assets") badgeClass = "bg-purple";
 
-    let catBadge = `<span class="badge ${badgeClass}">${e.category}</span>`;
-    let escapedEntry = JSON.stringify(e)
-      .replace(/'/g, "&apos;")
-      .replace(/"/g, "&quot;");
+    const safeCat = _escHtml(e.category);
+    const safeSrc = _escHtml(e.source);
+    const safePart = _escHtml(e.particulars);
+    const safeId = _escHtml(e.id);
+    const catBadge = `<span class="badge ${badgeClass}">${safeCat}</span>`;
 
-    tbody.innerHTML += `
+    return `
             <tr>
-                <td>${new Date(e.date).toLocaleDateString("en-GB")}</td>
-                <td style="font-weight:500;">${e.particulars}</td>
+                <td>${_escHtml(new Date(e.date).toLocaleDateString("en-GB"))}</td>
+                <td style="font-weight:500;">${safePart}</td>
                 <td>${catBadge}</td>
-                <td><span class="badge bg-purple">${e.source}</span></td>
+                <td><span class="badge bg-purple">${safeSrc}</span></td>
                 <td style="text-align: right; font-weight: 600;">₹ ${e.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
                 <td style="text-align: center;" class="action-col no-export">
-                    <button class="edit-btn" onclick='openEntryModal(${escapedEntry})'><i class="fas fa-pencil-alt"></i></button>
-                    <button class="del-btn" onclick="openDeleteConfirm('${e.id}')"><i class="fas fa-trash"></i></button>
+                    <button class="edit-btn" onclick="openEntryModalById('${safeId}')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="del-btn" onclick="openDeleteConfirm('${safeId}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
   });
+  tbody.innerHTML = rowsHtml.join("");
   calculateDashboard(dataToRender);
 }
 
@@ -405,17 +426,18 @@ function openFilterMenu(e, col) {
     ...new Set(visibleOptionsData.map((row) => getFormattedValue(row, col))),
   ].sort();
 
-  optionsContainer.innerHTML = "";
-  uniqueValues.forEach((val) => {
-    const isChecked =
-      activeTableFilters[col] && activeTableFilters[col].includes(val);
-    optionsContainer.innerHTML += `
+  optionsContainer.innerHTML = uniqueValues
+    .map((val) => {
+      const isChecked =
+        activeTableFilters[col] && activeTableFilters[col].includes(val);
+      const safeVal = _escHtml(val);
+      return `
             <label class="filter-item">
-                <input type="checkbox" value="${val}" ${isChecked ? "checked" : ""}>
-                <span>${val}</span>
-            </label>
-        `;
-  });
+                <input type="checkbox" value="${safeVal}" ${isChecked ? "checked" : ""}>
+                <span>${safeVal}</span>
+            </label>`;
+    })
+    .join("");
 
   menu.style.display = "block";
   let leftPos = e.pageX;
@@ -462,23 +484,27 @@ window.onclick = () =>
 document.getElementById("filterMenu").onclick = (e) => e.stopPropagation();
 
 // 🟢 Download Methods (Image & Excel)
-function downloadImage() {
+async function downloadImage() {
   document
     .querySelectorAll(".no-export")
     .forEach((el) => (el.style.display = "none"));
   document.getElementById("toolbarArea").style.display = "none";
-  html2canvas(document.getElementById("ledgerContent"), { scale: 2 }).then(
-    (canvas) => {
-      const link = document.createElement("a");
-      link.download = "KLM_Report.png";
-      link.href = canvas.toDataURL();
-      link.click();
-      document
-        .querySelectorAll(".no-export")
-        .forEach((el) => (el.style.display = ""));
-      document.getElementById("toolbarArea").style.display = "flex";
-    },
-  );
+  try {
+    const canvas = await html2canvas(document.getElementById("ledgerContent"), {
+      scale: 2,
+    });
+    const link = document.createElement("a");
+    link.download = "KLM_Report.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  } catch (err) {
+    showToast("Image export failed.", "#ef4444");
+  } finally {
+    document
+      .querySelectorAll(".no-export")
+      .forEach((el) => (el.style.display = ""));
+    document.getElementById("toolbarArea").style.display = "flex";
+  }
 }
 
 // 🟢 Excel Export modified to use fetch to send authorization headers
