@@ -531,17 +531,6 @@ document
   });
 
 function adjustStickyHeaders(tableId = "dashboardTable") {
-  const thead = document.querySelector(`#${tableId} thead`);
-  if (!thead) return;
-  const rows = thead.querySelectorAll("tr");
-  if (rows.length >= 3) {
-    let h0 = rows[0].getBoundingClientRect().height;
-    let h1 = rows[1].getBoundingClientRect().height;
-    let ths1 = rows[1].querySelectorAll("th");
-    ths1.forEach((th) => (th.style.top = h0 + "px"));
-    let ths2 = rows[2].querySelectorAll("th");
-    ths2.forEach((th) => (th.style.top = h0 + h1 + "px"));
-  }
   initColumnResizer(tableId);
 }
 window.addEventListener("resize", () => adjustStickyHeaders("dashboardTable"));

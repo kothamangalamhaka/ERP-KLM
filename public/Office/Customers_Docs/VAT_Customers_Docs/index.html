@@ -566,7 +566,15 @@
     <!-- Custom Right Click Context Menu -->
     <div id="contextMenu" class="context-menu">
       <div class="context-menu-item" onclick="triggerUpload()">
-        <i class="fa-solid fa-upload"></i>Upload / Replace
+        <i class="fa-solid fa-upload"></i><span id="ctxUploadLabel">Upload / Replace</span>
+      </div>
+      <div
+        id="ctxDeleteItem"
+        class="context-menu-item text-danger"
+        onclick="triggerDeleteDoc()"
+        style="display: none"
+      >
+        <i class="fa-solid fa-trash"></i>Delete
       </div>
     </div>
     <input
@@ -2358,39 +2366,31 @@
       }
 
       function attachDocEvents() {
-        document.querySelectorAll(".doc-trigger").forEach((el) => {
-          el.onclick = function (e) {
-            e.stopPropagation();
-            const url = this.dataset.url;
-            if (url) {
-              window.open(url, "_blank");
-            } else {
-              // Trigger upload if empty
-              currentContextTarget = {
-                id: this.dataset.id,
-                type: this.dataset.type,
-              };
-              document.getElementById("hiddenFileInput").click();
-            }
-          };
-
-          el.oncontextmenu = function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            currentContextTarget = {
-              id: this.dataset.id,
-              type: this.dataset.type,
-            };
-            const menu = document.getElementById("contextMenu");
-            menu.style.display = "block";
-            menu.style.left = `${e.pageX}px`;
-            menu.style.top = `${e.pageY}px`;
-          };
-        });
+        // Handled globally via delegated listeners below so Search, Filter, and Modal re-renders always work
       }
 
-      window.onclick = function (e) {
-        document.getElementById("contextMenu").style.display = "none";
+      document.addEventListener("click", function (e) {
+        const trigger = e.target.closest(".doc-trigger");
+        if (trigger) {
+          e.stopPropagation();
+          document.getElementById("contextMenu").style.display = "none";
+          const url = trigger.dataset.url;
+          if (url) {
+            window.open(url, "_blank");
+          } else {
+            currentContextTarget = {
+              id: trigger.dataset.id,
+              type: trigger.dataset.type,
+              url: "",
+            };
+            document.getElementById("hiddenFileInput").click();
+          }
+          return;
+        }
+
+        if (!e.target.closest("#contextMenu")) {
+          document.getElementById("contextMenu").style.display = "none";
+        }
         const popup = document.getElementById("headerFilterPopup");
         if (
           popup &&
@@ -2400,11 +2400,98 @@
         ) {
           closeHeaderFilter();
         }
-      };
+      });
+
+      document.addEventListener("contextmenu", function (e) {
+        const trigger = e.target.closest(".doc-trigger");
+        if (!trigger) {
+          document.getElementById("contextMenu").style.display = "none";
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const hasUrl = Boolean(trigger.dataset.url);
+        currentContextTarget = {
+          id: trigger.dataset.id,
+          type: trigger.dataset.type,
+          url: trigger.dataset.url || "",
+        };
+
+        document.getElementById("ctxUploadLabel").textContent = hasUrl
+          ? "Replace"
+          : "Upload";
+        document.getElementById("ctxDeleteItem").style.display = hasUrl
+          ? "flex"
+          : "none";
+
+        const menu = document.getElementById("contextMenu");
+        menu.style.display = "block";
+
+        const menuW = menu.offsetWidth || 150;
+        const menuH = menu.offsetHeight || 80;
+        let left = e.clientX;
+        let top = e.clientY;
+        if (left + menuW > window.innerWidth - 8) {
+          left = window.innerWidth - menuW - 8;
+        }
+        if (top + menuH > window.innerHeight - 8) {
+          top = window.innerHeight - menuH - 8;
+        }
+        menu.style.left = `${Math.max(8, left)}px`;
+        menu.style.top = `${Math.max(8, top)}px`;
+      });
 
       function triggerUpload() {
+        document.getElementById("contextMenu").style.display = "none";
         if (!currentContextTarget) return;
         document.getElementById("hiddenFileInput").click();
+      }
+
+      async function triggerDeleteDoc() {
+        document.getElementById("contextMenu").style.display = "none";
+        if (!currentContextTarget || !currentContextTarget.url) return;
+
+        const docLabel = String(currentContextTarget.type || "Document").toUpperCase();
+        const confirmRes = await Swal.fire({
+          icon: "warning",
+          title: `Delete ${docLabel}?`,
+          text: "This will remove the uploaded file from the server.",
+          showCancelButton: true,
+          confirmButtonColor: "#dc2626",
+          confirmButtonText: "Yes, Delete",
+        });
+        if (!confirmRes.isConfirmed) return;
+
+        try {
+          const res = await fetch("/py/vat-customers/delete-doc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_id: Number(currentContextTarget.id),
+              doc_type: currentContextTarget.type,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Document Deleted",
+              timer: 1200,
+              showConfirmButton: false,
+            });
+            fetchTableData();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Delete Failed",
+              text: json.error || "Error",
+            });
+          }
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "Delete Error", text: err.message });
+        }
       }
 
       function readFileAsBase64(file) {

@@ -379,7 +379,7 @@ def upload_doc(payload: DocUploadPayload):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT customer_name, site, company FROM vat_customer_records WHERE id = %s", (payload.customer_id,))
+        cur.execute(f"SELECT customer_name, site, company, {col_name} AS existing_url FROM vat_customer_records WHERE id = %s", (payload.customer_id,))
         rec = cur.fetchone()
         if not rec:
             return {"success": False, "error": "Customer record not found"}
@@ -387,6 +387,16 @@ def upload_doc(payload: DocUploadPayload):
         cust_folder_name = sanitize_name(rec["customer_name"])
         target_dir = os.path.join(UPLOAD_BASE, cust_folder_name)
         os.makedirs(target_dir, exist_ok=True)
+
+        # Remove old file if replaced with a different extension
+        old_url = rec.get("existing_url")
+        if old_url:
+            old_path = os.path.normpath(os.path.join(PUBLIC_ROOT, str(old_url).lstrip("/")))
+            if old_path.startswith(os.path.normpath(UPLOAD_BASE)) and os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
 
         raw_b64 = payload.file_base64
         if "," in raw_b64:
@@ -426,6 +436,69 @@ def upload_doc(payload: DocUploadPayload):
 
         conn.commit()
         return {"success": True, "file_url": rel_url}
+    except Exception as e:
+        if conn: conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        if cur: cur.close()
+        if conn: conn.close()
+
+class DocDeletePayload(BaseModel):
+    customer_id: int
+    doc_type: str
+
+@router.post("/delete-doc")
+def delete_doc(payload: DocDeletePayload):
+    valid_cols = {
+        "agreement": "agreement_doc",
+        "rfq": "rfq_doc",
+        "po": "po_doc",
+        "conf_letter": "conf_letter_doc",
+        "vat": "vat_doc",
+        "crn": "crn_doc",
+        "last": "last_doc"
+    }
+    col_name = valid_cols.get(payload.doc_type.lower())
+    if not col_name:
+        return {"success": False, "error": "Invalid doc type"}
+
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            f"SELECT customer_name, {col_name} AS existing_url FROM vat_customer_records WHERE id = %s",
+            (payload.customer_id,)
+        )
+        rec = cur.fetchone()
+        if not rec:
+            return {"success": False, "error": "Customer record not found"}
+
+        old_url = rec.get("existing_url")
+        if old_url:
+            old_path = os.path.normpath(os.path.join(PUBLIC_ROOT, str(old_url).lstrip("/")))
+            if old_path.startswith(os.path.normpath(UPLOAD_BASE)) and os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
+
+        if payload.doc_type.lower() in ["vat", "crn"]:
+            cur.execute(f"""
+                UPDATE vat_customer_records
+                SET {col_name} = NULL, updated_at = CURRENT_TIMESTAMP
+                WHERE LOWER(customer_name) = LOWER(%s)
+            """, (rec["customer_name"],))
+        else:
+            cur.execute(f"""
+                UPDATE vat_customer_records
+                SET {col_name} = NULL, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (payload.customer_id,))
+
+        conn.commit()
+        return {"success": True}
     except Exception as e:
         if conn: conn.rollback()
         return {"success": False, "error": str(e)}
