@@ -2,6 +2,7 @@ import os
 import io
 import json
 import re
+import shutil
 import zipfile
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -605,6 +606,102 @@ def update_customer_master(payload: CustomerMasterEditPayload):
 
         conn.commit()
         return {"success": True, "new_name": new_name}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+class CustomerMasterDeletePayload(BaseModel):
+    customer_name: str
+
+
+@router.post("/delete-customer-master")
+def delete_customer_master(payload: CustomerMasterDeletePayload):
+    conn = None
+    cur = None
+    try:
+        c_name = payload.customer_name.strip()
+        if not c_name:
+            return {"success": False, "error": "Customer name is required"}
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            """
+            SELECT id, agreement_doc, rfq_doc, po_doc, last_doc,
+                   bills_data, COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs,
+                   COALESCE(other_docs, '[]'::jsonb) AS other_docs
+            FROM non_vat_customer_records
+            WHERE LOWER(TRIM(customer_name)) = LOWER(TRIM(%s))
+            """,
+            (c_name,),
+        )
+        rows = cur.fetchall()
+        if not rows:
+            return {"success": False, "error": "Customer not found"}
+
+        upload_root = os.path.normpath(UPLOAD_BASE)
+
+        def _safe_unlink(path_or_url, is_url=True):
+            if not path_or_url:
+                return
+            full_path = os.path.normpath(
+                os.path.join(PUBLIC_ROOT, str(path_or_url).lstrip("/"))
+                if is_url
+                else str(path_or_url)
+            )
+            if full_path.startswith(upload_root + os.sep) and os.path.exists(full_path):
+                try:
+                    os.remove(full_path)
+                except Exception:
+                    pass
+
+        for r in rows:
+            for col in ["agreement_doc", "rfq_doc", "po_doc", "last_doc"]:
+                _safe_unlink(r.get(col), is_url=True)
+
+            bills = r.get("bills_data") or []
+            if isinstance(bills, list):
+                for b in bills:
+                    if isinstance(b, dict):
+                        _safe_unlink(b.get("file_path"), is_url=False)
+                        _safe_unlink(b.get("file_url"), is_url=True)
+
+            for m_col in ["ishtimara_docs", "other_docs"]:
+                m_list = r.get(m_col) or []
+                if isinstance(m_list, list):
+                    for d in m_list:
+                        if isinstance(d, dict):
+                            _safe_unlink(d.get("file_path"), is_url=False)
+                            _safe_unlink(d.get("file_url"), is_url=True)
+
+        # Delete customer's folder only if no other customer shares the same sanitized folder name
+        target_san = sanitize_name(c_name)
+        cur.execute(
+            "SELECT DISTINCT customer_name FROM non_vat_customer_records WHERE LOWER(TRIM(customer_name)) != LOWER(TRIM(%s))",
+            (c_name,),
+        )
+        other_folders = {sanitize_name(x["customer_name"]) for x in cur.fetchall() if x.get("customer_name")}
+        if target_san not in other_folders:
+            cust_dir = os.path.normpath(os.path.join(UPLOAD_BASE, target_san))
+            if cust_dir.startswith(upload_root + os.sep) and os.path.isdir(cust_dir):
+                try:
+                    shutil.rmtree(cust_dir)
+                except Exception:
+                    pass
+
+        cur.execute(
+            "DELETE FROM non_vat_customer_records WHERE LOWER(TRIM(customer_name)) = LOWER(TRIM(%s))",
+            (c_name,),
+        )
+        conn.commit()
+        return {"success": True}
     except Exception as e:
         if conn:
             conn.rollback()
