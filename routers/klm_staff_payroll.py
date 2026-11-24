@@ -90,8 +90,23 @@ def generate_month_sheet(ws, month_str, db_conn):
             cell.font = font_bold
         ws[f'D{ws.max_row}'].alignment = align_right
 
-        # Fetch Employees
-        cur.execute("SELECT * FROM employee_data WHERE (start_date IS NULL OR start_date <= %s) ORDER BY id ASC", (f"{year}-{month:02d}-31",))
+        import calendar
+        from datetime import date as _dt_date
+
+        days_in_mo = calendar.monthrange(year, month)[1]
+        start_date_str = f"{year}-{month:02d}-01"
+        end_date_str = f"{year}-{month:02d}-{days_in_mo:02d}"
+        non_fri_days = sum(
+            1 for d in range(1, days_in_mo + 1)
+            if _dt_date(year, month, d).weekday() != 4
+        )
+        effective_mo_days = min(non_fri_days, 26)
+
+        # Fetch Employees active in this specific month
+        cur.execute(
+            "SELECT * FROM employee_data WHERE (start_date IS NULL OR start_date <= %s) AND (end_date IS NULL OR end_date >= %s) ORDER BY id ASC",
+            (end_date_str, start_date_str),
+        )
         employees = cur.fetchall()
 
         ws.append(["", "", "", ""]) # Blank spacing row
@@ -112,8 +127,21 @@ def generate_month_sheet(ws, month_str, db_conn):
             logs = cur.fetchone()
             norm_hr = float(logs['n'] or 0)
             ot_hr = float(logs['o'] or 0)
-            
-            rate = float(emp['base_salary'] or 0) / 260
+
+            # Fetch month-specific salary from employee_salary_history first
+            cur.execute(
+                """
+                SELECT base_salary FROM employee_salary_history
+                WHERE emp_id = %s AND start_date <= %s AND (end_date IS NULL OR end_date >= %s)
+                ORDER BY start_date DESC LIMIT 1
+                """,
+                (emp['id'], end_date_str, start_date_str),
+            )
+            hist_sal = cur.fetchone()
+            base_sal = float(hist_sal['base_salary']) if hist_sal and hist_sal.get('base_salary') is not None else float(emp.get('base_salary') or 0)
+            shift_hrs = float(emp.get('shift_hours') or 10)
+            divisor_hrs = effective_mo_days * shift_hrs
+            rate = (base_sal / divisor_hrs) if divisor_hrs > 0 else 0
             basic = norm_hr * rate
             ot = ot_hr * rate
             bonus = float(adj.get('bonus', 0))

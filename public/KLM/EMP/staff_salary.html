@@ -21,11 +21,24 @@
         padding: 20px;
         color: #1e293b;
       }
+      .top-ribbon-outer {
+        max-width: 960px;
+        margin: 0 auto 14px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        padding: 10px 14px;
+        border-radius: 10px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+        border: 1px solid #cbd5e1;
+        position: sticky;
+        top: 8px;
+        z-index: 500;
+      }
       .container {
-        max-width: 900px;
+        max-width: 960px;
         margin: 0 auto;
         background: #fff;
-        padding: 25px;
+        padding: 22px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         border-radius: 8px;
       }
@@ -33,9 +46,60 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: nowrap;
+      }
+      .sal-action-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .sal-action-list {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+      }
+      .sal-menu-btn {
+        display: none;
+        background: #1e293b;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      @media (max-width: 860px) {
+        .top-controls {
+          flex-wrap: wrap;
+        }
+        .sal-menu-btn {
+          display: inline-flex;
+        }
+        .sal-action-list {
+          display: none;
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          flex-direction: column;
+          align-items: stretch;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 10px;
+          padding: 8px;
+          min-width: 170px;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+          z-index: 900;
+        }
+        .sal-action-list.open {
+          display: flex;
+        }
+        .sal-action-list .btn,
+        .sal-action-list .dropdown {
+          width: 100%;
+        }
       }
       .ctrl-group {
         display: flex;
@@ -242,26 +306,37 @@
       .pin-box {
         background: #1e293b;
         padding: 30px;
-        border-radius: 8px;
-        border: 1px solid rgba(0, 206, 209, 0.3);
+        border-radius: 16px;
+        background: rgba(30, 41, 59, 0.55) !important;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
         text-align: center;
-        width: 340px;
+        width: 350px;
+      }
+      #pinModal {
+        background:
+          radial-gradient(circle at 20% 25%, rgba(0, 206, 209, 0.2), transparent 45%),
+          radial-gradient(circle at 80% 75%, rgba(37, 99, 235, 0.22), transparent 45%),
+          rgba(15, 23, 42, 0.85) !important;
+        backdrop-filter: blur(14px);
       }
       .pin-box h3 {
-        color: #00ced1;
+        color: #38bdf8;
         margin-top: 0;
       }
       .pin-input {
-        width: 80%;
+        width: 84%;
         padding: 10px;
         font-size: 20px;
         letter-spacing: 5px;
         text-align: center;
         margin: 15px 0;
-        border: 1px solid #334155;
-        background: #000000;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(15, 23, 42, 0.65);
         color: white;
-        border-radius: 4px;
+        border-radius: 8px;
       }
       .modal-btns {
         display: flex;
@@ -328,7 +403,31 @@
 
     <!-- Security PIN Modal -->
     <div id="pinModal" class="modal-overlay">
-      <div class="pin-box">
+      <div class="pin-box" style="position: relative;">
+        <button
+          type="button"
+          id="btnSalFaceUnlock"
+          onclick="startSalFaceUnlock()"
+          title="Unlock with Face"
+          style="
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(56, 189, 248, 0.16);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            color: #38bdf8;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 17px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          📷
+        </button>
         <h3>🔒 Salary Lock</h3>
         <p style="font-size: 13px; color: #94a3b8">
           Enter SAL_PIN code to access.
@@ -350,57 +449,93 @@
             Unlock
           </button>
         </div>
+        <div id="salFaceCamBox" style="display: none; margin-top: 14px;">
+          <video id="salFaceVideo" width="240" height="180" autoplay playsinline style="border-radius: 10px; border: 2px solid #38bdf8; background: #000;"></video>
+          <canvas id="salFaceCanvas" width="320" height="240" style="display: none;"></canvas>
+          <div id="salFaceStatus" style="font-size: 12px; color: #38bdf8; margin-top: 6px;">Looking for face...</div>
+          <button type="button" class="btn btn-back" style="margin-top: 8px; padding: 5px 12px;" onclick="stopSalFaceUnlock()">Stop Camera</button>
+        </div>
       </div>
     </div>
 
-    <div class="container" id="mainContainer" style="display: none">
-      <div class="top-controls">
-        <div class="ctrl-group">
-          <button class="btn btn-back" onclick="goBack()">⬅ Back</button>
-          <button class="btn btn-nav" onclick="changeMonth(-1)">◀ Prev</button>
-          <select id="monthSelect"></select>
-          <select id="yearSelect" onchange="updateMonthDropdown()"></select>
-          <button class="btn btn-nav" onclick="changeMonth(1)">Next ▶</button>
-          <button class="btn btn-fetch" onclick="fetchPayrollData()">
-            Fetch
-          </button>
-        </div>
-
-        <!-- Action Controls -->
-        <div class="ctrl-group">
-          <button
-            type="button"
-            class="btn"
-            style="background: #4f46e5; color: white"
-            onclick="openRecurringConfigModal()"
-            title="Manage Recurring Expenses"
-          >
-            ⚙ Exp Config
-          </button>
-          <button
-            id="lockToggleBtn"
-            class="btn btn-lock"
-            onclick="handleLockClick()"
-            title="Lock / Unlock Status"
-          >
-            🔓
-          </button>
-          <div class="dropdown">
-            <button class="btn btn-pdf">PDF 🢓</button>
-            <div class="dropdown-content">
-              <a onclick="exportPDF('single')">Single PDF</a>
-              <a onclick="exportPDF('a4')">Page as A4</a>
-            </div>
+    <div id="mainContainer" style="display: none">
+      <div class="top-ribbon-outer">
+        <div class="top-controls">
+          <div class="ctrl-group">
+            <button class="btn btn-back" onclick="goBack()" title="Back">⬅</button>
+            <button class="btn btn-nav" onclick="changeMonth(-1)" title="Previous Month">◀</button>
+            <select id="monthSelect"></select>
+            <select id="yearSelect" onchange="updateMonthDropdown()"></select>
+            <button class="btn btn-nav" onclick="changeMonth(1)" title="Next Month">▶</button>
+            <button class="btn btn-fetch" onclick="fetchPayrollData()" title="Fetch Payroll">🔍</button>
           </div>
-          <div class="dropdown">
-            <button class="btn btn-excel">Export 🢓</button>
-            <div class="dropdown-content">
-              <a onclick="exportExcel('current')">Current Batch</a>
-              <a onclick="openBatchModal()">Batch Export</a>
+
+          <div class="sal-action-wrap">
+            <button
+              type="button"
+              class="sal-menu-btn"
+              onclick="document.getElementById('salActionList').classList.toggle('open')"
+              title="Menu"
+            >
+              ☰
+            </button>
+            <div id="salActionList" class="sal-action-list">
+              <button
+                type="button"
+                id="btnToggleSalFace"
+                class="btn"
+                style="background: #334155; color: #f8fafc"
+                onclick="toggleSalFaceLogin()"
+                title="Enroll / Disable Face Unlock"
+              >
+                🎭 OFF
+              </button>
+              <button
+                type="button"
+                class="btn"
+                style="background: #4f46e5; color: white"
+                onclick="openRecurringConfigModal()"
+                title="Recurring Expenses Config"
+              >
+                ⚙
+              </button>
+              <button
+                id="lockToggleBtn"
+                class="btn btn-lock"
+                onclick="handleLockClick()"
+                title="Lock / Unlock Month"
+              >
+                🔓
+              </button>
+              <div class="dropdown">
+                <button class="btn btn-pdf" title="Export PDF">📄 ▾</button>
+                <div class="dropdown-content">
+                  <a onclick="exportPDF('single')">Single PDF</a>
+                  <a onclick="exportPDF('a4')">Page as A4</a>
+                </div>
+              </div>
+              <div class="dropdown">
+                <button class="btn btn-excel" title="Export Excel">📊 ▾</button>
+                <div class="dropdown-content">
+                  <a onclick="exportExcel('current')">Current Month</a>
+                  <a onclick="openBatchModal()">Multiple Month</a>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn"
+                style="background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1"
+                onclick="salLogout()"
+                title="Logout"
+              >
+                🚪
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      <div class="container">
 
       <!-- Batch Export Modal -->
       <div
@@ -869,6 +1004,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <script>
@@ -1754,7 +1890,7 @@
           const selectedYr = document.getElementById("yearSelect").value;
           const month = `${selectedYr}-${selectedMo}`;
           window.open(
-            `/api/python/api/py-payroll/export/excel?type=batch&from=${from}&to=${to}&token=${token}`,
+            `/api/python/api/py-payroll/export/excel?type=batch&from=${month}&to=${month}&token=${token}`,
             "_blank",
           );
         }
@@ -1784,7 +1920,7 @@
 
         document.getElementById("batchExportModal").style.display = "none";
         window.open(
-          `http://localhost:8001/api/py-payroll/export/excel?type=batch&from=${from}&to=${to}&token=${token}`,
+          `/api/python/api/py-payroll/export/excel?type=batch&from=${from}&to=${to}&token=${token}`,
           "_blank",
         );
       }
@@ -1935,6 +2071,165 @@
           Toast.fire({ icon: "error", title: "Server Error" });
         }
       }
+
+      function salLogout() {
+        sessionStorage.removeItem("sal_token");
+        sessionStorage.removeItem("sal_auth_expiry");
+        window.location.reload();
+      }
+
+      let salFaceStream = null;
+      function updateSalFaceUI() {
+        const hasDesc = Boolean(localStorage.getItem("sal_face_descriptor"));
+        const isEnabled =
+          localStorage.getItem("sal_face_login_enabled") === "true" && hasDesc;
+        const unlockBtn = document.getElementById("btnSalFaceUnlock");
+        const toggleBtn = document.getElementById("btnToggleSalFace");
+        if (unlockBtn) unlockBtn.style.display = isEnabled ? "inline-flex" : "none";
+        if (toggleBtn) {
+          toggleBtn.textContent = isEnabled ? "🎭 ON" : "🎭 OFF";
+          toggleBtn.style.background = isEnabled ? "#0284c7" : "#334155";
+        }
+      }
+
+      async function toggleSalFaceLogin() {
+        const isEnabled = localStorage.getItem("sal_face_login_enabled") === "true";
+        if (isEnabled) {
+          localStorage.setItem("sal_face_login_enabled", "false");
+          localStorage.removeItem("sal_face_descriptor");
+          updateSalFaceUI();
+          Toast.fire({ icon: "info", title: "Face Unlock Disabled" });
+          return;
+        }
+
+        // Enroll ONLY this user's face via webcam
+        const result = await Swal.fire({
+          title: "📷 Enroll Your Face",
+          html: `
+            <p style="font-size:12.5px;color:#64748b;margin-bottom:10px;">Look at the camera and click Scan to lock Face Unlock to your face only.</p>
+            <video id="enrollFaceVid" width="260" height="195" autoplay playsinline style="border-radius:10px;border:2px solid #0284c7;background:#000;"></video>
+          `,
+          showCancelButton: true,
+          confirmButtonText: "Scan & Enable",
+          didOpen: async () => {
+            try {
+              const s = await navigator.mediaDevices.getUserMedia({ video: true });
+              window._enrollStream = s;
+              const v = document.getElementById("enrollFaceVid");
+              if (v) v.srcObject = s;
+            } catch (e) {
+              Swal.showValidationMessage("Camera access denied");
+            }
+          },
+          preConfirm: async () => {
+            const v = document.getElementById("enrollFaceVid");
+            if (!v || !v.videoWidth) {
+              Swal.showValidationMessage("Camera not ready");
+              return false;
+            }
+            const c = document.createElement("canvas");
+            c.width = 320;
+            c.height = 240;
+            c.getContext("2d").drawImage(v, 0, 0, 320, 240);
+            const img = c.toDataURL("image/jpeg");
+            const res = await fetch("/py/face-encode", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image: img }),
+            });
+            const data = await res.json();
+            if (!data.success || !data.descriptor) {
+              Swal.showValidationMessage(data.message || "Face not detected, try again.");
+              return false;
+            }
+            return data.descriptor;
+          },
+          willClose: () => {
+            if (window._enrollStream) {
+              window._enrollStream.getTracks().forEach((t) => t.stop());
+              window._enrollStream = null;
+            }
+          },
+        });
+
+        if (result.isConfirmed && result.value) {
+          localStorage.setItem("sal_face_descriptor", JSON.stringify(result.value));
+          localStorage.setItem("sal_face_login_enabled", "true");
+          updateSalFaceUI();
+          Toast.fire({ icon: "success", title: "Your Face Enrolled & Enabled!" });
+        }
+      }
+
+      function stopSalFaceUnlock() {
+        if (salFaceStream) {
+          salFaceStream.getTracks().forEach((t) => t.stop());
+          salFaceStream = null;
+        }
+        const box = document.getElementById("salFaceCamBox");
+        if (box) box.style.display = "none";
+      }
+
+      async function startSalFaceUnlock() {
+        const enrolledRaw = localStorage.getItem("sal_face_descriptor");
+        if (!enrolledRaw) {
+          return Toast.fire({ icon: "error", title: "No enrolled face. Unlock with PIN first." });
+        }
+        const enrolledDescriptor = JSON.parse(enrolledRaw);
+
+        const box = document.getElementById("salFaceCamBox");
+        const video = document.getElementById("salFaceVideo");
+        const statusEl = document.getElementById("salFaceStatus");
+        box.style.display = "block";
+        statusEl.textContent = "Starting camera...";
+
+        try {
+          salFaceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = salFaceStream;
+          statusEl.textContent = "Scanning your face...";
+
+          setTimeout(async () => {
+            if (!salFaceStream) return;
+            const canvas = document.getElementById("salFaceCanvas");
+            canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imgData = canvas.toDataURL("image/jpeg");
+
+            const encRes = await fetch("/py/face-encode", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image: imgData }),
+            });
+            const encData = await encRes.json();
+            if (!encData.success || !encData.descriptor) {
+              statusEl.textContent = encData.message || "Face not detected. Try again.";
+              return;
+            }
+
+            const uRes = await fetch("/api/payroll/face-unlock", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                liveDescriptor: encData.descriptor,
+                enrolledDescriptor,
+              }),
+            });
+            const uData = await uRes.json();
+            if (uData.success && uData.token) {
+              stopSalFaceUnlock();
+              sessionStorage.setItem("sal_token", uData.token);
+              sessionStorage.setItem("sal_auth_expiry", Date.now() + 1800000);
+              document.getElementById("pinModal").style.display = "none";
+              document.getElementById("mainContainer").style.display = "block";
+              fetchPayrollData();
+            } else {
+              statusEl.textContent = uData.message || "Face mismatch! Access denied.";
+            }
+          }, 1200);
+        } catch (err) {
+          statusEl.textContent = "Camera access denied.";
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", updateSalFaceUI);
     </script>
   </body>
 </html>

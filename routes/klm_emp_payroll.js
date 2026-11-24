@@ -24,6 +24,31 @@ router.post("/verify-pin", (req, res) => {
   }
 });
 
+router.post("/face-unlock", (req, res) => {
+  const { liveDescriptor, enrolledDescriptor } = req.body || {};
+  if (
+    !Array.isArray(liveDescriptor) ||
+    !Array.isArray(enrolledDescriptor) ||
+    liveDescriptor.length === 0 ||
+    liveDescriptor.length !== enrolledDescriptor.length
+  ) {
+    return res.status(400).json({ success: false, message: "Invalid face data" });
+  }
+  let sumSq = 0;
+  for (let i = 0; i < liveDescriptor.length; i++) {
+    const diff = Number(liveDescriptor[i]) - Number(enrolledDescriptor[i]);
+    sumSq += diff * diff;
+  }
+  const distance = Math.sqrt(sumSq);
+  if (distance > 0.48) {
+    return res.status(401).json({ success: false, message: "Face does not match enrolled user!" });
+  }
+  const token = jwt.sign({ role: "salary_admin" }, JWT_SECRET, {
+    expiresIn: "12h",
+  });
+  res.json({ success: true, token });
+});
+
 router.use(verifyToken);
 
 // 🟢 Recurring Expenses CRUD APIs
@@ -230,8 +255,8 @@ router.get("/data", async (req, res) => {
         histSalRes.rows.length > 0
           ? parseFloat(histSalRes.rows[0].base_salary)
           : parseFloat(emp.base_salary) || 0;
-      const expectedShiftHours = workingDays * shiftHrs;
-      const divisorHours = Math.min(260, expectedShiftHours);
+      const effectiveWorkingDays = Math.min(workingDays, 26);
+      const divisorHours = effectiveWorkingDays * shiftHrs;
       const hourlyRate = divisorHours > 0 ? baseSalary / divisorHours : 0;
 
       const logsRes = await pool.query(
