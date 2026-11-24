@@ -70,51 +70,111 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     if (!year) throw new Error("Year is required");
     const currentYear = parseInt(year);
 
-    const vehicleResult = await pool.query(`
+    const shortYear = currentYear.toString().slice(-2);
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    // Phase 1: Run all independent queries in parallel
+    const [vehicleResult, plateLogRes, billingResult, erpResult] =
+      await Promise.all([
+        pool.query(`
             SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio 
             FROM timesheet_vehicles 
-        `);
+        `),
+        pool
+          .query(`
+            SELECT old_plate_no, new_plate_no,
+                   TO_CHAR(change_date, 'YYYY-MM-DD') AS change_date
+            FROM vehicle_plate_log
+            ORDER BY change_date ASC, id ASC
+          `)
+          .catch((err) => {
+            console.warn("vehicle_plate_log query warning:", err.message);
+            return { rows: [] };
+          }),
+        pool.query(
+          `
+            SELECT supplier, site_name, COALESCE(ledger_folio, '') as ledger_folio, month_index, quick_dice 
+            FROM vat_billing_records 
+            WHERE year = $1 AND company = 'NON_VAT'
+        `,
+          [currentYear],
+        ),
+        pool.query(
+          `
+            SELECT 
+                COALESCE(NULLIF(TRIM(plate_no), ''), '') as plate_no,
+                LOWER(REGEXP_REPLACE(TRIM(COALESCE(owner, '')), '[^a-zA-Z0-9]', '', 'g')) as clean_owner,
+                LOWER(TRIM(COALESCE(owner, ''))) as norm_owner,
+                LOWER(TRIM(COALESCE(site_name, ''))) as clean_site_name,
+                LOWER(TRIM(COALESCE(billing_month, ''))) as raw_billing_month,
+                ROUND(COALESCE(
+                    NULLIF(after_adjustment::numeric, 0), 
+                    NULLIF(rent::numeric, 0), 
+                    NULLIF(total::numeric, 0), 
+                    0
+                ), 2) as row_total
+            FROM billing_records
+            WHERE billing_month ILIKE $1 OR billing_month ILIKE $2
+            ORDER BY id DESC
+        `,
+          [`%${currentYear}%`, `%${shortYear}%`],
+        ),
+      ]);
+
     if (vehicleResult.rows.length === 0)
       return res.json({ success: true, data: [] });
 
     const vehicles = vehicleResult.rows;
+    const plateLogs = plateLogRes.rows || [];
+    const billingData = billingResult.rows || [];
+    const erpData = erpResult.rows || [];
+
     let plates = vehicles.map((v) => v.plate_no);
+    plateLogs.forEach((pl) => {
+      if (pl.old_plate_no && !plates.includes(pl.old_plate_no)) {
+        plates.push(pl.old_plate_no);
+      }
+    });
 
-    let plateLogs = [];
-    try {
-      const plateLogRes = await pool.query(`
-        SELECT old_plate_no, new_plate_no,
-               TO_CHAR(change_date, 'YYYY-MM-DD') AS change_date
-        FROM vehicle_plate_log
-        ORDER BY change_date ASC, id ASC
-      `);
-      plateLogs = plateLogRes.rows;
-
-      // Old plate numbers koodi query cheyyan vendi plates array-ilekku cherkkunnu
-      plateLogs.forEach((pl) => {
-        if (pl.old_plate_no && !plates.includes(pl.old_plate_no)) {
-          plates.push(pl.old_plate_no);
-        }
-      });
-    } catch (err) {
-      console.warn("vehicle_plate_log query warning:", err.message);
-    }
-
-    let ownerLogs = [];
-    try {
-      const ownerLogRes = await pool.query(
+    // Phase 2: Run plate-dependent queries in parallel
+    const [ownerLogRes, siteLogResult] = await Promise.all([
+      pool
+        .query(
+          `
+            SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio, work_start_date, work_end_date 
+            FROM vehicle_owner_log 
+            WHERE plate_no = ANY($1) 
+            ORDER BY COALESCE(work_start_date, '2000-01-01') ASC
+        `,
+          [plates],
+        )
+        .catch((e) => {
+          console.warn("vehicle_owner_log query warning:", e.message);
+          return { rows: [] };
+        }),
+      pool.query(
         `
-                SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio, work_start_date, work_end_date 
-                FROM vehicle_owner_log 
-                WHERE plate_no = ANY($1) 
-                ORDER BY COALESCE(work_start_date, '2000-01-01') ASC
-            `,
+            SELECT plate_no, site_name, work_start_date, work_end_date, status 
+            FROM vehicle_site_log 
+            WHERE plate_no = ANY($1) AND site_name IS NOT NULL AND TRIM(site_name) != ''
+        `,
         [plates],
-      );
-      ownerLogs = ownerLogRes.rows;
-    } catch (e) {
-      console.warn("vehicle_owner_log query warning:", e.message);
-    }
+      ),
+    ]);
+    const ownerLogs = ownerLogRes.rows || [];
 
     const getMonthOwnerInfo = (
       plateNo,
@@ -163,64 +223,6 @@ router.get("/data", verifyAccessCode, async (req, res) => {
         ledger_folio: fallbackLf,
       };
     };
-
-    const siteLogResult = await pool.query(
-      `
-            SELECT plate_no, site_name, work_start_date, work_end_date, status 
-            FROM vehicle_site_log 
-            WHERE plate_no = ANY($1) AND site_name IS NOT NULL AND TRIM(site_name) != ''
-        `,
-      [plates],
-    );
-
-    const billingResult = await pool.query(
-      `
-            SELECT supplier, site_name, COALESCE(ledger_folio, '') as ledger_folio, month_index, quick_dice 
-            FROM vat_billing_records 
-            WHERE year = $1 AND company = 'NON_VAT'
-        `,
-      [currentYear],
-    );
-    const billingData = billingResult.rows;
-
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const shortYear = currentYear.toString().slice(-2);
-
-    // 🟢 billing_records-ൽ നിന്ന് പ്ലേറ്റ് നമ്പർ ഉൾപ്പെടെ എടുക്കുന്നു (VAT പരിശോധിക്കാൻ)
-    const erpResult = await pool.query(
-      `
-            SELECT 
-                COALESCE(NULLIF(TRIM(plate_no), ''), '') as plate_no,
-                LOWER(REGEXP_REPLACE(TRIM(COALESCE(owner, '')), '[^a-zA-Z0-9]', '', 'g')) as clean_owner,
-                LOWER(TRIM(COALESCE(owner, ''))) as norm_owner,
-                LOWER(TRIM(COALESCE(site_name, ''))) as clean_site_name,
-                LOWER(TRIM(COALESCE(billing_month, ''))) as raw_billing_month,
-                ROUND(COALESCE(
-                    NULLIF(after_adjustment::numeric, 0), 
-                    NULLIF(rent::numeric, 0), 
-                    NULLIF(total::numeric, 0), 
-                    0
-                ), 2) as row_total
-            FROM billing_records
-            WHERE billing_month ILIKE $1 OR billing_month ILIKE $2
-            ORDER BY id DESC
-        `,
-      [`%${currentYear}%`, `%${shortYear}%`],
-    );
-    const erpData = erpResult.rows;
 
     const suppliersMap = {};
 

@@ -12,6 +12,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from PIL import Image
 from pypdf import PdfWriter, PdfReader
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 router = APIRouter(prefix="/py/vat-customers", tags=["VAT Customer Documents"])
 
@@ -881,6 +884,328 @@ def upload_common_multi_doc(payload: CommonMultiDocUploadPayload):
         if conn:
             conn.rollback()
         return {"success": False, "error": str(e)}
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+@router.get("/export-excel")
+def export_vat_customers_excel():
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT
+                id, sn,
+                to_char(joining_date, 'DD-Mon-YYYY') AS start_date,
+                customer_name, vat_no, cr_no, site, company, status,
+                to_char(release_date, 'DD-Mon-YYYY') AS release_date,
+                agreement_doc, rfq_doc, po_doc, conf_letter_doc,
+                vat_doc, crn_doc, last_doc, remark, project_name, bills_data
+            FROM vat_customer_records
+            ORDER BY LOWER(customer_name) ASC, joining_date ASC NULLS LAST, id ASC
+        """)
+        rows = cur.fetchall()
+
+        wb = openpyxl.Workbook()
+        ws_sum = wb.active
+        ws_sum.title = "Executive Summary"
+        ws_data = wb.create_sheet("Customer Documents")
+
+        ws_sum.sheet_view.zoomScale = 80
+        ws_data.sheet_view.zoomScale = 80
+        ws_sum.views.sheetView[0].showGridLines = True
+        ws_data.views.sheetView[0].showGridLines = True
+
+        # Corporate Palette
+        navy_fill = PatternFill("solid", fgColor="0F172A")
+        slate_fill = PatternFill("solid", fgColor="1E293B")
+        sub_fill = PatternFill("solid", fgColor="F1F5F9")
+        zebra_fill = PatternFill("solid", fgColor="F8FAFC")
+        rec_fill = PatternFill("solid", fgColor="DCFCE7")
+        pen_fill = PatternFill("solid", fgColor="FEE2E2")
+        act_fill = PatternFill("solid", fgColor="DBEAFE")
+
+        thin_side = Side(style="thin", color="CBD5E1")
+        cell_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+        # Compute summary metrics
+        customers_set = set()
+        cust_vat_map = {}
+        cust_crn_map = {}
+        active_cnt = 0
+        released_cnt = 0
+        company_stats = {}
+        doc_stats = {
+            "VAT Doc": [0, 0],
+            "CRN Doc": [0, 0],
+            "Agath (Agreement)": [0, 0],
+            "RFQ": [0, 0],
+            "PO": [0, 0],
+            "VAT Conf Letter": [0, 0],
+            "Final Conf": [0, 0],
+        }
+
+        for r in rows:
+            cname = (r.get("customer_name") or "").strip()
+            ckey = cname.lower()
+            if ckey:
+                customers_set.add(ckey)
+                if r.get("vat_doc"):
+                    cust_vat_map[ckey] = True
+                if r.get("crn_doc"):
+                    cust_crn_map[ckey] = True
+
+            st = (r.get("status") or "Active").strip()
+            if st.lower() == "active":
+                active_cnt += 1
+            else:
+                released_cnt += 1
+
+            comp = (r.get("company") or "Unassigned").strip() or "Unassigned"
+            if comp not in company_stats:
+                company_stats[comp] = [0, 0]
+            if st.lower() == "active":
+                company_stats[comp][0] += 1
+            else:
+                company_stats[comp][1] += 1
+
+            for label, col in [
+                ("Agath (Agreement)", "agreement_doc"),
+                ("RFQ", "rfq_doc"),
+                ("PO", "po_doc"),
+                ("VAT Conf Letter", "conf_letter_doc"),
+                ("Final Conf", "last_doc"),
+            ]:
+                if check_public_file_exists(r.get(col)):
+                    doc_stats[label][0] += 1
+                else:
+                    doc_stats[label][1] += 1
+
+        total_cust = len(customers_set)
+        total_sites = len(rows)
+        vat_rec_cnt = len(cust_vat_map)
+        crn_rec_cnt = len(cust_crn_map)
+        doc_stats["VAT Doc"] = [vat_rec_cnt, max(0, total_cust - vat_rec_cnt)]
+        doc_stats["CRN Doc"] = [crn_rec_cnt, max(0, total_cust - crn_rec_cnt)]
+
+        total_checks = sum(v[0] + v[1] for v in doc_stats.values())
+        total_received = sum(v[0] for v in doc_stats.values())
+        overall_pct = round((total_received / total_checks) * 100, 1) if total_checks else 0.0
+
+        # ================= TAB 1: EXECUTIVE SUMMARY =================
+        ws_sum.merge_cells("A1:F1")
+        ws_sum["A1"] = "KLM ERP — VAT CUSTOMERS DOCUMENTS & COMPLIANCE REPORT"
+        ws_sum["A1"].font = Font(name="Calibri", size=15, bold=True, color="FFFFFF")
+        ws_sum["A1"].fill = navy_fill
+        ws_sum["A1"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        ws_sum.row_dimensions[1].height = 34
+
+        ws_sum.merge_cells("A2:F2")
+        ws_sum["A2"] = f"Generated On: {datetime.now().strftime('%d %b %Y, %I:%M %p')}  |  Scope: All VAT Customers & Sites"
+        ws_sum["A2"].font = Font(name="Calibri", size=10, italic=True, color="475569")
+        ws_sum["A2"].fill = sub_fill
+        ws_sum["A2"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        ws_sum.row_dimensions[2].height = 22
+
+        ws_sum.merge_cells("A4:F5")
+        narration = (
+            f"Executive Narrative: This report covers {total_cust} VAT-registered customers across {total_sites} site/project records "
+            f"({active_cnt} Active, {released_cnt} Released). Overall document compliance stands at {overall_pct}% "
+            f"({total_received} documents received out of {total_checks} required checkpoints). "
+            f"Customer-level VAT certificates are on file for {vat_rec_cnt}/{total_cust} customers and CRN certificates for {crn_rec_cnt}/{total_cust} customers. "
+            f"Detailed site-by-site status is available in the 'Customer Documents' tab with filter controls."
+        )
+        ws_sum["A4"] = narration
+        ws_sum["A4"].font = Font(name="Calibri", size=10.5, color="0F172A")
+        ws_sum["A4"].alignment = Alignment(horizontal="left", vertical="center", wrap_text=True, indent=1)
+        ws_sum["A4"].fill = zebra_fill
+        for r_i in (4, 5):
+            for c_i in range(1, 7):
+                ws_sum.cell(r_i, c_i).border = cell_border
+        ws_sum.row_dimensions[4].height = 28
+        ws_sum.row_dimensions[5].height = 28
+
+        # Portfolio KPIs
+        ws_sum["A7"] = "1. Portfolio Overview"
+        ws_sum["A7"].font = Font(name="Calibri", size=12, bold=True, color="0F172A")
+        for idx, (k_lbl, k_val) in enumerate([
+            ("Total VAT Customers", total_cust),
+            ("Total Site / Project Rows", total_sites),
+            ("Active Sites", active_cnt),
+            ("Released Sites", released_cnt),
+            ("Overall Compliance %", f"{overall_pct}%"),
+        ], start=8):
+            c1 = ws_sum.cell(idx, 1, k_lbl)
+            c2 = ws_sum.cell(idx, 2, k_val)
+            c1.font = Font(name="Calibri", size=10.5, bold=True, color="334155")
+            c2.font = Font(name="Calibri", size=11, bold=True, color="0F172A")
+            c1.fill = sub_fill
+            c1.border = cell_border
+            c2.border = cell_border
+            c2.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Document Compliance Table
+        ws_sum["A14"] = "2. Document Compliance Breakdown"
+        ws_sum["A14"].font = Font(name="Calibri", size=12, bold=True, color="0F172A")
+        for c_idx, h_txt in enumerate(["Document Type", "Received", "Pending", "Completion %"], start=1):
+            hc = ws_sum.cell(15, c_idx, h_txt)
+            hc.font = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
+            hc.fill = slate_fill
+            hc.alignment = Alignment(horizontal="center", vertical="center")
+            hc.border = cell_border
+
+        for idx, (d_name, (r_cnt, p_cnt)) in enumerate(doc_stats.items(), start=16):
+            tot_d = r_cnt + p_cnt
+            pct_d = f"{round((r_cnt / tot_d) * 100, 1)}%" if tot_d else "0%"
+            vals = [d_name, r_cnt, p_cnt, pct_d]
+            for c_idx, v in enumerate(vals, start=1):
+                cell = ws_sum.cell(idx, c_idx, v)
+                cell.font = Font(name="Calibri", size=10, bold=(c_idx in (1, 4)))
+                cell.border = cell_border
+                cell.alignment = Alignment(horizontal="left" if c_idx == 1 else "center", vertical="center")
+                if c_idx == 2:
+                    cell.fill = rec_fill
+                    cell.font = Font(name="Calibri", size=10, bold=True, color="15803D")
+                elif c_idx == 3 and p_cnt > 0:
+                    cell.fill = pen_fill
+                    cell.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
+
+        # Company Breakdown
+        comp_start = 25
+        ws_sum.cell(comp_start, 1, "3. Company-Wise Site Distribution").font = Font(name="Calibri", size=12, bold=True, color="0F172A")
+        for c_idx, h_txt in enumerate(["Company", "Active Sites", "Released Sites", "Total Sites"], start=1):
+            hc = ws_sum.cell(comp_start + 1, c_idx, h_txt)
+            hc.font = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
+            hc.fill = slate_fill
+            hc.alignment = Alignment(horizontal="center", vertical="center")
+            hc.border = cell_border
+
+        for idx, (comp_name, (a_c, rel_c)) in enumerate(sorted(company_stats.items()), start=comp_start + 2):
+            for c_idx, v in enumerate([comp_name, a_c, rel_c, a_c + rel_c], start=1):
+                cell = ws_sum.cell(idx, c_idx, v)
+                cell.font = Font(name="Calibri", size=10, bold=(c_idx in (1, 4)))
+                cell.border = cell_border
+                cell.alignment = Alignment(horizontal="left" if c_idx == 1 else "center", vertical="center")
+
+        for col_i, w in enumerate([28, 16, 16, 18, 18, 18], start=1):
+            ws_sum.column_dimensions[get_column_letter(col_i)].width = w
+
+        # ================= TAB 2: CUSTOMER DOCUMENTS TABLE =================
+        headers = [
+            "SN", "Customer Name", "VAT No", "CR No", "Site Name", "Company",
+            "Status", "Start Date", "Release Date", "VAT Doc", "CRN Doc",
+            "Agath", "RFQ", "PO", "VAT Conf", "Final Conf", "Bills",
+            "Project Name", "Remark"
+        ]
+        last_col = get_column_letter(len(headers))
+
+        ws_data.merge_cells(f"A1:{last_col}1")
+        ws_data["A1"] = "KLM ERP — VAT CUSTOMERS DOCUMENTS REGISTER"
+        ws_data["A1"].font = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+        ws_data["A1"].fill = navy_fill
+        ws_data["A1"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        ws_data.row_dimensions[1].height = 30
+
+        ws_data.merge_cells(f"A2:{last_col}2")
+        ws_data["A2"] = f"Total Records: {total_sites}  |  Green = Received  |  Red = Pending"
+        ws_data["A2"].font = Font(name="Calibri", size=10, italic=True, color="475569")
+        ws_data["A2"].fill = sub_fill
+        ws_data["A2"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        ws_data.row_dimensions[2].height = 20
+
+        header_row_idx = 4
+        ws_data.row_dimensions[header_row_idx].height = 26
+        for c_idx, h_text in enumerate(headers, start=1):
+            hc = ws_data.cell(header_row_idx, c_idx, h_text)
+            hc.font = Font(name="Calibri", size=10.5, bold=True, color="FFFFFF")
+            hc.fill = slate_fill
+            hc.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            hc.border = cell_border
+
+        for idx, r in enumerate(rows, start=1):
+            row_num = header_row_idx + idx
+            ws_data.row_dimensions[row_num].height = 22
+            bills = r.get("bills_data") or []
+            uploaded_bills = sum(1 for b in bills if isinstance(b, dict) and b.get("file_url")) if isinstance(bills, list) else 0
+
+            def _doc_status(col):
+                return "Received" if check_public_file_exists(r.get(col)) else "Pending"
+
+            row_vals = [
+                idx,
+                r.get("customer_name") or "",
+                r.get("vat_no") or "-",
+                r.get("cr_no") or "-",
+                r.get("site") or "-",
+                r.get("company") or "-",
+                r.get("status") or "Active",
+                r.get("start_date") or "-",
+                r.get("release_date") or "-",
+                _doc_status("vat_doc"),
+                _doc_status("crn_doc"),
+                _doc_status("agreement_doc"),
+                _doc_status("rfq_doc"),
+                _doc_status("po_doc"),
+                _doc_status("conf_letter_doc"),
+                _doc_status("last_doc"),
+                f"{uploaded_bills} Uploaded" if uploaded_bills > 0 else "Pending",
+                r.get("project_name") or "",
+                r.get("remark") or "",
+            ]
+
+            for c_idx, val in enumerate(row_vals, start=1):
+                cell = ws_data.cell(row_num, c_idx, val)
+                cell.border = cell_border
+                cell.font = Font(name="Calibri", size=10, color="0F172A")
+                cell.alignment = Alignment(
+                    horizontal="left" if c_idx in (2, 5, 18, 19) else "center",
+                    vertical="center",
+                )
+                if idx % 2 == 0:
+                    cell.fill = zebra_fill
+
+                if c_idx == 7:
+                    if str(val).lower() == "active":
+                        cell.fill = act_fill
+                        cell.font = Font(name="Calibri", size=10, bold=True, color="1D4ED8")
+                    else:
+                        cell.fill = pen_fill
+                        cell.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
+                elif 10 <= c_idx <= 16:
+                    if val == "Received":
+                        cell.fill = rec_fill
+                        cell.font = Font(name="Calibri", size=10, bold=True, color="15803D")
+                    else:
+                        cell.fill = pen_fill
+                        cell.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
+
+        last_data_row = header_row_idx + max(1, len(rows))
+        ws_data.auto_filter.ref = f"A{header_row_idx}:{last_col}{last_data_row}"
+        ws_data.freeze_panes = f"A{header_row_idx + 1}"
+
+        max_proj_len = max(
+            [len("Project Name")] + [len(str(r.get("project_name") or "")) for r in rows]
+        )
+        col_widths = [6, 28, 18, 15, 24, 14, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 14, max_proj_len + 4, 22]
+        for c_idx, w in enumerate(col_widths, start=1):
+            ws_data.column_dimensions[get_column_letter(c_idx)].width = w
+
+        out = io.BytesIO()
+        wb.save(out)
+        out.seek(0)
+        fname = f"VAT_Customers_Docs_Report_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        return Response(
+            content=out.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         if cur:
             cur.close()
