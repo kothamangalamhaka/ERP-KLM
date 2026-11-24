@@ -51,9 +51,6 @@ def get_records():
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("ALTER TABLE vat_customer_records ADD COLUMN IF NOT EXISTS customer_code TEXT")
-        cur.execute("ALTER TABLE vat_customer_records ADD COLUMN IF NOT EXISTS customer_remark TEXT")
-        conn.commit()
 
         cur.execute("""
             SELECT 
@@ -81,6 +78,7 @@ def get_records():
                 bills_data,
                 COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs,
                 COALESCE(other_docs, '[]'::jsonb) AS other_docs,
+                COALESCE(site_ishtimara, '[]'::jsonb) AS site_ishtimara,
                 created_at,
                 updated_at
             FROM vat_customer_records 
@@ -628,6 +626,7 @@ def delete_site(payload: SiteDeletePayload):
                     conf_letter_doc = NULL,
                     last_doc = NULL,
                     bills_data = '[]'::jsonb,
+                    site_ishtimara = '[]'::jsonb,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
             """, (payload.customer_id,))
@@ -1521,6 +1520,134 @@ def delete_common_multi_doc(payload: CommonMultiDocDeletePayload):
         if conn:
             conn.rollback()
         return {"success": False, "error": str(e)}
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+class SiteIshtimaraItem(BaseModel):
+    doc_id: str
+    start_date: Optional[str] = ""
+    end_date: Optional[str] = ""
+
+
+class SiteIshtimaraSavePayload(BaseModel):
+    customer_id: int
+    items: list[SiteIshtimaraItem]
+
+
+@router.post("/save-site-ishtimara")
+def save_site_ishtimara(payload: SiteIshtimaraSavePayload):
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        data_list = [
+            {
+                "doc_id": str(it.doc_id),
+                "start_date": (it.start_date or "").strip(),
+                "end_date": (it.end_date or "").strip(),
+            }
+            for it in payload.items
+        ]
+        cur.execute(
+            "UPDATE vat_customer_records SET site_ishtimara = %s::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (json.dumps(data_list), payload.customer_id),
+        )
+        conn.commit()
+        return {"success": True, "site_ishtimara": data_list}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+@router.get("/download-site-ishtimara")
+def download_site_ishtimara(customer_id: int, mode: str = "pdf"):
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT customer_name, customer_code, site, COALESCE(site_ishtimara, '[]'::jsonb) AS site_ishtimara FROM vat_customer_records WHERE id = %s",
+            (customer_id,),
+        )
+        rec = cur.fetchone()
+        if not rec:
+            raise HTTPException(status_code=404, detail="Site record not found")
+
+        linked = rec.get("site_ishtimara") or []
+        if not linked:
+            raise HTTPException(status_code=400, detail="No Ishtimara linked to this site")
+
+        cur.execute(
+            "SELECT COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs FROM vat_customer_records WHERE LOWER(customer_name) = LOWER(%s)",
+            (rec["customer_name"],),
+        )
+        all_ish = []
+        for row in cur.fetchall():
+            if isinstance(row.get("ishtimara_docs"), list) and len(row["ishtimara_docs"]) > len(all_ish):
+                all_ish = row["ishtimara_docs"]
+
+        ish_map = {str(d.get("id")): d for d in all_ish}
+        cust_code = rec.get("customer_code") or "VC"
+        site_san = sanitize_name(rec.get("site") or "Site")
+
+        files_to_pack = []
+        for idx, link in enumerate(linked, start=1):
+            doc = ish_map.get(str(link.get("doc_id")))
+            if not doc:
+                continue
+            fp = doc.get("file_path") or (
+                os.path.join(PUBLIC_ROOT, str(doc.get("file_url") or "").lstrip("/")) if doc.get("file_url") else ""
+            )
+            if fp and os.path.exists(fp):
+                files_to_pack.append((doc.get("title") or f"Ishtimara_{idx}", fp))
+
+        if not files_to_pack:
+            raise HTTPException(status_code=404, detail="Linked Ishtimara files not found on disk")
+
+        if mode == "zip":
+            zbuf = io.BytesIO()
+            with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_DEFLATED) as zf:
+                for title, fp in files_to_pack:
+                    ext = os.path.splitext(fp)[1]
+                    zf.write(fp, f"{sanitize_name(title)}{ext}")
+            zbuf.seek(0)
+            return Response(
+                content=zbuf.getvalue(),
+                media_type="application/zip",
+                headers={"Content-Disposition": f'attachment; filename="{cust_code}_{site_san}_Ishtimara.zip"'},
+            )
+
+        writer = PdfWriter()
+        for _, fp in files_to_pack:
+            pdf_bytes = convert_to_pdf_bytes(fp)
+            if pdf_bytes:
+                reader = PdfReader(io.BytesIO(pdf_bytes))
+                for page in reader.pages:
+                    writer.add_page(page)
+        out_buf = io.BytesIO()
+        writer.write(out_buf)
+        out_buf.seek(0)
+        return Response(
+            content=out_buf.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{cust_code}_{site_san}_Ishtimara.pdf"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         if cur:
             cur.close()
