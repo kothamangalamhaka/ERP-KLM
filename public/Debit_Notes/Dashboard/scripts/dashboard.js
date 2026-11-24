@@ -88,7 +88,27 @@ async function verifyAccessCode() {
   }
 }
 
+function applySavedTheme() {
+  const savedTheme = localStorage.getItem("debitNoteDashboardTheme") || "dark";
+  const btn = document.getElementById("themeToggleBtn");
+  if (savedTheme === "light") {
+    document.body.classList.add("light-theme");
+    if (btn) btn.innerText = "🌙";
+  } else {
+    document.body.classList.remove("light-theme");
+    if (btn) btn.innerText = "☀️";
+  }
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle("light-theme");
+  localStorage.setItem("debitNoteDashboardTheme", isLight ? "light" : "dark");
+  const btn = document.getElementById("themeToggleBtn");
+  if (btn) btn.innerText = isLight ? "🌙" : "☀️";
+}
+
 window.addEventListener("DOMContentLoaded", () => {
+  applySavedTheme();
   if (securityCode) {
     document.getElementById("securityModal").style.display = "none";
     loadDashboardData();
@@ -436,8 +456,8 @@ function renderOwnerTableRows() {
       <td style="text-align: center; font-weight: 700;">${escapeHTML(item.plate_no || "")}</td>
       <td>${escapeHTML(item.particulars || "")}</td>
       <td>${escapeHTML(item.driver_name || "")}</td>
-      <td style="text-align: right; font-weight: 700; color: #0f172a;">${tot.toFixed(2)}</td>
-      <td style="text-align: right; font-weight: 700; color: #15803d;">${paidVal.toFixed(2)}</td>
+      <td class="td-amt-total" style="text-align: right; font-weight: 700;">${tot.toFixed(2)}</td>
+      <td class="td-amt-paid" style="text-align: right; font-weight: 700;">${paidVal.toFixed(2)}</td>
       <td>${escapeHTML(combinedSite)}</td>
       <td>${escapeHTML(item.remark || "")}</td>
       <td style="text-align: center;"><span class="status-pill ${statusClass}">${statusText}</span></td>
@@ -563,9 +583,10 @@ async function copyTableAsImage() {
 
   showStatus("Generating image...", "saving");
   try {
+    const isLight = document.body.classList.contains("light-theme");
     const canvas = await html2canvas(container, {
       scale: 2,
-      backgroundColor: "#ffffff",
+      backgroundColor: isLight ? "#ffffff" : "#0f172a",
     });
 
     canvas.toBlob(async (blob) => {
