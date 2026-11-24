@@ -14,6 +14,7 @@
         document.documentElement.setAttribute("data-theme", saved);
       })();
     </script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
     <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
     <style>
@@ -491,7 +492,7 @@
         </div>
         <button
           class="btn btn-success header-btn"
-          onclick="window.location.href='/py/non-vat-customers/export-excel'"
+          onclick="window.location.href = '/py/non-vat-customers/export-excel'"
           title="Export Corporate Excel Report"
         >
           <i class="fa-solid fa-file-excel me-1"></i> Export Excel
@@ -636,17 +637,27 @@
                   class="btn btn-sm btn-outline-secondary py-0 px-2"
                   style="font-size: 11px; height: 22px"
                   onclick="openEditMasterModal()"
-                  title="Edit Customer Name"
+                  title="Edit Customer Info"
                 >
                   <i class="fa-solid fa-pen"></i>
                 </button>
               </div>
+              <div class="small text-muted" id="detailCustomerMeta"></div>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <div class="common-docs-bar">
                 <div id="modalIshtimaraSlot"></div>
                 <div id="modalOtherDocSlot"></div>
               </div>
+              <button
+                type="button"
+                id="btnDownloadCustZip"
+                class="btn btn-sm btn-warning py-1 px-3 fw-semibold"
+                onclick="downloadCustomerZip()"
+                title="Download Customer Docs ZIP (with Table Image)"
+              >
+                🗜️ ZIP
+              </button>
               <button
                 class="btn btn-sm btn-primary py-1 px-3"
                 onclick="openAddSiteForCurrentCustomer()"
@@ -715,7 +726,7 @@
           <div class="modal-body p-4">
             <form id="editCustomerMasterForm">
               <input type="hidden" id="edit_old_cust_name" />
-              <div class="mb-2">
+              <div class="mb-3">
                 <label class="form-label small fw-semibold"
                   >Customer Name <span class="text-danger">*</span></label
                 >
@@ -724,6 +735,15 @@
                   class="form-control"
                   id="edit_cust_name"
                   required
+                />
+              </div>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">Remark</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="edit_cust_remark"
+                  placeholder="Optional customer remark..."
                 />
               </div>
             </form>
@@ -847,7 +867,7 @@
               </div>
 
               <div class="row g-3 mt-1">
-                <div class="col-12">
+                <div class="col-12 col-md-7">
                   <label class="form-label small fw-semibold"
                     >Project Name</label
                   >
@@ -857,6 +877,17 @@
                     id="engagement_project_name"
                     maxlength="255"
                     placeholder="Enter Full Project Name"
+                  />
+                </div>
+                <div class="col-12 col-md-5">
+                  <label class="form-label small fw-semibold"
+                    >Customer Remark</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="engagement_customer_remark"
+                    placeholder="Optional customer remark..."
                   />
                 </div>
               </div>
@@ -913,7 +944,9 @@
               </div>
             </form>
           </div>
-          <div class="modal-footer border-top d-flex justify-content-between align-items-center">
+          <div
+            class="modal-footer border-top d-flex justify-content-between align-items-center"
+          >
             <div>
               <button
                 type="button"
@@ -1344,6 +1377,8 @@
           if (!groupedCustomers[key]) {
             groupedCustomers[key] = {
               customer_name: name,
+              customer_code: r.customer_code || "",
+              customer_remark: r.customer_remark || "",
               cr_no: r.cr_no || "",
               ishtimara_docs: Array.isArray(r.ishtimara_docs)
                 ? r.ishtimara_docs
@@ -1453,6 +1488,7 @@
           }
 
           const searchBlob = [
+            cust.customer_code,
             cust.customer_name,
             cust.cr_no,
             cust.sites
@@ -1518,7 +1554,10 @@
           card.innerHTML = `
           <div class="card-top">
             <h6 class="card-title">${cust.customer_name}</h6>
-            <span class="card-count-badge"><i class="fa-solid fa-location-dot me-1"></i>${cust.sites.length} Sites</span>
+            <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
+              <span class="badge bg-dark-subtle text-primary-emphasis" style="font-size: 10px; font-weight: 700; letter-spacing: 0.4px;">${cust.customer_code || "NVC"}</span>
+              <span class="card-count-badge"><i class="fa-solid fa-location-dot me-1"></i>${cust.sites.length} Sites</span>
+            </div>
           </div>
           ${miniTableHtml}
         `;
@@ -1558,7 +1597,9 @@
         if (!cust) return;
 
         document.getElementById("detailCustomerName").innerText =
-          cust.customer_name;
+          `${cust.customer_code ? `[${cust.customer_code}] ` : ""}${cust.customer_name}`;
+        document.getElementById("detailCustomerMeta").innerText =
+          cust.customer_remark ? `Remark: ${cust.customer_remark}` : "";
 
         document.getElementById("modalIshtimaraSlot").innerHTML = `
         <button type="button" class="common-multi-btn" onclick="openCommonMultiDocModal('ishtimara')">
@@ -2320,6 +2361,8 @@
         document.getElementById("edit_old_cust_name").value =
           cust.customer_name;
         document.getElementById("edit_cust_name").value = cust.customer_name;
+        document.getElementById("edit_cust_remark").value =
+          cust.customer_remark || "";
         const modalEl = document.getElementById("editCustomerMasterModal");
         (
           bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
@@ -2331,6 +2374,9 @@
           .getElementById("edit_old_cust_name")
           .value.trim();
         const newName = document.getElementById("edit_cust_name").value.trim();
+        const custRemark = document
+          .getElementById("edit_cust_remark")
+          .value.trim();
 
         if (!newName) {
           Swal.fire({
@@ -2348,6 +2394,7 @@
             body: JSON.stringify({
               old_customer_name: oldName,
               new_customer_name: newName,
+              customer_remark: custRemark,
             }),
           });
           const json = await res.json();
@@ -2374,6 +2421,64 @@
           await fetchTableData();
         } catch (err) {
           Swal.fire({ icon: "error", title: "Error", text: err.message });
+        }
+      }
+
+      async function downloadCustomerZip() {
+        if (
+          !selectedActiveCustomerKey ||
+          !groupedCustomers[selectedActiveCustomerKey]
+        )
+          return;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        const btn = document.getElementById("btnDownloadCustZip");
+        const origHtml = btn ? btn.innerHTML : "";
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = "⏳ ZIP...";
+        }
+        try {
+          let tableImgB64 = "";
+          const tableWrap = document.querySelector(
+            "#customerDetailModal .detail-table-wrapper",
+          );
+          if (tableWrap && typeof html2canvas !== "undefined") {
+            const origMaxH = tableWrap.style.maxHeight;
+            tableWrap.style.maxHeight = "none";
+            const canvas = await html2canvas(tableWrap, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+            });
+            tableWrap.style.maxHeight = origMaxH;
+            tableImgB64 = canvas.toDataURL("image/png");
+          }
+
+          const res = await fetch(`${API_BASE}/download-zip`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_name: cust.customer_name,
+              table_image_base64: tableImgB64,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to generate ZIP");
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${cust.customer_code || "NVC"}_${cust.customer_name.replace(/\s+/g, "_")}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "ZIP Error", text: err.message });
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+          }
         }
       }
 
@@ -2410,6 +2515,8 @@
         custInp.value = cust.customer_name;
         custInp.readOnly = true;
         document.getElementById("btnDeleteSite").style.display = "none";
+        document.getElementById("engagement_customer_remark").value =
+          cust.customer_remark || "";
         document.getElementById("siteEngagementModalTitle").innerText =
           `Add Site / Project for ${cust.customer_name}`;
         const modalEl = document.getElementById("siteEngagementModal");
@@ -2443,6 +2550,8 @@
           siteRec.remark || "";
         document.getElementById("engagement_project_name").value =
           siteRec.project_name || "";
+        document.getElementById("engagement_customer_remark").value =
+          siteRec.customer_remark || "";
 
         document.getElementById("siteEngagementModalTitle").innerText =
           `Edit Site Details (SN: ${siteRec.sn || siteRec.id})`;
@@ -2455,7 +2564,8 @@
       async function deleteCurrentSite() {
         const siteId = document.getElementById("site_row_id").value;
         const siteName =
-          document.getElementById("engagement_site").value.trim() || "this site";
+          document.getElementById("engagement_site").value.trim() ||
+          "this site";
         if (!siteId) return;
 
         const confirmRes = await Swal.fire({
@@ -2477,7 +2587,10 @@
           const json = await res.json();
           if (json.success) {
             const modalEl = document.getElementById("siteEngagementModal");
-            (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).hide();
+            (
+              bootstrap.Modal.getInstance(modalEl) ||
+              new bootstrap.Modal(modalEl)
+            ).hide();
             Swal.fire({
               icon: "success",
               title: "Site Deleted",
@@ -2493,7 +2606,11 @@
             });
           }
         } catch (err) {
-          Swal.fire({ icon: "error", title: "Delete Error", text: err.message });
+          Swal.fire({
+            icon: "error",
+            title: "Delete Error",
+            text: err.message,
+          });
         }
       }
 
@@ -2532,6 +2649,9 @@
           release_date:
             document.getElementById("engagement_release_date").value || null,
           remark: document.getElementById("engagement_remark").value.trim(),
+          customer_remark: document
+            .getElementById("engagement_customer_remark")
+            .value.trim(),
           project_name: document
             .getElementById("engagement_project_name")
             .value.trim(),
