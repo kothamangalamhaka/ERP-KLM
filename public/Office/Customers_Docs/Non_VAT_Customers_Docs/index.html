@@ -491,6 +491,25 @@
           ></i>
         </div>
         <button
+          class="btn btn-warning header-btn"
+          onclick="
+            window.location.href = '/vat_tracking/non_vat_tracker/index.html'
+          "
+          title="Open Non-VAT Tracker"
+        >
+          📊 NVT
+        </button>
+        <button
+          class="btn btn-info text-dark header-btn"
+          onclick="
+            window.location.href =
+              '/Office/Customers_Docs/VAT_Customers_Docs/index.html'
+          "
+          title="Open VAT Customers Docs"
+        >
+          📁 VC
+        </button>
+        <button
           class="btn btn-success header-btn"
           onclick="window.location.href = '/py/non-vat-customers/export-excel'"
           title="Export Corporate Excel Report"
@@ -777,9 +796,20 @@
             <h5 class="modal-title fw-bold" id="siteEngagementModalTitle">
               Add Non-VAT Customer &amp; Site Details
             </h5>
+            <span
+              id="nextNvcCodeBadge"
+              class="badge bg-primary-subtle text-primary border border-primary-subtle ms-auto me-2"
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.4px;
+                display: none;
+              "
+              >NVC0001</span
+            >
             <button
               type="button"
-              class="btn-close"
+              class="btn-close m-0"
               data-bs-dismiss="modal"
             ></button>
           </div>
@@ -942,20 +972,53 @@
     </div>
 
     <!-- Modal: Site Ishtimara Link & View Popup -->
-    <div class="modal fade" id="siteIshtimaraModal" tabindex="-1" style="z-index: 1060;">
+    <div
+      class="modal fade"
+      id="siteIshtimaraModal"
+      tabindex="-1"
+      style="z-index: 1060"
+    >
       <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px;">
+        <div
+          class="modal-content"
+          style="
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+          "
+        >
           <div class="modal-header border-bottom py-2 px-3">
-            <h6 class="modal-title fw-bold m-0" id="siteIshtimaraTitle">🪪 Site Ishtimara</h6>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <h6 class="modal-title fw-bold m-0" id="siteIshtimaraTitle">
+              🪪 Site Ishtimara
+            </h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
           <div class="modal-body p-3">
             <ul class="nav nav-pills mb-3">
               <li class="nav-item">
-                <button type="button" class="nav-link active" id="siteIshTab_view" onclick="switchSiteIshtimaraTab('view')">1. View &amp; Download</button>
+                <button
+                  type="button"
+                  class="nav-link active"
+                  id="siteIshTab_view"
+                  onclick="switchSiteIshtimaraTab('view')"
+                >
+                  1. View &amp; Download
+                </button>
               </li>
               <li class="nav-item">
-                <button type="button" class="nav-link" id="siteIshTab_link" onclick="switchSiteIshtimaraTab('link')">2. Link Ishtimara</button>
+                <button
+                  type="button"
+                  class="nav-link"
+                  id="siteIshTab_link"
+                  onclick="switchSiteIshtimaraTab('link')"
+                >
+                  2. Link Ishtimara
+                </button>
               </li>
             </ul>
             <div id="siteIshtimaraTabContent"></div>
@@ -2475,10 +2538,27 @@
         }
       }
 
+      function getNextCustomerCode(prefix = "NVC") {
+        let maxNum = 0;
+        const re = new RegExp(`^${prefix}(\\d+)$`, "i");
+        rawRecords.forEach((r) => {
+          const m = String(r.customer_code || "")
+            .trim()
+            .match(re);
+          if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+        });
+        return `${prefix}${String(maxNum + 1).padStart(4, "0")}`;
+      }
+
       function openAddCustomerModal() {
         document.getElementById("siteEngagementForm").reset();
         document.getElementById("site_row_id").value = "";
         document.getElementById("btnDeleteSite").style.display = "none";
+        const nvcBadge = document.getElementById("nextNvcCodeBadge");
+        if (nvcBadge) {
+          nvcBadge.innerText = getNextCustomerCode("NVC");
+          nvcBadge.style.display = "inline-block";
+        }
         document.getElementById("siteCustNameWrapper").style.display = "block";
         const custInp = document.getElementById("site_cust_name");
         custInp.value = "";
@@ -2507,6 +2587,8 @@
           : "";
 
         document.getElementById("btnDeleteSite").style.display = "none";
+        const nvcBadge = document.getElementById("nextNvcCodeBadge");
+        if (nvcBadge) nvcBadge.style.display = "none";
         document.getElementById("site_cust_name").value = cust.customer_name;
         document.getElementById("siteCustNameWrapper").style.display = "none";
         document.getElementById("siteEngagementModalTitle").innerHTML =
@@ -2526,7 +2608,10 @@
         document.getElementById("siteEngagementForm").reset();
         document.getElementById("site_row_id").value = siteRec.id;
         document.getElementById("btnDeleteSite").style.display = "inline-flex";
-        document.getElementById("site_cust_name").value = siteRec.customer_name || "";
+        const nvcBadge = document.getElementById("nextNvcCodeBadge");
+        if (nvcBadge) nvcBadge.style.display = "none";
+        document.getElementById("site_cust_name").value =
+          siteRec.customer_name || "";
         document.getElementById("siteCustNameWrapper").style.display = "none";
         document.getElementById("engagement_site").value = siteRec.site || "";
         document.getElementById("engagement_company").value =
@@ -2708,13 +2793,17 @@
       // --- SITE ISHTIMARA LINK & VIEW SYSTEM ---
       function openSiteIshtimaraModal(siteRecordId) {
         currentSiteIshtimaraRecordId = siteRecordId;
-        const siteRec = rawRecords.find((r) => Number(r.id) === Number(siteRecordId));
+        const siteRec = rawRecords.find(
+          (r) => Number(r.id) === Number(siteRecordId),
+        );
         if (!siteRec) return;
         document.getElementById("siteIshtimaraTitle").innerText =
           `🪪 Ishtimara — ${siteRec.site || "Site"} (${siteRec.customer_name})`;
         switchSiteIshtimaraTab("view");
         const modalEl = document.getElementById("siteIshtimaraModal");
-        (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+        (
+          bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
+        ).show();
       }
 
       function switchSiteIshtimaraTab(tab) {
@@ -2723,12 +2812,16 @@
           if (btn) btn.classList.toggle("active", t === tab);
         });
         const container = document.getElementById("siteIshtimaraTabContent");
-        const siteRec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+        const siteRec = rawRecords.find(
+          (r) => Number(r.id) === Number(currentSiteIshtimaraRecordId),
+        );
         if (!siteRec || !selectedActiveCustomerKey) return;
         const cust = groupedCustomers[selectedActiveCustomerKey];
         const allDocs = cust?.ishtimara_docs || [];
         const docMap = new Map(allDocs.map((d) => [String(d.id), d]));
-        const linked = Array.isArray(siteRec.site_ishtimara) ? siteRec.site_ishtimara : [];
+        const linked = Array.isArray(siteRec.site_ishtimara)
+          ? siteRec.site_ishtimara
+          : [];
 
         if (tab === "view") {
           const validLinks = linked.filter((l) => docMap.has(String(l.doc_id)));
@@ -2739,17 +2832,23 @@
             </div>
           `;
           if (validLinks.length === 0) {
-            container.innerHTML = dlBar + `<p class="text-muted text-center py-4 mb-0">No Ishtimara linked to this site yet. Go to <strong>2. Link Ishtimara</strong> tab.</p>`;
+            container.innerHTML =
+              dlBar +
+              `<p class="text-muted text-center py-4 mb-0">No Ishtimara linked to this site yet. Go to <strong>2. Link Ishtimara</strong> tab.</p>`;
             return;
           }
-          const rows = validLinks.map((l, idx) => {
-            const doc = docMap.get(String(l.doc_id));
-            const safeTitle = String(doc.title || "Ishtimara").replace(/'/g, "\\'");
-            const safeUrl = String(doc.file_url || "").replace(/'/g, "\\'");
-            const endHtml = l.end_date
-              ? `<span>${formatDateDDMMMYY(l.end_date)}</span>`
-              : `<span class="badge bg-success">Running</span>`;
-            return `
+          const rows = validLinks
+            .map((l, idx) => {
+              const doc = docMap.get(String(l.doc_id));
+              const safeTitle = String(doc.title || "Ishtimara").replace(
+                /'/g,
+                "\\'",
+              );
+              const safeUrl = String(doc.file_url || "").replace(/'/g, "\\'");
+              const endHtml = l.end_date
+                ? `<span>${formatDateDDMMMYY(l.end_date)}</span>`
+                : `<span class="badge bg-success">Running</span>`;
+              return `
               <tr>
                 <td style="text-align:center; font-weight:700;">${idx + 1}</td>
                 <td><span class="doc-name-display" onclick="previewDocPopup('${safeUrl}', '${safeTitle}')"><i class="fa-solid fa-id-card"></i> ${doc.title || "Ishtimara"}</span></td>
@@ -2760,9 +2859,12 @@
                 </td>
               </tr>
             `;
-          }).join("");
+            })
+            .join("");
 
-          container.innerHTML = dlBar + `
+          container.innerHTML =
+            dlBar +
+            `
             <div class="table-responsive border rounded">
               <table class="table table-hover align-middle m-0" style="color: var(--text); font-size: 13px;">
                 <thead>
@@ -2784,12 +2886,13 @@
             return;
           }
           const linkedMap = new Map(linked.map((l) => [String(l.doc_id), l]));
-          const rows = allDocs.map((d) => {
-            const existing = linkedMap.get(String(d.id));
-            const checked = existing ? "checked" : "";
-            const sDate = existing?.start_date || "";
-            const eDate = existing?.end_date || "";
-            return `
+          const rows = allDocs
+            .map((d) => {
+              const existing = linkedMap.get(String(d.id));
+              const checked = existing ? "checked" : "";
+              const sDate = existing?.start_date || "";
+              const eDate = existing?.end_date || "";
+              return `
               <tr>
                 <td style="text-align:center;">
                   <input type="checkbox" class="form-check-input site-ish-chk" data-doc-id="${d.id}" ${checked}>
@@ -2799,7 +2902,8 @@
                 <td><input type="date" class="form-control form-control-sm site-ish-end" data-doc-id="${d.id}" value="${eDate}" placeholder="Blank = Running"></td>
               </tr>
             `;
-          }).join("");
+            })
+            .join("");
 
           container.innerHTML = `
             <div class="table-responsive border rounded mb-3">
@@ -2826,8 +2930,12 @@
         const items = [];
         document.querySelectorAll(".site-ish-chk:checked").forEach((chk) => {
           const docId = chk.dataset.docId;
-          const sInp = document.querySelector(`.site-ish-start[data-doc-id="${docId}"]`);
-          const eInp = document.querySelector(`.site-ish-end[data-doc-id="${docId}"]`);
+          const sInp = document.querySelector(
+            `.site-ish-start[data-doc-id="${docId}"]`,
+          );
+          const eInp = document.querySelector(
+            `.site-ish-end[data-doc-id="${docId}"]`,
+          );
           items.push({
             doc_id: String(docId),
             start_date: sInp ? sInp.value : "",
@@ -2839,9 +2947,13 @@
       }
 
       async function unlinkSiteIshtimara(docId) {
-        const siteRec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+        const siteRec = rawRecords.find(
+          (r) => Number(r.id) === Number(currentSiteIshtimaraRecordId),
+        );
         if (!siteRec) return;
-        const items = (siteRec.site_ishtimara || []).filter((l) => String(l.doc_id) !== String(docId));
+        const items = (siteRec.site_ishtimara || []).filter(
+          (l) => String(l.doc_id) !== String(docId),
+        );
         await _persistSiteIshtimara(items);
         switchSiteIshtimaraTab("view");
       }
@@ -2858,12 +2970,24 @@
           });
           const json = await res.json();
           if (json.success) {
-            const rec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+            const rec = rawRecords.find(
+              (r) => Number(r.id) === Number(currentSiteIshtimaraRecordId),
+            );
             if (rec) rec.site_ishtimara = json.site_ishtimara;
-            if (selectedActiveCustomerKey) renderDetailModal(selectedActiveCustomerKey);
-            Swal.fire({ icon: "success", title: "Saved", timer: 900, showConfirmButton: false });
+            if (selectedActiveCustomerKey)
+              renderDetailModal(selectedActiveCustomerKey);
+            Swal.fire({
+              icon: "success",
+              title: "Saved",
+              timer: 900,
+              showConfirmButton: false,
+            });
           } else {
-            Swal.fire({ icon: "error", title: "Save Failed", text: json.error || "Error" });
+            Swal.fire({
+              icon: "error",
+              title: "Save Failed",
+              text: json.error || "Error",
+            });
           }
         } catch (err) {
           Swal.fire({ icon: "error", title: "Error", text: err.message });
@@ -3169,8 +3293,35 @@
         window.location.href = `${API_BASE}/download-bill-combined?customer_id=${currentBillRecord.id}&mode=single&month_year=${encodeURIComponent(month)}`;
       }
 
+      let lastSyncVersion = null;
+      async function syncVersionTick() {
+        if (document.visibilityState !== "visible") return;
+        try {
+          const res = await fetch(`${API_BASE}/version`);
+          const json = await res.json();
+          if (json.v && lastSyncVersion && json.v !== lastSyncVersion) {
+            lastSyncVersion = json.v;
+            const editingOpen = [
+              "editCustomerMasterModal",
+              "siteEngagementModal",
+              "billModal",
+              "commonMultiDocModal",
+              "siteIshtimaraModal",
+            ].some((id) =>
+              document.getElementById(id)?.classList.contains("show"),
+            );
+            if (!editingOpen) {
+              await fetchTableData();
+            }
+          } else if (json.v && !lastSyncVersion) {
+            lastSyncVersion = json.v;
+          }
+        } catch (e) {}
+      }
+
       loadCompanies();
-      fetchTableData();
+      fetchTableData().then(() => syncVersionTick());
+      setInterval(syncVersionTick, 5000);
     </script>
   </body>
 </html>

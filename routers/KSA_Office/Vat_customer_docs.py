@@ -2,6 +2,7 @@ import os
 import io
 import json
 import re
+import shutil
 import zipfile
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -189,6 +190,22 @@ def get_records():
         if cur: cur.close()
         if conn: conn.close()
 
+@router.get("/version")
+def get_vat_version():
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT COALESCE(EXTRACT(EPOCH FROM MAX(updated_at))::text, '0') || '_' || COUNT(*)::text FROM vat_customer_records")
+        row = cur.fetchone()
+        return {"v": row[0] if row else "0_0"}
+    except Exception:
+        return {"v": "0_0"}
+    finally:
+        if cur: cur.close()
+        if conn: conn.close()
+
 @router.get("/companies")
 def get_companies():
     conn = get_db_connection()
@@ -298,6 +315,111 @@ def update_customer_master(payload: CustomerMasterEditPayload):
         if cur: cur.close()
         if conn: conn.close()
 
+
+class CustomerMasterDeletePayload(BaseModel):
+    customer_name: str
+
+
+@router.post("/delete-customer-master")
+def delete_customer_master(payload: CustomerMasterDeletePayload):
+    conn = None
+    cur = None
+    try:
+        c_name = payload.customer_name.strip()
+        if not c_name:
+            return {"success": False, "error": "Customer name is required"}
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            """
+            SELECT id, agreement_doc, rfq_doc, po_doc, conf_letter_doc, vat_doc, crn_doc, last_doc,
+                   bills_data, COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs,
+                   COALESCE(other_docs, '[]'::jsonb) AS other_docs
+            FROM vat_customer_records
+            WHERE LOWER(TRIM(customer_name)) = LOWER(TRIM(%s))
+            """,
+            (c_name,),
+        )
+        rows = cur.fetchall()
+        if not rows:
+            return {"success": False, "error": "Customer not found"}
+
+        upload_root = os.path.normpath(UPLOAD_BASE)
+
+        def _safe_unlink(path_or_url, is_url=True):
+            if not path_or_url:
+                return
+            full_path = os.path.normpath(
+                os.path.join(PUBLIC_ROOT, str(path_or_url).lstrip("/"))
+                if is_url
+                else str(path_or_url)
+            )
+            if full_path.startswith(upload_root + os.sep) and os.path.exists(full_path):
+                try:
+                    os.remove(full_path)
+                except Exception:
+                    pass
+
+        for r in rows:
+            for col in [
+                "agreement_doc",
+                "rfq_doc",
+                "po_doc",
+                "conf_letter_doc",
+                "vat_doc",
+                "crn_doc",
+                "last_doc",
+            ]:
+                _safe_unlink(r.get(col), is_url=True)
+
+            bills = r.get("bills_data") or []
+            if isinstance(bills, list):
+                for b in bills:
+                    if isinstance(b, dict):
+                        _safe_unlink(b.get("file_path"), is_url=False)
+                        _safe_unlink(b.get("file_url"), is_url=True)
+
+            for m_col in ["ishtimara_docs", "other_docs"]:
+                m_list = r.get(m_col) or []
+                if isinstance(m_list, list):
+                    for d in m_list:
+                        if isinstance(d, dict):
+                            _safe_unlink(d.get("file_path"), is_url=False)
+                            _safe_unlink(d.get("file_url"), is_url=True)
+
+        # Delete customer's folder only if no other customer shares the same sanitized folder name
+        target_san = sanitize_name(c_name)
+        cur.execute(
+            "SELECT DISTINCT customer_name FROM vat_customer_records WHERE LOWER(TRIM(customer_name)) != LOWER(TRIM(%s))",
+            (c_name,),
+        )
+        other_folders = {sanitize_name(x["customer_name"]) for x in cur.fetchall() if x.get("customer_name")}
+        if target_san not in other_folders:
+            cust_dir = os.path.normpath(os.path.join(UPLOAD_BASE, target_san))
+            if cust_dir.startswith(upload_root + os.sep) and os.path.isdir(cust_dir):
+                try:
+                    shutil.rmtree(cust_dir)
+                except Exception:
+                    pass
+
+        cur.execute(
+            "DELETE FROM vat_customer_records WHERE LOWER(TRIM(customer_name)) = LOWER(TRIM(%s))",
+            (c_name,),
+        )
+        conn.commit()
+        return {"success": True}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
 class CustomerUpsertPayload(BaseModel):
     id: Optional[str] = None
     joining_date: Optional[str] = None
@@ -340,6 +462,7 @@ def upsert_customer(payload: CustomerUpsertPayload):
 
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT pg_advisory_xact_lock(91001)")
 
         if rec_id:
             # In update, keep existing vat_no/cr_no if not provided
@@ -361,12 +484,23 @@ def upsert_customer(payload: CustomerUpsertPayload):
         else:
             # Check if customer already exists (common docs sync)
             cur.execute("""
-                SELECT vat_no, cr_no, customer_remark, vat_doc, crn_doc, COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs, COALESCE(other_docs, '[]'::jsonb) AS other_docs
+                SELECT customer_code, vat_no, cr_no, customer_remark, vat_doc, crn_doc, COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs, COALESCE(other_docs, '[]'::jsonb) AS other_docs
                 FROM vat_customer_records 
                 WHERE LOWER(customer_name) = LOWER(%s)
                 ORDER BY id DESC LIMIT 1
             """, (c_name,))
             existing_rec = cur.fetchone()
+
+            if existing_rec and existing_rec.get("customer_code"):
+                final_code = existing_rec["customer_code"]
+            else:
+                cur.execute("SELECT customer_code FROM vat_customer_records WHERE customer_code IS NOT NULL")
+                max_c = 0
+                for cr in cur.fetchall():
+                    m_c = re.match(r"^VC(\d+)$", str(cr.get("customer_code") or "").strip(), re.IGNORECASE)
+                    if m_c:
+                        max_c = max(max_c, int(m_c.group(1)))
+                final_code = f"VC{max_c + 1:04d}"
 
             final_vat = v_no if v_no else (existing_rec["vat_no"] if existing_rec and existing_rec["vat_no"] else "")
             final_cr = c_no if c_no else (existing_rec["cr_no"] if existing_rec and existing_rec["cr_no"] else "")
@@ -378,9 +512,9 @@ def upsert_customer(payload: CustomerUpsertPayload):
 
             cur.execute("""
                 INSERT INTO vat_customer_records 
-                (joining_date, customer_name, vat_no, cr_no, customer_remark, site, company, status, release_date, remark, project_name, vat_doc, crn_doc, ishtimara_docs, other_docs)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb) RETURNING id;
-            """, (j_date, c_name, final_vat, final_cr, final_c_rem, s_site, s_comp, s_stat, r_date, s_rem, p_name, e_vat, e_crn, e_ish, e_oth))
+                (joining_date, customer_name, customer_code, vat_no, cr_no, customer_remark, site, company, status, release_date, remark, project_name, vat_doc, crn_doc, ishtimara_docs, other_docs)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb) RETURNING id;
+            """, (j_date, c_name, final_code, final_vat, final_cr, final_c_rem, s_site, s_comp, s_stat, r_date, s_rem, p_name, e_vat, e_crn, e_ish, e_oth))
 
         row = cur.fetchone()
         saved_id = row["id"] if row else rec_id
@@ -658,7 +792,7 @@ def upload_bill(payload: BillUploadPayload):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT customer_name, site, company, bills_data FROM vat_customer_records WHERE id = %s", (payload.customer_id,))
+        cur.execute("SELECT customer_name, site, company, bills_data FROM vat_customer_records WHERE id = %s FOR UPDATE", (payload.customer_id,))
         rec = cur.fetchone()
         if not rec:
             return {"success": False, "error": "Record not found"}
@@ -868,7 +1002,7 @@ def upload_common_multi_doc(payload: CommonMultiDocUploadPayload):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1",
+            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1 FOR UPDATE",
             (payload.customer_name.strip(),),
         )
         rec = cur.fetchone()
@@ -1441,7 +1575,7 @@ def rename_common_multi_doc(payload: CommonMultiDocRenamePayload):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1",
+            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1 FOR UPDATE",
             (payload.customer_name.strip(),),
         )
         rec = cur.fetchone()
@@ -1490,7 +1624,7 @@ def delete_common_multi_doc(payload: CommonMultiDocDeletePayload):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1",
+            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1 FOR UPDATE",
             (payload.customer_name.strip(),),
         )
         rec = cur.fetchone()

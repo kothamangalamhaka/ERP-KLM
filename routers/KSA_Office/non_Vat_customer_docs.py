@@ -473,6 +473,23 @@ def export_non_vat_customers_excel():
             conn.close()
 
 
+@router.get("/version")
+def get_non_vat_version():
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT COALESCE(EXTRACT(EPOCH FROM MAX(updated_at))::text, '0') || '_' || COUNT(*)::text FROM non_vat_customer_records")
+        row = cur.fetchone()
+        return {"v": row[0] if row else "0_0"}
+    except Exception:
+        return {"v": "0_0"}
+    finally:
+        if cur: cur.close()
+        if conn: conn.close()
+
+
 @router.get("/companies")
 def get_companies():
     conn = get_db_connection()
@@ -654,6 +671,7 @@ def upsert_customer(payload: CustomerUpsertPayload):
 
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT pg_advisory_xact_lock(91002)")
 
         if rec_id:
             cur.execute(
@@ -689,7 +707,7 @@ def upsert_customer(payload: CustomerUpsertPayload):
         else:
             cur.execute(
                 """
-                SELECT vat_no, cr_no, customer_remark,
+                SELECT customer_code, vat_no, cr_no, customer_remark,
                        COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs,
                        COALESCE(other_docs, '[]'::jsonb) AS other_docs
                 FROM non_vat_customer_records 
@@ -699,6 +717,17 @@ def upsert_customer(payload: CustomerUpsertPayload):
                 (c_name,),
             )
             existing_rec = cur.fetchone()
+
+            if existing_rec and existing_rec.get("customer_code"):
+                final_code = existing_rec["customer_code"]
+            else:
+                cur.execute("SELECT customer_code FROM non_vat_customer_records WHERE customer_code IS NOT NULL")
+                max_c = 0
+                for cr in cur.fetchall():
+                    m_c = re.match(r"^NVC(\d+)$", str(cr.get("customer_code") or "").strip(), re.IGNORECASE)
+                    if m_c:
+                        max_c = max(max_c, int(m_c.group(1)))
+                final_code = f"NVC{max_c + 1:04d}"
 
             final_vat = (
                 v_no
@@ -735,12 +764,13 @@ def upsert_customer(payload: CustomerUpsertPayload):
             cur.execute(
                 """
                 INSERT INTO non_vat_customer_records 
-                (joining_date, customer_name, vat_no, cr_no, customer_remark, site, company, status, release_date, remark, project_name, ishtimara_docs, other_docs)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb) RETURNING id;
+                (joining_date, customer_name, customer_code, vat_no, cr_no, customer_remark, site, company, status, release_date, remark, project_name, ishtimara_docs, other_docs)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb) RETURNING id;
             """,
                 (
                     j_date,
                     c_name,
+                    final_code,
                     final_vat,
                     final_cr,
                     final_c_rem,
@@ -1043,7 +1073,7 @@ def upload_bill(payload: BillUploadPayload):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            "SELECT customer_name, site, company, bills_data FROM non_vat_customer_records WHERE id = %s",
+            "SELECT customer_name, site, company, bills_data FROM non_vat_customer_records WHERE id = %s FOR UPDATE",
             (payload.customer_id,),
         )
         rec = cur.fetchone()
@@ -1318,7 +1348,7 @@ def upload_common_multi_doc(payload: CommonMultiDocUploadPayload):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1",
+            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1 FOR UPDATE",
             (payload.customer_name.strip(),),
         )
         rec = cur.fetchone()
@@ -1420,7 +1450,7 @@ def rename_common_multi_doc(payload: CommonMultiDocRenamePayload):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1",
+            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1 FOR UPDATE",
             (payload.customer_name.strip(),),
         )
         rec = cur.fetchone()
@@ -1469,7 +1499,7 @@ def delete_common_multi_doc(payload: CommonMultiDocDeletePayload):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1",
+            f"SELECT COALESCE({col_name}, '[]'::jsonb) AS docs FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC LIMIT 1 FOR UPDATE",
             (payload.customer_name.strip(),),
         )
         rec = cur.fetchone()

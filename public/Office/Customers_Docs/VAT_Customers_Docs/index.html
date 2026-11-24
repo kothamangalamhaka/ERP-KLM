@@ -539,8 +539,25 @@
           ></i>
         </div>
         <button
+          class="btn btn-warning header-btn"
+          onclick="window.location.href = '/vat_tracking/QC_Entry.html'"
+          title="Open QC Entry"
+        >
+          📋 QC
+        </button>
+        <button
+          class="btn btn-info text-dark header-btn"
+          onclick="
+            window.location.href =
+              '/Office/Customers_Docs/Non_VAT_Customers_Docs/index.html'
+          "
+          title="Open Non-VAT Customers Docs"
+        >
+          📁 NVC
+        </button>
+        <button
           class="btn btn-success header-btn"
-          onclick="window.location.href='/py/vat-customers/export-excel'"
+          onclick="window.location.href = '/py/vat-customers/export-excel'"
           title="Export Corporate Excel Report"
         >
           <i class="fa-solid fa-file-excel me-1"></i> Export Excel
@@ -820,16 +837,28 @@
               </div>
             </form>
           </div>
-          <div class="modal-footer border-top">
-            <button class="btn btn-secondary" data-bs-dismiss="modal">
-              Cancel
-            </button>
+          <div
+            class="modal-footer border-top d-flex justify-content-between align-items-center"
+          >
             <button
-              class="btn btn-primary px-4 fw-semibold"
-              onclick="saveCustomerMasterChanges()"
+              type="button"
+              class="btn btn-outline-danger px-3 fw-semibold"
+              onclick="deleteCustomerMaster()"
+              title="Delete Customer & All Files"
             >
-              Save Changes
+              🗑️
             </button>
+            <div class="d-flex gap-2">
+              <button class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button
+                class="btn btn-primary px-4 fw-semibold"
+                onclick="saveCustomerMasterChanges()"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -851,9 +880,15 @@
               <i class="fa-solid fa-user-plus text-primary me-2"></i>Add New
               Customer
             </h5>
+            <span
+              id="nextVatCodeBadge"
+              class="badge bg-primary-subtle text-primary border border-primary-subtle ms-auto me-2"
+              style="font-size: 12px; font-weight: 700; letter-spacing: 0.4px"
+              >VC0001</span
+            >
             <button
               type="button"
-              class="btn-close"
+              class="btn-close m-0"
               data-bs-dismiss="modal"
             ></button>
           </div>
@@ -1122,7 +1157,9 @@
               </div>
             </form>
           </div>
-          <div class="modal-footer border-top d-flex justify-content-between align-items-center">
+          <div
+            class="modal-footer border-top d-flex justify-content-between align-items-center"
+          >
             <div>
               <button
                 type="button"
@@ -1151,20 +1188,53 @@
     </div>
 
     <!-- Modal: Site Ishtimara Link & View Popup -->
-    <div class="modal fade" id="siteIshtimaraModal" tabindex="-1" style="z-index: 1060;">
+    <div
+      class="modal fade"
+      id="siteIshtimaraModal"
+      tabindex="-1"
+      style="z-index: 1060"
+    >
       <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px;">
+        <div
+          class="modal-content"
+          style="
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+          "
+        >
           <div class="modal-header border-bottom py-2 px-3">
-            <h6 class="modal-title fw-bold m-0" id="siteIshtimaraTitle">🪪 Site Ishtimara</h6>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <h6 class="modal-title fw-bold m-0" id="siteIshtimaraTitle">
+              🪪 Site Ishtimara
+            </h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
           <div class="modal-body p-3">
             <ul class="nav nav-pills mb-3">
               <li class="nav-item">
-                <button type="button" class="nav-link active" id="siteIshTab_view" onclick="switchSiteIshtimaraTab('view')">1. View &amp; Download</button>
+                <button
+                  type="button"
+                  class="nav-link active"
+                  id="siteIshTab_view"
+                  onclick="switchSiteIshtimaraTab('view')"
+                >
+                  1. View &amp; Download
+                </button>
               </li>
               <li class="nav-item">
-                <button type="button" class="nav-link" id="siteIshTab_link" onclick="switchSiteIshtimaraTab('link')">2. Link Ishtimara</button>
+                <button
+                  type="button"
+                  class="nav-link"
+                  id="siteIshTab_link"
+                  onclick="switchSiteIshtimaraTab('link')"
+                >
+                  2. Link Ishtimara
+                </button>
               </li>
             </ul>
             <div id="siteIshtimaraTabContent"></div>
@@ -2642,7 +2712,8 @@
         document.getElementById("edit_cust_name").value = cust.customer_name;
         document.getElementById("edit_cust_vat").value = cust.vat_no || "";
         document.getElementById("edit_cust_cr").value = cust.cr_no || "";
-        document.getElementById("edit_cust_remark").value = cust.customer_remark || "";
+        document.getElementById("edit_cust_remark").value =
+          cust.customer_remark || "";
         const modalEl = document.getElementById("editCustomerMasterModal");
         (
           bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
@@ -2650,7 +2721,11 @@
       }
 
       async function downloadCustomerZip() {
-        if (!selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
+        if (
+          !selectedActiveCustomerKey ||
+          !groupedCustomers[selectedActiveCustomerKey]
+        )
+          return;
         const cust = groupedCustomers[selectedActiveCustomerKey];
         const btn = document.getElementById("btnDownloadCustZip");
         const origHtml = btn ? btn.innerHTML : "";
@@ -2660,7 +2735,9 @@
         }
         try {
           let tableImgB64 = "";
-          const tableWrap = document.querySelector("#customerDetailModal .detail-table-wrapper");
+          const tableWrap = document.querySelector(
+            "#customerDetailModal .detail-table-wrapper",
+          );
           if (tableWrap && typeof html2canvas !== "undefined") {
             const origMaxH = tableWrap.style.maxHeight;
             tableWrap.style.maxHeight = "none";
@@ -2708,7 +2785,9 @@
         const newName = document.getElementById("edit_cust_name").value.trim();
         const vatNo = document.getElementById("edit_cust_vat").value.trim();
         const crNo = document.getElementById("edit_cust_cr").value.trim();
-        const custRemark = document.getElementById("edit_cust_remark").value.trim();
+        const custRemark = document
+          .getElementById("edit_cust_remark")
+          .value.trim();
 
         if (!newName) {
           Swal.fire({
@@ -2758,8 +2837,82 @@
         }
       }
 
+      async function deleteCustomerMaster() {
+        const custName = document
+          .getElementById("edit_old_cust_name")
+          .value.trim();
+        if (!custName) return;
+
+        const confirmRes = await Swal.fire({
+          icon: "warning",
+          title: `Delete "${custName}"?`,
+          text: "This will permanently delete this customer, all their sites, bills, and uploaded documents from the server. Other customers will not be affected.",
+          showCancelButton: true,
+          confirmButtonColor: "#dc2626",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: "Yes, Delete Customer",
+        });
+        if (!confirmRes.isConfirmed) return;
+
+        try {
+          const res = await fetch("/py/vat-customers/delete-customer-master", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customer_name: custName }),
+          });
+          const json = await res.json();
+          if (!json.success) {
+            Swal.fire({
+              icon: "error",
+              title: "Delete Failed",
+              text: json.error || "Server error",
+            });
+            return;
+          }
+
+          const editModal = bootstrap.Modal.getInstance(
+            document.getElementById("editCustomerMasterModal"),
+          );
+          if (editModal) editModal.hide();
+
+          const detailModal = bootstrap.Modal.getInstance(
+            document.getElementById("customerDetailModal"),
+          );
+          if (detailModal) detailModal.hide();
+
+          selectedActiveCustomerKey = null;
+          Swal.fire({
+            icon: "success",
+            title: "Customer Deleted",
+            timer: 1300,
+            showConfirmButton: false,
+          });
+          await fetchTableData();
+        } catch (err) {
+          Swal.fire({
+            icon: "error",
+            title: "Delete Error",
+            text: err.message,
+          });
+        }
+      }
+
+      function getNextCustomerCode(prefix = "VC") {
+        let maxNum = 0;
+        const re = new RegExp(`^${prefix}(\\d+)$`, "i");
+        rawRecords.forEach((r) => {
+          const m = String(r.customer_code || "")
+            .trim()
+            .match(re);
+          if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+        });
+        return `${prefix}${String(maxNum + 1).padStart(4, "0")}`;
+      }
+
       function openAddCustomerModal() {
         document.getElementById("addCustomerMasterForm").reset();
+        const badge = document.getElementById("nextVatCodeBadge");
+        if (badge) badge.innerText = getNextCustomerCode("VC");
         const modalEl = document.getElementById("addCustomerMasterModal");
         (
           bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
@@ -2783,7 +2936,9 @@
           customer_name: nameVal,
           vat_no: document.getElementById("master_cust_vat").value.trim(),
           cr_no: document.getElementById("master_cust_cr").value.trim(),
-          customer_remark: (document.getElementById("master_cust_remark")?.value || "").trim(),
+          customer_remark: (
+            document.getElementById("master_cust_remark")?.value || ""
+          ).trim(),
           site: "",
           company: "Haka",
           status: "Active",
@@ -2927,7 +3082,9 @@
 
       async function deleteCurrentSite() {
         const siteId = document.getElementById("site_row_id").value;
-        const siteName = document.getElementById("engagement_site").value.trim() || "this site";
+        const siteName =
+          document.getElementById("engagement_site").value.trim() ||
+          "this site";
         if (!siteId) return;
 
         const confirmRes = await Swal.fire({
@@ -2949,7 +3106,10 @@
           const json = await res.json();
           if (json.success) {
             const modalEl = document.getElementById("siteEngagementModal");
-            (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).hide();
+            (
+              bootstrap.Modal.getInstance(modalEl) ||
+              new bootstrap.Modal(modalEl)
+            ).hide();
             Swal.fire({
               icon: "success",
               title: "Site Deleted",
@@ -2965,7 +3125,11 @@
             });
           }
         } catch (err) {
-          Swal.fire({ icon: "error", title: "Delete Error", text: err.message });
+          Swal.fire({
+            icon: "error",
+            title: "Delete Error",
+            text: err.message,
+          });
         }
       }
 
@@ -3072,13 +3236,17 @@
       // --- SITE ISHTIMARA LINK & VIEW SYSTEM ---
       function openSiteIshtimaraModal(siteRecordId) {
         currentSiteIshtimaraRecordId = siteRecordId;
-        const siteRec = rawRecords.find((r) => Number(r.id) === Number(siteRecordId));
+        const siteRec = rawRecords.find(
+          (r) => Number(r.id) === Number(siteRecordId),
+        );
         if (!siteRec) return;
         document.getElementById("siteIshtimaraTitle").innerText =
           `🪪 Ishtimara — ${siteRec.site || "Site"} (${siteRec.customer_name})`;
         switchSiteIshtimaraTab("view");
         const modalEl = document.getElementById("siteIshtimaraModal");
-        (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+        (
+          bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
+        ).show();
       }
 
       function switchSiteIshtimaraTab(tab) {
@@ -3087,12 +3255,16 @@
           if (btn) btn.classList.toggle("active", t === tab);
         });
         const container = document.getElementById("siteIshtimaraTabContent");
-        const siteRec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+        const siteRec = rawRecords.find(
+          (r) => Number(r.id) === Number(currentSiteIshtimaraRecordId),
+        );
         if (!siteRec || !selectedActiveCustomerKey) return;
         const cust = groupedCustomers[selectedActiveCustomerKey];
         const allDocs = cust?.ishtimara_docs || [];
         const docMap = new Map(allDocs.map((d) => [String(d.id), d]));
-        const linked = Array.isArray(siteRec.site_ishtimara) ? siteRec.site_ishtimara : [];
+        const linked = Array.isArray(siteRec.site_ishtimara)
+          ? siteRec.site_ishtimara
+          : [];
 
         if (tab === "view") {
           const validLinks = linked.filter((l) => docMap.has(String(l.doc_id)));
@@ -3103,17 +3275,23 @@
             </div>
           `;
           if (validLinks.length === 0) {
-            container.innerHTML = dlBar + `<p class="text-muted text-center py-4 mb-0">No Ishtimara linked to this site yet. Go to <strong>2. Link Ishtimara</strong> tab.</p>`;
+            container.innerHTML =
+              dlBar +
+              `<p class="text-muted text-center py-4 mb-0">No Ishtimara linked to this site yet. Go to <strong>2. Link Ishtimara</strong> tab.</p>`;
             return;
           }
-          const rows = validLinks.map((l, idx) => {
-            const doc = docMap.get(String(l.doc_id));
-            const safeTitle = String(doc.title || "Ishtimara").replace(/'/g, "\\'");
-            const safeUrl = String(doc.file_url || "").replace(/'/g, "\\'");
-            const endHtml = l.end_date
-              ? `<span>${formatDateDDMMMYY(l.end_date)}</span>`
-              : `<span class="badge bg-success">Running</span>`;
-            return `
+          const rows = validLinks
+            .map((l, idx) => {
+              const doc = docMap.get(String(l.doc_id));
+              const safeTitle = String(doc.title || "Ishtimara").replace(
+                /'/g,
+                "\\'",
+              );
+              const safeUrl = String(doc.file_url || "").replace(/'/g, "\\'");
+              const endHtml = l.end_date
+                ? `<span>${formatDateDDMMMYY(l.end_date)}</span>`
+                : `<span class="badge bg-success">Running</span>`;
+              return `
               <tr>
                 <td style="text-align:center; font-weight:700;">${idx + 1}</td>
                 <td><span class="doc-name-display" onclick="previewDocPopup('${safeUrl}', '${safeTitle}')"><i class="fa-solid fa-id-card"></i> ${doc.title || "Ishtimara"}</span></td>
@@ -3124,9 +3302,12 @@
                 </td>
               </tr>
             `;
-          }).join("");
+            })
+            .join("");
 
-          container.innerHTML = dlBar + `
+          container.innerHTML =
+            dlBar +
+            `
             <div class="table-responsive border rounded">
               <table class="table table-hover align-middle m-0" style="color: var(--text); font-size: 13px;">
                 <thead>
@@ -3148,12 +3329,13 @@
             return;
           }
           const linkedMap = new Map(linked.map((l) => [String(l.doc_id), l]));
-          const rows = allDocs.map((d) => {
-            const existing = linkedMap.get(String(d.id));
-            const checked = existing ? "checked" : "";
-            const sDate = existing?.start_date || "";
-            const eDate = existing?.end_date || "";
-            return `
+          const rows = allDocs
+            .map((d) => {
+              const existing = linkedMap.get(String(d.id));
+              const checked = existing ? "checked" : "";
+              const sDate = existing?.start_date || "";
+              const eDate = existing?.end_date || "";
+              return `
               <tr>
                 <td style="text-align:center;">
                   <input type="checkbox" class="form-check-input site-ish-chk" data-doc-id="${d.id}" ${checked}>
@@ -3163,7 +3345,8 @@
                 <td><input type="date" class="form-control form-control-sm site-ish-end" data-doc-id="${d.id}" value="${eDate}" placeholder="Blank = Running"></td>
               </tr>
             `;
-          }).join("");
+            })
+            .join("");
 
           container.innerHTML = `
             <div class="table-responsive border rounded mb-3">
@@ -3190,8 +3373,12 @@
         const items = [];
         document.querySelectorAll(".site-ish-chk:checked").forEach((chk) => {
           const docId = chk.dataset.docId;
-          const sInp = document.querySelector(`.site-ish-start[data-doc-id="${docId}"]`);
-          const eInp = document.querySelector(`.site-ish-end[data-doc-id="${docId}"]`);
+          const sInp = document.querySelector(
+            `.site-ish-start[data-doc-id="${docId}"]`,
+          );
+          const eInp = document.querySelector(
+            `.site-ish-end[data-doc-id="${docId}"]`,
+          );
           items.push({
             doc_id: String(docId),
             start_date: sInp ? sInp.value : "",
@@ -3203,9 +3390,13 @@
       }
 
       async function unlinkSiteIshtimara(docId) {
-        const siteRec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+        const siteRec = rawRecords.find(
+          (r) => Number(r.id) === Number(currentSiteIshtimaraRecordId),
+        );
         if (!siteRec) return;
-        const items = (siteRec.site_ishtimara || []).filter((l) => String(l.doc_id) !== String(docId));
+        const items = (siteRec.site_ishtimara || []).filter(
+          (l) => String(l.doc_id) !== String(docId),
+        );
         await _persistSiteIshtimara(items);
         switchSiteIshtimaraTab("view");
       }
@@ -3222,12 +3413,24 @@
           });
           const json = await res.json();
           if (json.success) {
-            const rec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+            const rec = rawRecords.find(
+              (r) => Number(r.id) === Number(currentSiteIshtimaraRecordId),
+            );
             if (rec) rec.site_ishtimara = json.site_ishtimara;
-            if (selectedActiveCustomerKey) renderDetailModal(selectedActiveCustomerKey);
-            Swal.fire({ icon: "success", title: "Saved", timer: 900, showConfirmButton: false });
+            if (selectedActiveCustomerKey)
+              renderDetailModal(selectedActiveCustomerKey);
+            Swal.fire({
+              icon: "success",
+              title: "Saved",
+              timer: 900,
+              showConfirmButton: false,
+            });
           } else {
-            Swal.fire({ icon: "error", title: "Save Failed", text: json.error || "Error" });
+            Swal.fire({
+              icon: "error",
+              title: "Save Failed",
+              text: json.error || "Error",
+            });
           }
         } catch (err) {
           Swal.fire({ icon: "error", title: "Error", text: err.message });
@@ -3533,8 +3736,36 @@
         window.location.href = `/py/vat-customers/download-bill-combined?customer_id=${currentBillRecord.id}&mode=single&month_year=${encodeURIComponent(month)}`;
       }
 
+      let lastSyncVersion = null;
+      async function syncVersionTick() {
+        if (document.visibilityState !== "visible") return;
+        try {
+          const res = await fetch("/py/vat-customers/version");
+          const json = await res.json();
+          if (json.v && lastSyncVersion && json.v !== lastSyncVersion) {
+            lastSyncVersion = json.v;
+            const editingOpen = [
+              "addCustomerMasterModal",
+              "editCustomerMasterModal",
+              "siteEngagementModal",
+              "billModal",
+              "commonMultiDocModal",
+              "siteIshtimaraModal",
+            ].some((id) =>
+              document.getElementById(id)?.classList.contains("show"),
+            );
+            if (!editingOpen) {
+              await fetchTableData();
+            }
+          } else if (json.v && !lastSyncVersion) {
+            lastSyncVersion = json.v;
+          }
+        } catch (e) {}
+      }
+
       loadCompanies();
-      fetchTableData();
+      fetchTableData().then(() => syncVersionTick());
+      setInterval(syncVersionTick, 5000);
     </script>
   </body>
 </html>
