@@ -1455,9 +1455,9 @@
         >
         <button
           class="btn-action"
-          onclick="exportToExcelAllOwners()"
+          onclick="openExportOptionsModal()"
           style="background: #16a34a"
-          title="Export all owners and site tables to Excel"
+          title="Export Excel Options"
         >
           📊 Export Excel
         </button>
@@ -1469,6 +1469,77 @@
         >
           🌙
         </button>
+      </div>
+    </div>
+
+    <!-- Export Excel Options Popup Modal -->
+    <div
+      id="excelExportModal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+      "
+      onclick="if (event.target === this) closeExportOptionsModal();"
+    >
+      <div
+        style="
+          background: #1e293b;
+          color: #f8fafc;
+          border: 1px solid #334155;
+          border-radius: 14px;
+          padding: 24px;
+          width: 360px;
+          max-width: 92vw;
+          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+          text-align: center;
+        "
+      >
+        <h3 style="margin: 0 0 6px; font-size: 18px; color: #38bdf8">
+          📊 Export Excel
+        </h3>
+        <p style="margin: 0 0 18px; font-size: 12.5px; color: #94a3b8">
+          Choose what you want to export
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <button
+            type="button"
+            class="btn-action"
+            style="background: #16a34a; justify-content: center; padding: 10px"
+            onclick="closeExportOptionsModal(); exportToExcelAllOwners();"
+          >
+            📅 Export Current Year (<span id="expCurYearLabel"></span>)
+          </button>
+          <button
+            type="button"
+            class="btn-action"
+            style="background: #2563eb; justify-content: center; padding: 10px"
+            onclick="closeExportOptionsModal(); exportEntireDataToExcel();"
+          >
+            🗂️ Export Entire Data (All Years)
+          </button>
+          <button
+            type="button"
+            class="btn-action"
+            style="background: #7c3aed; justify-content: center; padding: 10px"
+            onclick="closeExportOptionsModal(); exportSuppliersListToExcel();"
+          >
+            📋 Export List (Running / Expired)
+          </button>
+          <button
+            type="button"
+            class="btn-action"
+            style="background: #475569; justify-content: center; padding: 8px; margin-top: 4px"
+            onclick="closeExportOptionsModal()"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
 
@@ -2775,6 +2846,344 @@
           console.error("Excel Export Error:", err);
           showStatus("Export Error", "error");
           alert("എക്സ്പോർട്ട് ചെയ്യുന്നതിൽ തകരാർ സംഭവിച്ചു: " + err.message);
+        }
+      }
+
+      function openExportOptionsModal() {
+        const lbl = document.getElementById("expCurYearLabel");
+        if (lbl) lbl.textContent = currentYear;
+        document.getElementById("excelExportModal").style.display = "flex";
+      }
+
+      function closeExportOptionsModal() {
+        document.getElementById("excelExportModal").style.display = "none";
+      }
+
+      function writeNonVatSiteTableBlock(worksheet, siteObj, yearNum, startRow, startCol) {
+        const shortYear = String(yearNum).slice(-2);
+        const sFirstName = (siteObj.site_first_name || "").toUpperCase();
+
+        worksheet.mergeCells(startRow, startCol, startRow, startCol + 2);
+        const titleCell = worksheet.getCell(startRow, startCol);
+        titleCell.value = `${yearNum} • SITE: ${sFirstName}`;
+        titleCell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+        titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+        titleCell.alignment = { horizontal: "center", vertical: "middle" };
+
+        const headerRow = startRow + 1;
+        const headers = ["Month", "Vendor TS", "Quick Dice"];
+        const headerColors = ["FF334155", "FF0F766E", "FF4338CA"];
+        headers.forEach((hText, hIdx) => {
+          const hCell = worksheet.getCell(headerRow, startCol + hIdx);
+          hCell.value = hText;
+          hCell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
+          hCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: headerColors[hIdx] } };
+          hCell.alignment = { horizontal: "center", vertical: "middle" };
+          hCell.border = {
+            top: { style: "thin", color: { argb: "FFCBD5E1" } },
+            left: { style: "thin", color: { argb: "FFCBD5E1" } },
+            bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+            right: { style: "thin", color: { argb: "FFCBD5E1" } },
+          };
+        });
+
+        let totVendorTs = 0;
+        let totQuickDice = 0;
+
+        for (let m = 0; m < 12; m++) {
+          const curRow = startRow + 2 + m;
+          const mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
+          const isActive = (siteObj.active_months || [])[m];
+          const bill = (siteObj.billing && siteObj.billing[m]) || { vendor_ts: 0, quick_dice: "" };
+
+          const mCell = worksheet.getCell(curRow, startCol);
+          const vCell = worksheet.getCell(curRow, startCol + 1);
+          const qCell = worksheet.getCell(curRow, startCol + 2);
+
+          mCell.value = mLabel;
+          mCell.alignment = { horizontal: "center", vertical: "middle" };
+          mCell.font = { name: "Arial", size: 9, bold: true };
+
+          if (isActive) {
+            const vVal = bill.vendor_ts ? Number(bill.vendor_ts) : 0;
+            const qVal = bill.quick_dice ? parseFloat(String(bill.quick_dice).replace(/,/g, "")) : null;
+            totVendorTs += vVal;
+            if (!isNaN(qVal) && qVal !== null) totQuickDice += qVal;
+
+            vCell.value = vVal > 0 ? vVal : "";
+            vCell.numFmt = "#,##0.00";
+            vCell.alignment = { horizontal: "center", vertical: "middle" };
+            vCell.font = { name: "Arial", size: 9, color: { argb: "FF0F766E" }, bold: true };
+            vCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0FDFA" } };
+
+            qCell.value = qVal !== null && !isNaN(qVal) ? qVal : bill.quick_dice || "";
+            if (!isNaN(qVal) && qVal !== null) qCell.numFmt = "#,##0.00";
+            qCell.alignment = { horizontal: "center", vertical: "middle" };
+            qCell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF312E81" } };
+
+            if (bill.quick_dice && String(bill.quick_dice).trim() !== "") {
+              [mCell, vCell, qCell].forEach((c) => {
+                c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF08A" } };
+                c.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF854D0E" } };
+              });
+            }
+          } else {
+            worksheet.mergeCells(curRow, startCol + 1, curRow, startCol + 2);
+            const inactCell = worksheet.getCell(curRow, startCol + 1);
+            inactCell.value = "-";
+            inactCell.alignment = { horizontal: "center", vertical: "middle" };
+            inactCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+            inactCell.font = { color: { argb: "FF94A3B8" } };
+          }
+
+          [mCell, vCell, qCell].forEach((c) => {
+            c.border = {
+              top: { style: "thin", color: { argb: "FFCBD5E1" } },
+              left: { style: "thin", color: { argb: "FFCBD5E1" } },
+              bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+              right: { style: "thin", color: { argb: "FFCBD5E1" } },
+            };
+          });
+        }
+
+        const totalRow = startRow + 14;
+        const diff = Number((totVendorTs - totQuickDice).toFixed(2));
+        const totMCell = worksheet.getCell(totalRow, startCol);
+        const totVCell = worksheet.getCell(totalRow, startCol + 1);
+        const totQCell = worksheet.getCell(totalRow, startCol + 2);
+
+        totMCell.value = totVendorTs > 0 || totQuickDice > 0 ? `DIFF: ${diff.toFixed(2)}` : "TOTAL";
+        totMCell.alignment = { horizontal: "center", vertical: "middle" };
+        totMCell.font = { name: "Arial", size: 9, bold: true };
+        if (totVendorTs > 0 || totQuickDice > 0) {
+          if (diff > 0) {
+            totMCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFBBF7D0" } };
+            totMCell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF000000" } };
+          } else if (diff < 0) {
+            totMCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEF4444" } };
+            totMCell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
+          }
+        }
+
+        totVCell.value = totVendorTs > 0 ? totVendorTs : "";
+        totVCell.numFmt = "#,##0.00";
+        totVCell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF0F766E" } };
+        totVCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFCCFBF1" } };
+        totVCell.alignment = { horizontal: "center", vertical: "middle" };
+
+        totQCell.value = totQuickDice > 0 ? totQuickDice : "";
+        totQCell.numFmt = "#,##0.00";
+        totQCell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF3730A3" } };
+        totQCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0E7FF" } };
+        totQCell.alignment = { horizontal: "center", vertical: "middle" };
+
+        [totMCell, totVCell, totQCell].forEach((c) => {
+          c.border = {
+            top: { style: "medium", color: { argb: "FF94A3B8" } },
+            left: { style: "thin", color: { argb: "FFCBD5E1" } },
+            bottom: { style: "medium", color: { argb: "FF94A3B8" } },
+            right: { style: "thin", color: { argb: "FFCBD5E1" } },
+          };
+        });
+
+        worksheet.getColumn(startCol).width = 13;
+        worksheet.getColumn(startCol + 1).width = 15;
+        worksheet.getColumn(startCol + 2).width = 15;
+        worksheet.getColumn(startCol + 3).width = 4;
+      }
+
+      async function fetchAllYearsTrackerData() {
+        const yearOpts = Array.from(document.getElementById("yearSelect").options)
+          .map((o) => parseInt(o.value, 10))
+          .filter((y) => !isNaN(y))
+          .sort((a, b) => b - a); // Latest year first
+
+        const responses = await Promise.all(
+          yearOpts.map((yr) =>
+            fetch(`/timesheet/api/non-vat-tracking/data?year=${yr}`, {
+              headers: { "x-vat-code": vatCode },
+            })
+              .then((r) => r.json())
+              .then((d) => ({ year: yr, data: d && d.success ? d.data || [] : [] }))
+              .catch(() => ({ year: yr, data: [] })),
+          ),
+        );
+        return responses;
+      }
+
+      async function exportEntireDataToExcel() {
+        if (typeof ExcelJS === "undefined" || typeof saveAs === "undefined") {
+          return alert("ExcelJS / FileSaver not loaded!");
+        }
+        showStatus("Generating Entire Data Excel...", "saving");
+        try {
+          const allYears = await fetchAllYearsTrackerData();
+          const supplierMap = new Map();
+
+          allYears.forEach(({ year, data }) => {
+            data.forEach((supData) => {
+              const name = (supData.supplier || "").trim();
+              if (!name) return;
+              const key = name.toLowerCase();
+              if (!supplierMap.has(key)) {
+                supplierMap.set(key, { supplier: name, years: [] });
+              }
+              if ((supData.sites || []).length > 0) {
+                supplierMap.get(key).years.push({ year, sites: supData.sites });
+              }
+            });
+          });
+
+          const workbook = new ExcelJS.Workbook();
+          const usedSheetNames = new Set();
+
+          Array.from(supplierMap.values())
+            .sort((a, b) => a.supplier.localeCompare(b.supplier))
+            .forEach((supEntry) => {
+              let sheetName =
+                supEntry.supplier.replace(/[\\/*?:[\]]/g, "").trim().substring(0, 28) || "Sheet";
+              let uniqueName = sheetName;
+              let counter = 1;
+              while (usedSheetNames.has(uniqueName.toLowerCase())) {
+                uniqueName = `${sheetName.substring(0, 26)}_${counter++}`;
+              }
+              usedSheetNames.add(uniqueName.toLowerCase());
+
+              const worksheet = workbook.addWorksheet(uniqueName, { views: [{ showGridLines: true }] });
+              worksheet.mergeCells("A1:K1");
+              const bannerCell = worksheet.getCell("A1");
+              bannerCell.value = `NON-VAT Supplier - ${supEntry.supplier.toUpperCase()} (ALL YEARS)`;
+              bannerCell.font = { name: "Arial", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+              bannerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F2027" } };
+              bannerCell.alignment = { horizontal: "center", vertical: "middle" };
+              worksheet.getRow(1).height = 28;
+
+              let curStartRow = 3;
+              // Years already sorted latest -> oldest; multiple tables in same year placed side-by-side to the right
+              supEntry.years.forEach(({ year, sites }) => {
+                sites.forEach((siteObj, sIdx) => {
+                  const startCol = 1 + sIdx * 4;
+                  writeNonVatSiteTableBlock(worksheet, siteObj, year, curStartRow, startCol);
+                });
+                curStartRow += 17;
+              });
+            });
+
+          const buffer = await workbook.xlsx.writeBuffer();
+          saveAs(
+            new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+            "Non_VAT_Bill_Tracker_Entire_Data.xlsx",
+          );
+          showStatus("✓ Entire Data Exported", "saved");
+        } catch (err) {
+          console.error("Entire Export Error:", err);
+          showStatus("Export Error", "error");
+        }
+      }
+
+      async function exportSuppliersListToExcel() {
+        if (typeof ExcelJS === "undefined" || typeof saveAs === "undefined") {
+          return alert("ExcelJS / FileSaver not loaded!");
+        }
+        showStatus("Generating Suppliers List...", "saving");
+        try {
+          const allYears = await fetchAllYearsTrackerData();
+          const supplierStatusMap = new Map();
+
+          allYears.forEach(({ year, data }) => {
+            data.forEach((supData) => {
+              const name = (supData.supplier || "").trim();
+              if (!name) return;
+              const key = name.toLowerCase();
+              if (!supplierStatusMap.has(key)) {
+                supplierStatusMap.set(key, {
+                  supplier: name,
+                  hasRunning: false,
+                  maxLastActiveTs: 0,
+                  fallbackYm: "",
+                });
+              }
+              const rec = supplierStatusMap.get(key);
+              (supData.sites || []).forEach((siteObj) => {
+                if (siteObj.is_running) {
+                  rec.hasRunning = true;
+                }
+                if ((siteObj.last_active_ts || 0) > rec.maxLastActiveTs) {
+                  rec.maxLastActiveTs = siteObj.last_active_ts;
+                }
+                // Fallback from active_months if last_active_ts is 0
+                const activeMonths = siteObj.active_months || [];
+                const lastM = activeMonths.lastIndexOf(true);
+                if (lastM >= 0 && !rec.fallbackYm) {
+                  rec.fallbackYm = `${monthsFull[lastM].substring(0, 3)}-${String(year).slice(-2)}`;
+                }
+              });
+            });
+          });
+
+          const workbook = new ExcelJS.Workbook();
+          const ws = workbook.addWorksheet("Suppliers List", { views: [{ showGridLines: true }] });
+
+          ws.getCell("A1").value = "Supplier Name";
+          ws.getCell("B1").value = "Status / Expired (MMM-YY)";
+          ["A1", "B1"].forEach((addr) => {
+            const c = ws.getCell(addr);
+            c.font = { name: "Arial", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+            c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F2027" } };
+            c.alignment = { horizontal: "center", vertical: "middle" };
+          });
+          ws.getRow(1).height = 24;
+
+          const sorted = Array.from(supplierStatusMap.values()).sort((a, b) =>
+            a.supplier.localeCompare(b.supplier),
+          );
+
+          sorted.forEach((rec, idx) => {
+            const rNum = idx + 2;
+            const cA = ws.getCell(`A${rNum}`);
+            const cB = ws.getCell(`B${rNum}`);
+            cA.value = rec.supplier;
+            cA.font = { name: "Arial", size: 10, bold: true };
+            cA.alignment = { horizontal: "left", vertical: "middle" };
+
+            if (rec.hasRunning) {
+              cB.value = "Running";
+              cB.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF15803D" } };
+              cB.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCFCE7" } };
+            } else {
+              let expLabel = rec.fallbackYm || "Expired";
+              if (rec.maxLastActiveTs > 0) {
+                const d = new Date(rec.maxLastActiveTs);
+                expLabel = `${monthsFull[d.getMonth()].substring(0, 3)}-${String(d.getFullYear()).slice(-2)}`;
+              }
+              cB.value = expLabel;
+              cB.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFB91C1C" } };
+              cB.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEE2E2" } };
+            }
+            cB.alignment = { horizontal: "center", vertical: "middle" };
+
+            [cA, cB].forEach((c) => {
+              c.border = {
+                top: { style: "thin", color: { argb: "FFCBD5E1" } },
+                left: { style: "thin", color: { argb: "FFCBD5E1" } },
+                bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+                right: { style: "thin", color: { argb: "FFCBD5E1" } },
+              };
+            });
+          });
+
+          ws.getColumn(1).width = 36;
+          ws.getColumn(2).width = 24;
+
+          const buffer = await workbook.xlsx.writeBuffer();
+          saveAs(
+            new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+            "Non_VAT_Suppliers_List.xlsx",
+          );
+          showStatus("✓ List Exported", "saved");
+        } catch (err) {
+          console.error("List Export Error:", err);
+          showStatus("Export Error", "error");
         }
       }
 

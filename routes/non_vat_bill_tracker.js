@@ -307,6 +307,8 @@ router.get("/data", verifyAccessCode, async (req, res) => {
               ledger_folio: lfVal,
               site_group_key: siteGroupKey,
               active_months: Array(12).fill(false),
+              is_running: false,
+              last_active_ts: 0,
               billing: {},
               plateCompanies: {},
               plates: [],
@@ -319,7 +321,18 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             }
           }
 
-          suppliersMap[supName].sites[siteGroupKey].active_months[m] = true;
+          const siteTarget = suppliersMap[supName].sites[siteGroupKey];
+          siteTarget.active_months[m] = true;
+          const isLogStillRunning =
+            log.status === "Running" && !log.work_end_date;
+          if (isLogStillRunning) {
+            siteTarget.is_running = true;
+          } else {
+            const endTs = ed.getTime();
+            if (endTs > (siteTarget.last_active_ts || 0)) {
+              siteTarget.last_active_ts = endTs;
+            }
+          }
           const pKeyLog = (log.plate_no || "").trim().toUpperCase();
           if (
             pKeyLog &&
