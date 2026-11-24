@@ -685,9 +685,8 @@
                     <th>Release Date</th>
                     <th>Remark</th>
                     <th title="Agreement">Agath</th>
-                    <th title="Request For Quotation">RFQ</th>
-                    <th title="Purchase Order">PO</th>
                     <th title="Bills">Fatoora</th>
+                    <th title="Linked Ishtimara">Ishtimara</th>
                     <th title="Final confirmation">Final Conf</th>
                     <th>Project Name</th>
                     <th style="width: 50px; text-align: center">Action</th>
@@ -788,8 +787,9 @@
             <form id="siteEngagementForm">
               <input type="hidden" id="site_row_id" />
 
-              <div class="row g-3">
-                <div class="col-12 col-sm-6 col-md-3">
+              <!-- Shown only when clicking "+ Add Customer" from top bar -->
+              <div class="row g-3 mb-3" id="siteCustNameWrapper">
+                <div class="col-12">
                   <label class="form-label small fw-semibold"
                     >Customer Name <span class="text-danger">*</span></label
                   >
@@ -801,6 +801,9 @@
                     required
                   />
                 </div>
+              </div>
+
+              <div class="row g-3">
                 <div class="col-12 col-sm-6 col-md-3">
                   <label class="form-label small fw-semibold"
                     >Site Name <span class="text-danger">*</span></label
@@ -834,28 +837,7 @@
                     <option value="Released">Released</option>
                   </select>
                 </div>
-              </div>
-
-              <div class="row g-3 mt-1">
-                <div class="col-12 col-sm-6 col-md-4">
-                  <label class="form-label small fw-semibold">Start Date</label>
-                  <input
-                    type="date"
-                    class="form-control"
-                    id="engagement_joining_date"
-                  />
-                </div>
-                <div class="col-12 col-sm-6 col-md-4">
-                  <label class="form-label small fw-semibold"
-                    >Release Date</label
-                  >
-                  <input
-                    type="date"
-                    class="form-control"
-                    id="engagement_release_date"
-                  />
-                </div>
-                <div class="col-12 col-sm-6 col-md-4">
+                <div class="col-12 col-sm-6 col-md-3">
                   <label class="form-label small fw-semibold">Remark</label>
                   <input
                     type="text"
@@ -867,7 +849,25 @@
               </div>
 
               <div class="row g-3 mt-1">
-                <div class="col-12 col-md-7">
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label small fw-semibold">Start Date</label>
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="engagement_joining_date"
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label small fw-semibold"
+                    >Release Date</label
+                  >
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="engagement_release_date"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
                   <label class="form-label small fw-semibold"
                     >Project Name</label
                   >
@@ -879,23 +879,12 @@
                     placeholder="Enter Full Project Name"
                   />
                 </div>
-                <div class="col-12 col-md-5">
-                  <label class="form-label small fw-semibold"
-                    >Customer Remark</label
-                  >
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="engagement_customer_remark"
-                    placeholder="Optional customer remark..."
-                  />
-                </div>
               </div>
 
               <hr class="my-4" style="border-color: var(--border)" />
 
               <div class="row g-3">
-                <div class="col-12 col-sm-6 col-md-3">
+                <div class="col-12 col-sm-6">
                   <label class="form-label small fw-semibold" title="Agreement"
                     >Agath Doc</label
                   >
@@ -906,29 +895,7 @@
                     accept=".png,.jpg,.jpeg,.pdf"
                   />
                 </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                  <label
-                    class="form-label small fw-semibold"
-                    title="Request For Quotation"
-                    >RFQ Doc</label
-                  >
-                  <input
-                    type="file"
-                    class="form-control"
-                    id="engagement_file_rfq"
-                    accept=".png,.jpg,.jpeg,.pdf"
-                  />
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                  <label class="form-label small fw-semibold">PO Doc</label>
-                  <input
-                    type="file"
-                    class="form-control"
-                    id="engagement_file_po"
-                    accept=".png,.jpg,.jpeg,.pdf"
-                  />
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
+                <div class="col-12 col-sm-6">
                   <label
                     class="form-label small fw-semibold"
                     title="Final confirmation"
@@ -955,7 +922,7 @@
                 style="display: none"
                 onclick="deleteCurrentSite()"
               >
-                <i class="fa-solid fa-trash me-1"></i> Delete Site
+                🗑️ Delete Site
               </button>
             </div>
             <div class="d-flex gap-2">
@@ -969,6 +936,29 @@
                 Save Site
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Site Ishtimara Link & View Popup -->
+    <div class="modal fade" id="siteIshtimaraModal" tabindex="-1" style="z-index: 1060;">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px;">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h6 class="modal-title fw-bold m-0" id="siteIshtimaraTitle">🪪 Site Ishtimara</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-3">
+            <ul class="nav nav-pills mb-3">
+              <li class="nav-item">
+                <button type="button" class="nav-link active" id="siteIshTab_view" onclick="switchSiteIshtimaraTab('view')">1. View &amp; Download</button>
+              </li>
+              <li class="nav-item">
+                <button type="button" class="nav-link" id="siteIshTab_link" onclick="switchSiteIshtimaraTab('link')">2. Link Ishtimara</button>
+              </li>
+            </ul>
+            <div id="siteIshtimaraTabContent"></div>
           </div>
         </div>
       </div>
@@ -1246,8 +1236,9 @@
         4: "status",
         5: "release_date",
         6: "remark",
-        12: "project_name",
+        11: "project_name",
       };
+      let currentSiteIshtimaraRecordId = null;
 
       function toggleTheme() {
         const current =
@@ -1622,7 +1613,7 @@
         tbody.innerHTML = "";
 
         if (cust.sites.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="13" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
           attachDocEvents();
           attachInnerHeaderRightClick();
           return;
@@ -1681,6 +1672,9 @@
             uploadedBillsCount,
           );
 
+          const linkedIshCount = Array.isArray(siteRec.site_ishtimara)
+            ? siteRec.site_ishtimara.length
+            : 0;
           const tr = document.createElement("tr");
           tr.innerHTML = `
           <td style="text-align: center; font-weight: bold;">${counter++}</td>
@@ -1691,9 +1685,8 @@
           <td>${formatDateDDMMMYY(siteRec.release_date)}</td>
           <td>${siteRec.remark || ""}</td>
           <td>${renderDocPill(siteRec.id, "agreement", siteRec.agreement_doc, "Agath", "Agreement (Agath)", true)}</td>
-          <td>${renderDocPill(siteRec.id, "rfq", siteRec.rfq_doc, "RFQ", "Request For Quotation (RFQ)", true)}</td>
-          <td>${renderDocPill(siteRec.id, "po", siteRec.po_doc, "PO", "Purchase Order (PO)", true)}</td>
           <td><button class="btn btn-sm btn-outline-primary py-0 px-2" title="Bills" onclick="openBillPopup(${siteRec.id})"><i class="fa-solid fa-receipt me-1"></i>Fatoora (${uploadedBillsCount}/${totalBillsCount})</button></td>
+          <td><button class="btn btn-sm btn-outline-info py-0 px-2 fw-semibold" title="Link / View Ishtimara" onclick="openSiteIshtimaraModal(${siteRec.id})">🪪 Ishtimara (${linkedIshCount})</button></td>
           <td>${renderDocPill(siteRec.id, "last", siteRec.last_doc, "Final Conf", "Final confirmation", true)}</td>
           <td>${siteRec.project_name || ""}</td>
           <td style="text-align: center;">
@@ -1707,7 +1700,7 @@
           const activeHeaderTr = document.createElement("tr");
           activeHeaderTr.style.background = "rgba(21, 128, 61, 0.08)";
           activeHeaderTr.innerHTML = `
-          <td colspan="14" class="py-1 px-3 fw-bold small text-success" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+          <td colspan="13" class="py-1 px-3 fw-bold small text-success" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
             <i class="fa-solid fa-circle-check me-1"></i> ACTIVE SITES (${activeSites.length})
           </td>
         `;
@@ -1719,7 +1712,7 @@
           const releasedHeaderTr = document.createElement("tr");
           releasedHeaderTr.style.background = "rgba(239, 68, 68, 0.08)";
           releasedHeaderTr.innerHTML = `
-          <td colspan="14" class="py-1 px-3 fw-bold small text-danger" style="border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);">
+          <td colspan="13" class="py-1 px-3 fw-bold small text-danger" style="border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);">
             <i class="fa-solid fa-clock-rotate-left me-1"></i> RELEASED SITES (${releasedSites.length})
           </td>
         `;
@@ -1728,7 +1721,7 @@
         }
 
         if (filteredSites.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="13" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
         }
 
         attachDocEvents();
@@ -2485,6 +2478,8 @@
       function openAddCustomerModal() {
         document.getElementById("siteEngagementForm").reset();
         document.getElementById("site_row_id").value = "";
+        document.getElementById("btnDeleteSite").style.display = "none";
+        document.getElementById("siteCustNameWrapper").style.display = "block";
         const custInp = document.getElementById("site_cust_name");
         custInp.value = "";
         custInp.readOnly = false;
@@ -2511,14 +2506,11 @@
           ? placeholderRow.id
           : "";
 
-        const custInp = document.getElementById("site_cust_name");
-        custInp.value = cust.customer_name;
-        custInp.readOnly = true;
         document.getElementById("btnDeleteSite").style.display = "none";
-        document.getElementById("engagement_customer_remark").value =
-          cust.customer_remark || "";
-        document.getElementById("siteEngagementModalTitle").innerText =
-          `Add Site / Project for ${cust.customer_name}`;
+        document.getElementById("site_cust_name").value = cust.customer_name;
+        document.getElementById("siteCustNameWrapper").style.display = "none";
+        document.getElementById("siteEngagementModalTitle").innerHTML =
+          `Add Site / Project <span class="badge bg-primary ms-2">${cust.customer_code || "NVC"}</span> <span class="ms-1 text-primary">${cust.customer_name}</span>`;
         const modalEl = document.getElementById("siteEngagementModal");
         (
           bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
@@ -2534,9 +2526,8 @@
         document.getElementById("siteEngagementForm").reset();
         document.getElementById("site_row_id").value = siteRec.id;
         document.getElementById("btnDeleteSite").style.display = "inline-flex";
-        const custInp = document.getElementById("site_cust_name");
-        custInp.value = siteRec.customer_name || "";
-        custInp.readOnly = true;
+        document.getElementById("site_cust_name").value = siteRec.customer_name || "";
+        document.getElementById("siteCustNameWrapper").style.display = "none";
         document.getElementById("engagement_site").value = siteRec.site || "";
         document.getElementById("engagement_company").value =
           siteRec.company || "Haka";
@@ -2550,11 +2541,9 @@
           siteRec.remark || "";
         document.getElementById("engagement_project_name").value =
           siteRec.project_name || "";
-        document.getElementById("engagement_customer_remark").value =
-          siteRec.customer_remark || "";
 
-        document.getElementById("siteEngagementModalTitle").innerText =
-          `Edit Site Details (SN: ${siteRec.sn || siteRec.id})`;
+        document.getElementById("siteEngagementModalTitle").innerHTML =
+          `Edit Site Details (SN: ${siteRec.sn || siteRec.id}) <span class="badge bg-primary ms-2">${siteRec.customer_code || "NVC"}</span> <span class="ms-1 text-primary">${siteRec.customer_name || ""}</span>`;
         const modalEl = document.getElementById("siteEngagementModal");
         (
           bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
@@ -2649,9 +2638,6 @@
           release_date:
             document.getElementById("engagement_release_date").value || null,
           remark: document.getElementById("engagement_remark").value.trim(),
-          customer_remark: document
-            .getElementById("engagement_customer_remark")
-            .value.trim(),
           project_name: document
             .getElementById("engagement_project_name")
             .value.trim(),
@@ -2677,8 +2663,6 @@
           const filesMap = {
             agreement: document.getElementById("engagement_file_agreement")
               .files[0],
-            rfq: document.getElementById("engagement_file_rfq").files[0],
-            po: document.getElementById("engagement_file_po").files[0],
             last: document.getElementById("engagement_file_last").files[0],
           };
 
@@ -2719,6 +2703,176 @@
         } catch (err) {
           Swal.fire({ icon: "error", title: "Error", text: err.message });
         }
+      }
+
+      // --- SITE ISHTIMARA LINK & VIEW SYSTEM ---
+      function openSiteIshtimaraModal(siteRecordId) {
+        currentSiteIshtimaraRecordId = siteRecordId;
+        const siteRec = rawRecords.find((r) => Number(r.id) === Number(siteRecordId));
+        if (!siteRec) return;
+        document.getElementById("siteIshtimaraTitle").innerText =
+          `🪪 Ishtimara — ${siteRec.site || "Site"} (${siteRec.customer_name})`;
+        switchSiteIshtimaraTab("view");
+        const modalEl = document.getElementById("siteIshtimaraModal");
+        (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+      }
+
+      function switchSiteIshtimaraTab(tab) {
+        ["view", "link"].forEach((t) => {
+          const btn = document.getElementById(`siteIshTab_${t}`);
+          if (btn) btn.classList.toggle("active", t === tab);
+        });
+        const container = document.getElementById("siteIshtimaraTabContent");
+        const siteRec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+        if (!siteRec || !selectedActiveCustomerKey) return;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        const allDocs = cust?.ishtimara_docs || [];
+        const docMap = new Map(allDocs.map((d) => [String(d.id), d]));
+        const linked = Array.isArray(siteRec.site_ishtimara) ? siteRec.site_ishtimara : [];
+
+        if (tab === "view") {
+          const validLinks = linked.filter((l) => docMap.has(String(l.doc_id)));
+          const dlBar = `
+            <div class="d-flex justify-content-end gap-2 mb-3">
+              <button type="button" class="btn btn-sm btn-warning fw-semibold" ${validLinks.length === 0 ? "disabled" : ""} onclick="downloadSiteIshtimara('zip')">🗜️ Download ZIP</button>
+              <button type="button" class="btn btn-sm btn-success fw-semibold" ${validLinks.length === 0 ? "disabled" : ""} onclick="downloadSiteIshtimara('pdf')">📄 Download Single PDF</button>
+            </div>
+          `;
+          if (validLinks.length === 0) {
+            container.innerHTML = dlBar + `<p class="text-muted text-center py-4 mb-0">No Ishtimara linked to this site yet. Go to <strong>2. Link Ishtimara</strong> tab.</p>`;
+            return;
+          }
+          const rows = validLinks.map((l, idx) => {
+            const doc = docMap.get(String(l.doc_id));
+            const safeTitle = String(doc.title || "Ishtimara").replace(/'/g, "\\'");
+            const safeUrl = String(doc.file_url || "").replace(/'/g, "\\'");
+            const endHtml = l.end_date
+              ? `<span>${formatDateDDMMMYY(l.end_date)}</span>`
+              : `<span class="badge bg-success">Running</span>`;
+            return `
+              <tr>
+                <td style="text-align:center; font-weight:700;">${idx + 1}</td>
+                <td><span class="doc-name-display" onclick="previewDocPopup('${safeUrl}', '${safeTitle}')"><i class="fa-solid fa-id-card"></i> ${doc.title || "Ishtimara"}</span></td>
+                <td>${l.start_date ? formatDateDDMMMYY(l.start_date) : "-"}</td>
+                <td>${endHtml}</td>
+                <td style="text-align:center;">
+                  <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" title="Unlink" onclick="unlinkSiteIshtimara('${l.doc_id}')">✖️</button>
+                </td>
+              </tr>
+            `;
+          }).join("");
+
+          container.innerHTML = dlBar + `
+            <div class="table-responsive border rounded">
+              <table class="table table-hover align-middle m-0" style="color: var(--text); font-size: 13px;">
+                <thead>
+                  <tr style="background: var(--table-header-bg); color: var(--table-header-color); font-size: 11px; text-transform: uppercase;">
+                    <th style="width:40px; text-align:center;">#</th>
+                    <th>Plate No / File</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th style="width:70px; text-align:center;">Unlink</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          if (allDocs.length === 0) {
+            container.innerHTML = `<p class="text-muted text-center py-4 mb-0">No Ishtimara uploaded for this customer yet. First upload in the top <strong>Ishtimara</strong> button.</p>`;
+            return;
+          }
+          const linkedMap = new Map(linked.map((l) => [String(l.doc_id), l]));
+          const rows = allDocs.map((d) => {
+            const existing = linkedMap.get(String(d.id));
+            const checked = existing ? "checked" : "";
+            const sDate = existing?.start_date || "";
+            const eDate = existing?.end_date || "";
+            return `
+              <tr>
+                <td style="text-align:center;">
+                  <input type="checkbox" class="form-check-input site-ish-chk" data-doc-id="${d.id}" ${checked}>
+                </td>
+                <td class="fw-semibold">${d.title || "Ishtimara"}</td>
+                <td><input type="date" class="form-control form-control-sm site-ish-start" data-doc-id="${d.id}" value="${sDate}"></td>
+                <td><input type="date" class="form-control form-control-sm site-ish-end" data-doc-id="${d.id}" value="${eDate}" placeholder="Blank = Running"></td>
+              </tr>
+            `;
+          }).join("");
+
+          container.innerHTML = `
+            <div class="table-responsive border rounded mb-3">
+              <table class="table table-hover align-middle m-0" style="color: var(--text); font-size: 13px;">
+                <thead>
+                  <tr style="background: var(--table-header-bg); color: var(--table-header-color); font-size: 11px; text-transform: uppercase;">
+                    <th style="width:45px; text-align:center;">Link</th>
+                    <th>Plate No / File</th>
+                    <th>Start Date</th>
+                    <th>End Date (Blank = Running)</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold" onclick="saveSiteIshtimaraLinks()">💾 Save Links</button>
+            </div>
+          `;
+        }
+      }
+
+      async function saveSiteIshtimaraLinks() {
+        const items = [];
+        document.querySelectorAll(".site-ish-chk:checked").forEach((chk) => {
+          const docId = chk.dataset.docId;
+          const sInp = document.querySelector(`.site-ish-start[data-doc-id="${docId}"]`);
+          const eInp = document.querySelector(`.site-ish-end[data-doc-id="${docId}"]`);
+          items.push({
+            doc_id: String(docId),
+            start_date: sInp ? sInp.value : "",
+            end_date: eInp ? eInp.value : "",
+          });
+        });
+        await _persistSiteIshtimara(items);
+        switchSiteIshtimaraTab("view");
+      }
+
+      async function unlinkSiteIshtimara(docId) {
+        const siteRec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+        if (!siteRec) return;
+        const items = (siteRec.site_ishtimara || []).filter((l) => String(l.doc_id) !== String(docId));
+        await _persistSiteIshtimara(items);
+        switchSiteIshtimaraTab("view");
+      }
+
+      async function _persistSiteIshtimara(items) {
+        try {
+          const res = await fetch(`${API_BASE}/save-site-ishtimara`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_id: Number(currentSiteIshtimaraRecordId),
+              items,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            const rec = rawRecords.find((r) => Number(r.id) === Number(currentSiteIshtimaraRecordId));
+            if (rec) rec.site_ishtimara = json.site_ishtimara;
+            if (selectedActiveCustomerKey) renderDetailModal(selectedActiveCustomerKey);
+            Swal.fire({ icon: "success", title: "Saved", timer: 900, showConfirmButton: false });
+          } else {
+            Swal.fire({ icon: "error", title: "Save Failed", text: json.error || "Error" });
+          }
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "Error", text: err.message });
+        }
+      }
+
+      function downloadSiteIshtimara(mode) {
+        if (!currentSiteIshtimaraRecordId) return;
+        window.location.href = `${API_BASE}/download-site-ishtimara?customer_id=${currentSiteIshtimaraRecordId}&mode=${mode}`;
       }
 
       // --- BILLS SYSTEM ---

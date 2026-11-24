@@ -1111,7 +1111,7 @@ def export_vat_customers_excel():
                 agreement_doc, rfq_doc, po_doc, conf_letter_doc,
                 vat_doc, crn_doc, last_doc, remark, project_name, bills_data
             FROM vat_customer_records
-            ORDER BY LOWER(customer_name) ASC, joining_date ASC NULLS LAST, id ASC
+            ORDER BY LOWER(TRIM(customer_name)) ASC, LOWER(TRIM(COALESCE(site, ''))) ASC, id ASC
         """)
         rows = cur.fetchall()
 

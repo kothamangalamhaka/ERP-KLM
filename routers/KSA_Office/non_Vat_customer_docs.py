@@ -54,9 +54,6 @@ def get_records():
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("ALTER TABLE non_vat_customer_records ADD COLUMN IF NOT EXISTS customer_code TEXT")
-        cur.execute("ALTER TABLE non_vat_customer_records ADD COLUMN IF NOT EXISTS customer_remark TEXT")
-        conn.commit()
 
         cur.execute("""
             SELECT 
@@ -73,14 +70,13 @@ def get_records():
                 status,
                 to_char(release_date, 'YYYY-MM-DD') AS release_date,
                 agreement_doc,
-                rfq_doc,
-                po_doc,
                 last_doc,
                 remark,
                 project_name,
                 COALESCE(bills_data, '[]'::jsonb) AS bills_data,
                 COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs,
                 COALESCE(other_docs, '[]'::jsonb) AS other_docs,
+                COALESCE(site_ishtimara, '[]'::jsonb) AS site_ishtimara,
                 created_at,
                 updated_at
             FROM non_vat_customer_records 
@@ -120,8 +116,6 @@ def get_records():
 
         single_doc_cols = [
             "agreement_doc",
-            "rfq_doc",
-            "po_doc",
             "last_doc",
         ]
         db_cleaned = False
@@ -203,12 +197,12 @@ def export_non_vat_customers_excel():
             SELECT
                 id, sn,
                 to_char(joining_date, 'DD-Mon-YYYY') AS start_date,
-                customer_name, site, company, status,
+                customer_code, customer_name, site, company, status,
                 to_char(release_date, 'DD-Mon-YYYY') AS release_date,
-                agreement_doc, rfq_doc, po_doc, last_doc,
+                agreement_doc, last_doc,
                 remark, project_name, bills_data
             FROM non_vat_customer_records
-            ORDER BY LOWER(customer_name) ASC, joining_date ASC NULLS LAST, id ASC
+            ORDER BY LOWER(TRIM(customer_name)) ASC, LOWER(TRIM(COALESCE(site, ''))) ASC, id ASC
         """)
         rows = cur.fetchall()
 
@@ -239,8 +233,6 @@ def export_non_vat_customers_excel():
         company_stats = {}
         doc_stats = {
             "Agath (Agreement)": [0, 0],
-            "RFQ": [0, 0],
-            "PO": [0, 0],
             "Final Conf": [0, 0],
         }
 
@@ -265,8 +257,6 @@ def export_non_vat_customers_excel():
 
             for label, col in [
                 ("Agath (Agreement)", "agreement_doc"),
-                ("RFQ", "rfq_doc"),
-                ("PO", "po_doc"),
                 ("Final Conf", "last_doc"),
             ]:
                 if check_public_file_exists(r.get(col)):
@@ -374,8 +364,8 @@ def export_non_vat_customers_excel():
 
         # ================= TAB 2: CUSTOMER DOCUMENTS TABLE =================
         headers = [
-            "SN", "Customer Name", "Site Name", "Company", "Status",
-            "Start Date", "Release Date", "Agath", "RFQ", "PO",
+            "SN", "Asset Code", "Customer Name", "Site Name", "Company", "Status",
+            "Start Date", "Release Date", "Agath",
             "Final Conf", "Bills", "Project Name", "Remark"
         ]
         last_col = get_column_letter(len(headers))
@@ -414,6 +404,7 @@ def export_non_vat_customers_excel():
 
             row_vals = [
                 idx,
+                r.get("customer_code") or "-",
                 r.get("customer_name") or "",
                 r.get("site") or "-",
                 r.get("company") or "-",
@@ -421,8 +412,6 @@ def export_non_vat_customers_excel():
                 r.get("start_date") or "-",
                 r.get("release_date") or "-",
                 _doc_status("agreement_doc"),
-                _doc_status("rfq_doc"),
-                _doc_status("po_doc"),
                 _doc_status("last_doc"),
                 f"{uploaded_bills} Uploaded" if uploaded_bills > 0 else "Pending",
                 r.get("project_name") or "",
@@ -434,20 +423,20 @@ def export_non_vat_customers_excel():
                 cell.border = cell_border
                 cell.font = Font(name="Calibri", size=10, color="0F172A")
                 cell.alignment = Alignment(
-                    horizontal="left" if c_idx in (2, 3, 13, 14) else "center",
+                    horizontal="left" if c_idx in (3, 4, 12, 13) else "center",
                     vertical="center",
                 )
                 if idx % 2 == 0:
                     cell.fill = zebra_fill
 
-                if c_idx == 5:
+                if c_idx == 6:
                     if str(val).lower() == "active":
                         cell.fill = act_fill
                         cell.font = Font(name="Calibri", size=10, bold=True, color="1D4ED8")
                     else:
                         cell.fill = pen_fill
                         cell.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
-                elif 8 <= c_idx <= 11:
+                elif 9 <= c_idx <= 10:
                     if val == "Received":
                         cell.fill = rec_fill
                         cell.font = Font(name="Calibri", size=10, bold=True, color="15803D")
@@ -462,7 +451,7 @@ def export_non_vat_customers_excel():
         max_proj_len = max(
             [len("Project Name")] + [len(str(r.get("project_name") or "")) for r in rows]
         )
-        col_widths = [6, 28, 24, 14, 12, 13, 13, 12, 12, 12, 12, 14, max_proj_len + 4, 22]
+        col_widths = [6, 13, 28, 24, 14, 12, 13, 13, 12, 12, 14, max_proj_len + 4, 22]
         for c_idx, w in enumerate(col_widths, start=1):
             ws_data.column_dimensions[get_column_letter(c_idx)].width = w
 
@@ -1014,6 +1003,7 @@ def delete_site(payload: SiteDeletePayload):
                     po_doc = NULL,
                     last_doc = NULL,
                     bills_data = '[]'::jsonb,
+                    site_ishtimara = '[]'::jsonb,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
             """,
@@ -1601,8 +1591,6 @@ def download_non_vat_customer_zip(payload: NonVatZipPayload):
                 site_folder = f"{sanitize_name(s_name)}_{s_idx}"
                 for doc_lbl, col in [
                     ("Agath", "agreement_doc"),
-                    ("RFQ", "rfq_doc"),
-                    ("PO", "po_doc"),
                     ("Final_Conf", "last_doc"),
                 ]:
                     u = check_public_file_exists(r.get(col))
@@ -1630,6 +1618,134 @@ def download_non_vat_customer_zip(payload: NonVatZipPayload):
             content=zip_buf.getvalue(),
             media_type="application/zip",
             headers={"Content-Disposition": f'attachment; filename="{cust_code}_{cust_san}.zip"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+class SiteIshtimaraItem(BaseModel):
+    doc_id: str
+    start_date: Optional[str] = ""
+    end_date: Optional[str] = ""
+
+
+class SiteIshtimaraSavePayload(BaseModel):
+    customer_id: int
+    items: list[SiteIshtimaraItem]
+
+
+@router.post("/save-site-ishtimara")
+def save_site_ishtimara(payload: SiteIshtimaraSavePayload):
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        data_list = [
+            {
+                "doc_id": str(it.doc_id),
+                "start_date": (it.start_date or "").strip(),
+                "end_date": (it.end_date or "").strip(),
+            }
+            for it in payload.items
+        ]
+        cur.execute(
+            "UPDATE non_vat_customer_records SET site_ishtimara = %s::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (json.dumps(data_list), payload.customer_id),
+        )
+        conn.commit()
+        return {"success": True, "site_ishtimara": data_list}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+@router.get("/download-site-ishtimara")
+def download_site_ishtimara(customer_id: int, mode: str = "pdf"):
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT customer_name, customer_code, site, COALESCE(site_ishtimara, '[]'::jsonb) AS site_ishtimara FROM non_vat_customer_records WHERE id = %s",
+            (customer_id,),
+        )
+        rec = cur.fetchone()
+        if not rec:
+            raise HTTPException(status_code=404, detail="Site record not found")
+
+        linked = rec.get("site_ishtimara") or []
+        if not linked:
+            raise HTTPException(status_code=400, detail="No Ishtimara linked to this site")
+
+        cur.execute(
+            "SELECT COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s)",
+            (rec["customer_name"],),
+        )
+        all_ish = []
+        for row in cur.fetchall():
+            if isinstance(row.get("ishtimara_docs"), list) and len(row["ishtimara_docs"]) > len(all_ish):
+                all_ish = row["ishtimara_docs"]
+
+        ish_map = {str(d.get("id")): d for d in all_ish}
+        cust_code = rec.get("customer_code") or "NVC"
+        site_san = sanitize_name(rec.get("site") or "Site")
+
+        files_to_pack = []
+        for idx, link in enumerate(linked, start=1):
+            doc = ish_map.get(str(link.get("doc_id")))
+            if not doc:
+                continue
+            fp = doc.get("file_path") or (
+                os.path.join(PUBLIC_ROOT, str(doc.get("file_url") or "").lstrip("/")) if doc.get("file_url") else ""
+            )
+            if fp and os.path.exists(fp):
+                files_to_pack.append((doc.get("title") or f"Ishtimara_{idx}", fp))
+
+        if not files_to_pack:
+            raise HTTPException(status_code=404, detail="Linked Ishtimara files not found on disk")
+
+        if mode == "zip":
+            zbuf = io.BytesIO()
+            with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_DEFLATED) as zf:
+                for title, fp in files_to_pack:
+                    ext = os.path.splitext(fp)[1]
+                    zf.write(fp, f"{sanitize_name(title)}{ext}")
+            zbuf.seek(0)
+            return Response(
+                content=zbuf.getvalue(),
+                media_type="application/zip",
+                headers={"Content-Disposition": f'attachment; filename="{cust_code}_{site_san}_Ishtimara.zip"'},
+            )
+
+        writer = PdfWriter()
+        for _, fp in files_to_pack:
+            pdf_bytes = convert_to_pdf_bytes(fp)
+            if pdf_bytes:
+                reader = PdfReader(io.BytesIO(pdf_bytes))
+                for page in reader.pages:
+                    writer.add_page(page)
+        out_buf = io.BytesIO()
+        writer.write(out_buf)
+        out_buf.seek(0)
+        return Response(
+            content=out_buf.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{cust_code}_{site_san}_Ishtimara.pdf"'},
         )
     except HTTPException:
         raise
