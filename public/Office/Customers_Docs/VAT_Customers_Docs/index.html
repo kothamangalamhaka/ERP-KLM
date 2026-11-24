@@ -14,6 +14,7 @@
         document.documentElement.setAttribute("data-theme", saved);
       })();
     </script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
     <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
     <style>
@@ -701,6 +702,15 @@
                 <div id="modalOtherDocSlot"></div>
               </div>
               <button
+                type="button"
+                id="btnDownloadCustZip"
+                class="btn btn-sm btn-warning py-1 px-3 fw-semibold"
+                onclick="downloadCustomerZip()"
+                title="Download Customer Docs ZIP (with Table Image)"
+              >
+                🗜️ ZIP
+              </button>
+              <button
                 class="btn btn-sm btn-primary py-1 px-3"
                 onclick="openAddSiteForCurrentCustomer()"
               >
@@ -798,6 +808,15 @@
                   oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                 />
               </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Remark</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="edit_cust_remark"
+                  placeholder="Optional customer remark..."
+                />
+              </div>
             </form>
           </div>
           <div class="modal-footer border-top">
@@ -870,6 +889,15 @@
                     id="master_cust_cr"
                     placeholder="10 Digit CR No"
                     oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                  />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold">Remark</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="master_cust_remark"
+                    placeholder="Optional customer remark..."
                   />
                 </div>
               </div>
@@ -1526,6 +1554,8 @@
           if (!groupedCustomers[key]) {
             groupedCustomers[key] = {
               customer_name: name,
+              customer_code: r.customer_code || "",
+              customer_remark: r.customer_remark || "",
               vat_no: r.vat_no || "",
               cr_no: r.cr_no || "",
               vat_doc: r.vat_doc || null,
@@ -1645,6 +1675,7 @@
           }
 
           const searchBlob = [
+            cust.customer_code,
             cust.customer_name,
             cust.vat_no,
             cust.cr_no,
@@ -1733,7 +1764,10 @@
           card.innerHTML = `
           <div class="card-top">
             <h6 class="card-title">${cust.customer_name}</h6>
-            <span class="card-count-badge"><i class="fa-solid fa-location-dot me-1"></i>${cust.sites.length} Sites</span>
+            <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
+              <span class="badge bg-dark-subtle text-primary-emphasis" style="font-size: 10px; font-weight: 700; letter-spacing: 0.4px;">${cust.customer_code || "VC"}</span>
+              <span class="card-count-badge"><i class="fa-solid fa-location-dot me-1"></i>${cust.sites.length} Sites</span>
+            </div>
           </div>
           <div class="card-info-row">
             <span>VAT No:</span>
@@ -2120,9 +2154,9 @@
         if (!cust) return;
 
         document.getElementById("detailCustomerName").innerText =
-          cust.customer_name;
+          `${cust.customer_code ? `[${cust.customer_code}] ` : ""}${cust.customer_name}`;
         document.getElementById("detailCustomerMeta").innerText =
-          `VAT: ${cust.vat_no || "N/A"} | CR: ${cust.cr_no || "N/A"}`;
+          `VAT: ${cust.vat_no || "N/A"} | CR: ${cust.cr_no || "N/A"}${cust.customer_remark ? ` | Remark: ${cust.customer_remark}` : ""}`;
 
         const firstRowId =
           cust.sites[0]?.id ||
@@ -2579,10 +2613,63 @@
         document.getElementById("edit_cust_name").value = cust.customer_name;
         document.getElementById("edit_cust_vat").value = cust.vat_no || "";
         document.getElementById("edit_cust_cr").value = cust.cr_no || "";
+        document.getElementById("edit_cust_remark").value = cust.customer_remark || "";
         const modalEl = document.getElementById("editCustomerMasterModal");
         (
           bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)
         ).show();
+      }
+
+      async function downloadCustomerZip() {
+        if (!selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        const btn = document.getElementById("btnDownloadCustZip");
+        const origHtml = btn ? btn.innerHTML : "";
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = "⏳ ZIP...";
+        }
+        try {
+          let tableImgB64 = "";
+          const tableWrap = document.querySelector("#customerDetailModal .detail-table-wrapper");
+          if (tableWrap && typeof html2canvas !== "undefined") {
+            const origMaxH = tableWrap.style.maxHeight;
+            tableWrap.style.maxHeight = "none";
+            const canvas = await html2canvas(tableWrap, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+            });
+            tableWrap.style.maxHeight = origMaxH;
+            tableImgB64 = canvas.toDataURL("image/png");
+          }
+
+          const res = await fetch("/py/vat-customers/download-zip", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_name: cust.customer_name,
+              table_image_base64: tableImgB64,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to generate ZIP");
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${cust.customer_code || "VC"}_${cust.customer_name.replace(/\s+/g, "_")}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "ZIP Error", text: err.message });
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+          }
+        }
       }
 
       async function saveCustomerMasterChanges() {
@@ -2592,6 +2679,7 @@
         const newName = document.getElementById("edit_cust_name").value.trim();
         const vatNo = document.getElementById("edit_cust_vat").value.trim();
         const crNo = document.getElementById("edit_cust_cr").value.trim();
+        const custRemark = document.getElementById("edit_cust_remark").value.trim();
 
         if (!newName) {
           Swal.fire({
@@ -2611,6 +2699,7 @@
               new_customer_name: newName,
               vat_no: vatNo,
               cr_no: crNo,
+              customer_remark: custRemark,
             }),
           });
           const json = await res.json();
@@ -2665,6 +2754,7 @@
           customer_name: nameVal,
           vat_no: document.getElementById("master_cust_vat").value.trim(),
           cr_no: document.getElementById("master_cust_cr").value.trim(),
+          customer_remark: (document.getElementById("master_cust_remark")?.value || "").trim(),
           site: "",
           company: "Haka",
           status: "Active",

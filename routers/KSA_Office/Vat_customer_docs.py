@@ -2,6 +2,7 @@ import os
 import io
 import json
 import re
+import zipfile
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
@@ -50,12 +51,18 @@ def get_records():
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("ALTER TABLE vat_customer_records ADD COLUMN IF NOT EXISTS customer_code TEXT")
+        cur.execute("ALTER TABLE vat_customer_records ADD COLUMN IF NOT EXISTS customer_remark TEXT")
+        conn.commit()
+
         cur.execute("""
             SELECT 
                 id,
                 sn,
                 to_char(joining_date, 'YYYY-MM-DD') AS joining_date,
                 customer_name,
+                customer_code,
+                customer_remark,
                 vat_no,
                 cr_no,
                 site,
@@ -80,6 +87,36 @@ def get_records():
             ORDER BY id ASC
         """)
         rows = cur.fetchall()
+
+        # Assign permanent unique VC0001.. codes to any customer missing one
+        existing_codes = {}
+        max_num = 0
+        for r in rows:
+            ck = (r.get("customer_name") or "").strip().lower()
+            cc = (r.get("customer_code") or "").strip()
+            if ck and cc:
+                existing_codes[ck] = cc
+                m_num = re.match(r"^VC(\d+)$", cc, re.IGNORECASE)
+                if m_num:
+                    max_num = max(max_num, int(m_num.group(1)))
+
+        code_assigned = False
+        for r in rows:
+            ck = (r.get("customer_name") or "").strip().lower()
+            if not ck:
+                continue
+            if ck not in existing_codes:
+                max_num += 1
+                existing_codes[ck] = f"VC{max_num:04d}"
+            if r.get("customer_code") != existing_codes[ck]:
+                r["customer_code"] = existing_codes[ck]
+                cur.execute(
+                    "UPDATE vat_customer_records SET customer_code = %s WHERE LOWER(customer_name) = LOWER(%s)",
+                    (existing_codes[ck], r["customer_name"]),
+                )
+                code_assigned = True
+        if code_assigned:
+            conn.commit()
         single_doc_cols = [
             "agreement_doc",
             "rfq_doc",
@@ -185,6 +222,7 @@ class CustomerMasterEditPayload(BaseModel):
     new_customer_name: str
     vat_no: Optional[str] = ""
     cr_no: Optional[str] = ""
+    customer_remark: Optional[str] = ""
 
 @router.post("/update-customer-master")
 def update_customer_master(payload: CustomerMasterEditPayload):
@@ -198,6 +236,7 @@ def update_customer_master(payload: CustomerMasterEditPayload):
 
         v_no = "".join(filter(str.isdigit, str(payload.vat_no or "")))
         c_no = "".join(filter(str.isdigit, str(payload.cr_no or "")))
+        c_rem = (payload.customer_remark or "").strip()
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -208,9 +247,10 @@ def update_customer_master(payload: CustomerMasterEditPayload):
             SET customer_name = %s,
                 vat_no = %s,
                 cr_no = %s,
+                customer_remark = %s,
                 updated_at = CURRENT_TIMESTAMP
             WHERE LOWER(customer_name) = LOWER(%s)
-        """, (new_name, v_no, c_no, old_name))
+        """, (new_name, v_no, c_no, c_rem, old_name))
 
         # Rename disk folder if customer name was changed
         old_folder_san = sanitize_name(old_name)
@@ -271,6 +311,7 @@ class CustomerUpsertPayload(BaseModel):
     status: Optional[str] = "Active"
     release_date: Optional[str] = None
     remark: Optional[str] = ""
+    customer_remark: Optional[str] = ""
     project_name: Optional[str] = ""
 
 @router.post("/upsert-customer")
@@ -289,6 +330,7 @@ def upsert_customer(payload: CustomerUpsertPayload):
         s_comp = str(payload.company or "Haka").strip()
         s_stat = str(payload.status or "Active").strip()
         s_rem = str(payload.remark or "").strip()
+        c_rem = str(payload.customer_remark or "").strip()
         p_name = str(payload.project_name or "").strip()
 
         j_date = str(payload.joining_date).strip() if payload.joining_date and str(payload.joining_date).strip() else None
@@ -321,7 +363,7 @@ def upsert_customer(payload: CustomerUpsertPayload):
         else:
             # Check if customer already exists (common docs sync)
             cur.execute("""
-                SELECT vat_no, cr_no, vat_doc, crn_doc, COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs, COALESCE(other_docs, '[]'::jsonb) AS other_docs
+                SELECT vat_no, cr_no, customer_remark, vat_doc, crn_doc, COALESCE(ishtimara_docs, '[]'::jsonb) AS ishtimara_docs, COALESCE(other_docs, '[]'::jsonb) AS other_docs
                 FROM vat_customer_records 
                 WHERE LOWER(customer_name) = LOWER(%s)
                 ORDER BY id DESC LIMIT 1
@@ -330,6 +372,7 @@ def upsert_customer(payload: CustomerUpsertPayload):
 
             final_vat = v_no if v_no else (existing_rec["vat_no"] if existing_rec and existing_rec["vat_no"] else "")
             final_cr = c_no if c_no else (existing_rec["cr_no"] if existing_rec and existing_rec["cr_no"] else "")
+            final_c_rem = c_rem if c_rem else (existing_rec["customer_remark"] if existing_rec and existing_rec.get("customer_remark") else "")
             e_vat = existing_rec["vat_doc"] if existing_rec else None
             e_crn = existing_rec["crn_doc"] if existing_rec else None
             e_ish = json.dumps(existing_rec["ishtimara_docs"]) if existing_rec else "[]"
@@ -337,9 +380,9 @@ def upsert_customer(payload: CustomerUpsertPayload):
 
             cur.execute("""
                 INSERT INTO vat_customer_records 
-                (joining_date, customer_name, vat_no, cr_no, site, company, status, release_date, remark, project_name, vat_doc, crn_doc, ishtimara_docs, other_docs)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb) RETURNING id;
-            """, (j_date, c_name, final_vat, final_cr, s_site, s_comp, s_stat, r_date, s_rem, p_name, e_vat, e_crn, e_ish, e_oth))
+                (joining_date, customer_name, vat_no, cr_no, customer_remark, site, company, status, release_date, remark, project_name, vat_doc, crn_doc, ishtimara_docs, other_docs)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb) RETURNING id;
+            """, (j_date, c_name, final_vat, final_cr, final_c_rem, s_site, s_comp, s_stat, r_date, s_rem, p_name, e_vat, e_crn, e_ish, e_oth))
 
         row = cur.fetchone()
         saved_id = row["id"] if row else rec_id
@@ -891,6 +934,167 @@ def upload_common_multi_doc(payload: CommonMultiDocUploadPayload):
             conn.close()
 
 
+class CustomerZipPayload(BaseModel):
+    customer_name: str
+    table_image_base64: Optional[str] = ""
+
+
+def _convert_file_to_pdf_bytes(file_path: str) -> Optional[bytes]:
+    if not file_path or not os.path.exists(file_path):
+        return None
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".pdf":
+        with open(file_path, "rb") as f:
+            return f.read()
+    try:
+        img = Image.open(file_path)
+        if img.mode in ("RGBA", "P", "LA"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="PDF", resolution=150.0)
+        return buf.getvalue()
+    except Exception:
+        with open(file_path, "rb") as f:
+            return f.read()
+
+
+def _format_bill_month_prefix(month_year_str: str) -> str:
+    raw = str(month_year_str or "").strip()
+    if not raw:
+        return "Bill"
+    for fmt in ("%Y-%m", "%B %Y", "%b %Y", "%m-%Y"):
+        try:
+            dt = datetime.strptime(raw, fmt)
+            return dt.strftime("%b %y")
+        except Exception:
+            pass
+    parts = raw.split()
+    if len(parts) >= 2:
+        return f"{parts[0][:3].title()} {parts[1][-2:]}"
+    return raw[:10]
+
+
+@router.post("/download-zip")
+def download_vat_customer_zip(payload: CustomerZipPayload):
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT * FROM vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) ORDER BY id ASC",
+            (payload.customer_name.strip(),),
+        )
+        rows = cur.fetchall()
+        if not rows:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        cust_name = rows[0].get("customer_name") or payload.customer_name
+        cust_code = rows[0].get("customer_code") or "VC0000"
+        cust_san = sanitize_name(cust_name)
+
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            # 1. High-quality table image
+            if payload.table_image_base64:
+                raw_b64 = payload.table_image_base64
+                if "," in raw_b64:
+                    raw_b64 = raw_b64.split(",", 1)[1]
+                zf.writestr(f"{cust_code}_{cust_san}_Table.png", base64.b64decode(raw_b64))
+
+            # 2. VAT Doc & CRN Doc as PDF
+            vat_url = next((r.get("vat_doc") for r in rows if check_public_file_exists(r.get("vat_doc"))), None)
+            if vat_url:
+                v_path = os.path.join(PUBLIC_ROOT, str(vat_url).lstrip("/"))
+                pdf_b = _convert_file_to_pdf_bytes(v_path)
+                if pdf_b:
+                    zf.writestr(f"{cust_code}_{cust_san}_VAT_Doc.pdf", pdf_b)
+
+            crn_url = next((r.get("crn_doc") for r in rows if check_public_file_exists(r.get("crn_doc"))), None)
+            if crn_url:
+                c_path = os.path.join(PUBLIC_ROOT, str(crn_url).lstrip("/"))
+                pdf_b = _convert_file_to_pdf_bytes(c_path)
+                if pdf_b:
+                    zf.writestr(f"{cust_code}_{cust_san}_CRN_Doc.pdf", pdf_b)
+
+            # 3. Ishtimara folder (ONLY if at least 1 file exists)
+            ish_list = []
+            for r in rows:
+                if isinstance(r.get("ishtimara_docs"), list) and len(r["ishtimara_docs"]) > len(ish_list):
+                    ish_list = r["ishtimara_docs"]
+            for idx, d in enumerate(ish_list, start=1):
+                f_path = d.get("file_path") or (
+                    os.path.join(PUBLIC_ROOT, str(d.get("file_url") or "").lstrip("/")) if d.get("file_url") else ""
+                )
+                if f_path and os.path.exists(f_path):
+                    ext = os.path.splitext(f_path)[1]
+                    t_san = sanitize_name(d.get("title") or f"Ishtimara_{idx}")
+                    zf.write(f_path, f"Ishtimara/{t_san}{ext}")
+
+            # 4. Other Docs folder (ONLY if at least 1 file exists)
+            oth_list = []
+            for r in rows:
+                if isinstance(r.get("other_docs"), list) and len(r["other_docs"]) > len(oth_list):
+                    oth_list = r["other_docs"]
+            for idx, d in enumerate(oth_list, start=1):
+                f_path = d.get("file_path") or (
+                    os.path.join(PUBLIC_ROOT, str(d.get("file_url") or "").lstrip("/")) if d.get("file_url") else ""
+                )
+                if f_path and os.path.exists(f_path):
+                    ext = os.path.splitext(f_path)[1]
+                    t_san = sanitize_name(d.get("title") or f"Other_{idx}")
+                    zf.write(f_path, f"Other_Docs/{t_san}{ext}")
+
+            # 5. Per-site folders + Fatooras subfolder (with MMM YY prefix)
+            for s_idx, r in enumerate(rows, start=1):
+                s_name = (r.get("site") or "").strip()
+                if not s_name:
+                    continue
+                site_folder = f"{sanitize_name(s_name)}_{s_idx}"
+                for doc_lbl, col in [
+                    ("Agath", "agreement_doc"),
+                    ("RFQ", "rfq_doc"),
+                    ("PO", "po_doc"),
+                    ("VAT_Conf", "conf_letter_doc"),
+                    ("Final_Conf", "last_doc"),
+                ]:
+                    u = check_public_file_exists(r.get(col))
+                    if u:
+                        fp = os.path.join(PUBLIC_ROOT, str(u).lstrip("/"))
+                        if os.path.exists(fp):
+                            ext = os.path.splitext(fp)[1]
+                            zf.write(fp, f"{site_folder}/{doc_lbl}{ext}")
+
+                bills = r.get("bills_data") or []
+                if isinstance(bills, list):
+                    for b in bills:
+                        if not isinstance(b, dict):
+                            continue
+                        fp = b.get("file_path") or (
+                            os.path.join(PUBLIC_ROOT, str(b.get("file_url") or "").lstrip("/")) if b.get("file_url") else ""
+                        )
+                        if fp and os.path.exists(fp):
+                            m_prefix = _format_bill_month_prefix(b.get("month") or "")
+                            orig_fname = os.path.basename(fp)
+                            zf.write(fp, f"{site_folder}/Fatooras/{m_prefix} - {orig_fname}")
+
+        zip_buf.seek(0)
+        return Response(
+            content=zip_buf.getvalue(),
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{cust_code}_{cust_san}.zip"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
 @router.get("/export-excel")
 def export_vat_customers_excel():
     conn = None
@@ -902,7 +1106,7 @@ def export_vat_customers_excel():
             SELECT
                 id, sn,
                 to_char(joining_date, 'DD-Mon-YYYY') AS start_date,
-                customer_name, vat_no, cr_no, site, company, status,
+                customer_code, customer_name, vat_no, cr_no, site, company, status,
                 to_char(release_date, 'DD-Mon-YYYY') AS release_date,
                 agreement_doc, rfq_doc, po_doc, conf_letter_doc,
                 vat_doc, crn_doc, last_doc, remark, project_name, bills_data
@@ -1097,7 +1301,7 @@ def export_vat_customers_excel():
 
         # ================= TAB 2: CUSTOMER DOCUMENTS TABLE =================
         headers = [
-            "SN", "Customer Name", "VAT No", "CR No", "Site Name", "Company",
+            "SN", "Asset Code", "Customer Name", "VAT No", "CR No", "Site Name", "Company",
             "Status", "Start Date", "Release Date", "VAT Doc", "CRN Doc",
             "Agath", "RFQ", "PO", "VAT Conf", "Final Conf", "Bills",
             "Project Name", "Remark"
@@ -1138,6 +1342,7 @@ def export_vat_customers_excel():
 
             row_vals = [
                 idx,
+                r.get("customer_code") or "-",
                 r.get("customer_name") or "",
                 r.get("vat_no") or "-",
                 r.get("cr_no") or "-",
@@ -1163,20 +1368,20 @@ def export_vat_customers_excel():
                 cell.border = cell_border
                 cell.font = Font(name="Calibri", size=10, color="0F172A")
                 cell.alignment = Alignment(
-                    horizontal="left" if c_idx in (2, 5, 18, 19) else "center",
+                    horizontal="left" if c_idx in (3, 6, 19, 20) else "center",
                     vertical="center",
                 )
                 if idx % 2 == 0:
                     cell.fill = zebra_fill
 
-                if c_idx == 7:
+                if c_idx == 8:
                     if str(val).lower() == "active":
                         cell.fill = act_fill
                         cell.font = Font(name="Calibri", size=10, bold=True, color="1D4ED8")
                     else:
                         cell.fill = pen_fill
                         cell.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
-                elif 10 <= c_idx <= 16:
+                elif 11 <= c_idx <= 17:
                     if val == "Received":
                         cell.fill = rec_fill
                         cell.font = Font(name="Calibri", size=10, bold=True, color="15803D")
@@ -1191,7 +1396,7 @@ def export_vat_customers_excel():
         max_proj_len = max(
             [len("Project Name")] + [len(str(r.get("project_name") or "")) for r in rows]
         )
-        col_widths = [6, 28, 18, 15, 24, 14, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 14, max_proj_len + 4, 22]
+        col_widths = [6, 13, 28, 18, 15, 24, 14, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 14, max_proj_len + 4, 22]
         for c_idx, w in enumerate(col_widths, start=1):
             ws_data.column_dimensions[get_column_letter(c_idx)].width = w
 
