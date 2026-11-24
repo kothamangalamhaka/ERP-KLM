@@ -5,120 +5,485 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timesheet Admin Panel</title>
     <style>
-      * {
-        font-family: Georgia, "Times New Roman", Times, serif;
+      @font-face {
+        font-family: "Inter";
+        font-weight: 400;
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
       }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 600;
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 700;
+        src: url("/webfonts/Inter-Bold.woff2") format("woff2");
+      }
+
+      * {
+        box-sizing: border-box;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+      }
+
       body {
-        font-family: Arial, sans-serif;
-        background-color: #181a1b; /* Soft dark background */
-        color: #e8e6e3; /* Light gray text for readability */
-        padding: 20px;
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(
+            circle at 12% 18%,
+            rgba(56, 189, 248, 0.14),
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 88% 82%,
+            rgba(37, 99, 235, 0.16),
+            transparent 40%
+          ),
+          #0b1329;
+        color: #f8fafc;
+        padding: 24px;
+      }
+
+      .admin-container {
+        max-width: 1200px;
+        margin: 0 auto;
       }
 
       .header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: #242526; /* Slightly lighter dark shade for cards */
-        padding: 15px 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        border-radius: 8px;
+        flex-wrap: wrap;
+        gap: 14px;
+        background: rgba(19, 31, 55, 0.78);
+        backdrop-filter: blur(14px);
+        padding: 16px 22px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
       }
 
-      .header h2 {
+      .header-left h2 {
         margin: 0;
-        color: #e8e6e3;
+        font-size: 20px;
+        font-weight: 700;
+        color: #f8fafc;
       }
 
-      button {
-        padding: 8px 15px;
-        background-color: #dc3545;
-        color: white;
+      .header-left p {
+        margin: 3px 0 0;
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn {
+        padding: 8px 14px;
         border: none;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: pointer;
-        font-weight: bold;
-        transition: opacity 0.2s;
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition:
+          transform 0.15s,
+          opacity 0.15s,
+          box-shadow 0.15s;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+      .btn-back {
+        background: rgba(37, 99, 235, 0.2);
+        color: #60a5fa;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+      }
+      .btn-logout {
+        background: #ef4444;
+        color: #ffffff;
+      }
+      .btn-save {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #ffffff;
+        padding: 7px 14px;
+      }
+      .btn-save:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
       }
 
-      button:hover {
-        opacity: 0.8;
+      /* KPI Strip */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin: 18px 0;
+      }
+      .kpi-card {
+        background: rgba(19, 31, 55, 0.72);
+        border: 1px solid #233554;
+        border-radius: 12px;
+        padding: 14px 18px;
+      }
+      .kpi-card .kpi-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #94a3b8;
+        font-weight: 600;
+      }
+      .kpi-card .kpi-val {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 4px;
+        color: #38bdf8;
+      }
+
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .search-box {
+        flex: 1;
+        min-width: 240px;
+        max-width: 360px;
+        padding: 9px 14px;
+        border-radius: 8px;
+        border: 1px solid #233554;
+        background: #131f37;
+        color: #f8fafc;
+        font-size: 13px;
+        outline: none;
+      }
+      .search-box:focus {
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+      }
+      .filter-group {
+        display: flex;
+        gap: 10px;
+      }
+
+      select {
+        padding: 8px 12px;
+        background-color: #0f172a;
+        color: #f8fafc;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        outline: none;
+        cursor: pointer;
+      }
+      select:focus {
+        border-color: #38bdf8;
+      }
+
+      /* Table Card */
+      .table-card {
+        background: rgba(19, 31, 55, 0.85);
+        border: 1px solid #233554;
+        border-radius: 14px;
+        overflow-x: auto;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
       }
 
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 20px;
-        background: #242526;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        border-radius: 8px;
-        overflow: hidden;
+        font-size: 13px;
       }
-
       th,
       td {
-        padding: 12px;
-        border: 1px solid #3a3b3c; /* Subtle dark borders */
+        padding: 13px 16px;
+        border-bottom: 1px solid #1e293b;
         text-align: left;
+        vertical-align: middle;
       }
-
       th {
-        background-color: #3a3b3c;
-        color: #ffffff;
+        background-color: #0f172a;
+        color: #94a3b8;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      tbody tr:hover {
+        background: rgba(56, 189, 248, 0.06);
       }
 
-      select {
-        padding: 6px;
-        background-color: #181a1b;
-        color: #e8e6e3;
-        border: 1px solid #555;
-        border-radius: 4px;
-        outline: none;
+      .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
-
-      select:focus {
-        border-color: #007bff;
-      }
-
-      .btn-save {
-        background-color: #28a745;
-        margin-left: 10px;
+      .user-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0284c7, #2563eb);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+        flex-shrink: 0;
       }
 
       #errorMsg {
-        color: #ff6b6b !important; /* Brighter red for dark mode */
+        color: #f87171;
+        margin-bottom: 12px;
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      /* Toast */
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .toast {
+        padding: 11px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        background: rgba(15, 23, 42, 0.92);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        transform: translateX(120%);
+        transition:
+          transform 0.25s ease,
+          opacity 0.25s ease;
+        opacity: 0;
+      }
+      .toast.show {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      .toast.success {
+        border-left: 4px solid #10b981;
+      }
+      .toast.error {
+        border-left: 4px solid #ef4444;
       }
     </style>
   </head>
   <body>
-    <div class="header">
-      <h2>Timesheet Admin Panel (Super Admin)</h2>
-      <button onclick="logout()">Logout</button>
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div class="admin-container">
+      <div class="header">
+        <div class="header-left">
+          <h2>🛡️ Timesheet Admin Panel</h2>
+          <p>Super Admin User Access &amp; Role Management</p>
+        </div>
+        <div class="header-actions">
+          <a href="../Timesheet.html" class="btn btn-back"
+            >⬅ Back to Timesheet</a
+          >
+          <button class="btn btn-logout" onclick="logout()">🚪 Logout</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Users</div>
+          <div class="kpi-val" id="kpiTotal">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active</div>
+          <div class="kpi-val" id="kpiActive" style="color: #10b981">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Pending Approval</div>
+          <div class="kpi-val" id="kpiPending" style="color: #f59e0b">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Super Admins</div>
+          <div class="kpi-val" id="kpiAdmin" style="color: #a78bfa">0</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <input
+          type="text"
+          id="userSearch"
+          class="search-box"
+          placeholder="Search by username or email..."
+          oninput="renderFilteredUsers()"
+        />
+        <div class="filter-group">
+          <select id="filterRole" onchange="renderFilteredUsers()">
+            <option value="ALL">All Roles</option>
+            <option value="Viewer">Viewer</option>
+            <option value="Editor">Editor</option>
+            <option value="Super Admin">Super Admin</option>
+          </select>
+          <select id="filterStatus" onchange="renderFilteredUsers()">
+            <option value="ALL">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="errorMsg"></div>
+
+      <div class="table-card">
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th style="width: 60px">ID</th>
+              <th>User</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th style="width: 140px; text-align: center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody">
+            <tr>
+              <td
+                colspan="6"
+                style="text-align: center; color: #94a3b8; padding: 28px"
+              >
+                Loading users...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-
-    <div
-      id="errorMsg"
-      style="color: red; margin-top: 20px; font-weight: bold"
-    ></div>
-
-    <table id="usersTable">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="usersBody"></tbody>
-    </table>
 
     <script>
       const token = localStorage.getItem("timesheetToken");
       if (!token) {
-        window.location.href = "../index.html";
+        window.location.replace("../index.html");
+      }
+
+      let allUsersCache = [];
+
+      function escHtml(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function showToast(msg, type = "success") {
+        const c = document.getElementById("toastContainer");
+        const t = document.createElement("div");
+        t.className = `toast ${type}`;
+        t.textContent = msg;
+        c.appendChild(t);
+        requestAnimationFrame(() => t.classList.add("show"));
+        setTimeout(() => {
+          t.classList.remove("show");
+          setTimeout(() => t.remove(), 260);
+        }, 2800);
+      }
+
+      function updateKpis(users) {
+        document.getElementById("kpiTotal").textContent = users.length;
+        document.getElementById("kpiActive").textContent = users.filter(
+          (u) => u.status === "Active",
+        ).length;
+        document.getElementById("kpiPending").textContent = users.filter(
+          (u) => u.status === "Pending",
+        ).length;
+        document.getElementById("kpiAdmin").textContent = users.filter(
+          (u) => u.role === "Super Admin",
+        ).length;
+      }
+
+      function renderFilteredUsers() {
+        const q = document
+          .getElementById("userSearch")
+          .value.trim()
+          .toLowerCase();
+        const fRole = document.getElementById("filterRole").value;
+        const fStatus = document.getElementById("filterStatus").value;
+
+        const filtered = allUsersCache.filter((u) => {
+          const matchQ =
+            !q ||
+            (u.username || "").toLowerCase().includes(q) ||
+            (u.email || "").toLowerCase().includes(q);
+          const matchRole = fRole === "ALL" || u.role === fRole;
+          const matchStatus = fStatus === "ALL" || u.status === fStatus;
+          return matchQ && matchRole && matchStatus;
+        });
+
+        const tbody = document.getElementById("usersBody");
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 28px">No matching users found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered
+          .map((user) => {
+            const initial = escHtml(
+              (user.username || "U").charAt(0).toUpperCase(),
+            );
+            const statusColor =
+              user.status === "Active" ? "#10b981" : "#f59e0b";
+            return `
+              <tr>
+                <td style="color: #94a3b8; font-weight: 600">#${user.id}</td>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar">${initial}</div>
+                    <span style="font-weight: 600">${escHtml(user.username)}</span>
+                  </div>
+                </td>
+                <td style="color: #cbd5e1">${escHtml(user.email || "-")}</td>
+                <td>
+                  <select id="role_${user.id}">
+                    <option value="Viewer" ${user.role === "Viewer" ? "selected" : ""}>Viewer</option>
+                    <option value="Editor" ${user.role === "Editor" ? "selected" : ""}>Editor</option>
+                    <option value="Super Admin" ${user.role === "Super Admin" ? "selected" : ""}>Super Admin</option>
+                  </select>
+                </td>
+                <td>
+                  <select id="status_${user.id}" style="border-color: ${statusColor}; color: ${statusColor}">
+                    <option value="Pending" ${user.status === "Pending" ? "selected" : ""}>Pending</option>
+                    <option value="Active" ${user.status === "Active" ? "selected" : ""}>Active</option>
+                  </select>
+                </td>
+                <td style="text-align: center">
+                  <button class="btn btn-save" id="saveBtn_${user.id}" onclick="updateUser(${user.id})">💾 Save</button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
       }
 
       async function fetchUsers() {
@@ -126,6 +491,9 @@
           const res = await fetch("/timesheet/admin/users", {
             headers: { Authorization: "Bearer " + token },
           });
+          if (res.status === 401 || res.status === 403) {
+            return logout();
+          }
           const data = await res.json();
 
           if (!data.success) {
@@ -133,42 +501,23 @@
             return;
           }
 
-          const tbody = document.getElementById("usersBody");
-          tbody.innerHTML = "";
-          data.users.forEach((user) => {
-            tbody.innerHTML += `
-                    <tr>
-                        <td>${user.id}</td>
-                        <td>${user.username}</td>
-                        <td>${user.email}</td>
-                        <td>
-                            <select id="role_${user.id}">
-                                <option value="Viewer" ${user.role === "Viewer" ? "selected" : ""}>Viewer</option>
-                                <option value="Editor" ${user.role === "Editor" ? "selected" : ""}>Editor</option>
-                                <option value="Super Admin" ${user.role === "Super Admin" ? "selected" : ""}>Super Admin</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select id="status_${user.id}">
-                                <option value="Pending" ${user.status === "Pending" ? "selected" : ""}>Pending</option>
-                                <option value="Active" ${user.status === "Active" ? "selected" : ""}>Active</option>
-                            </select>
-                        </td>
-                        <td>
-                            <button class="btn-save" onclick="updateUser(${user.id})">Save Update</button>
-                        </td>
-                    </tr>
-                `;
-          });
+          allUsersCache = data.users || [];
+          updateKpis(allUsersCache);
+          renderFilteredUsers();
         } catch (err) {
           document.getElementById("errorMsg").innerText =
-            "Failed to fetch data.";
+            "Failed to fetch users.";
         }
       }
 
       async function updateUser(id) {
         const role = document.getElementById(`role_${id}`).value;
         const status = document.getElementById(`status_${id}`).value;
+        const btn = document.getElementById(`saveBtn_${id}`);
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Saving...";
+        }
 
         try {
           const res = await fetch("/timesheet/admin/update-user", {
@@ -181,13 +530,18 @@
           });
           const data = await res.json();
           if (data.success) {
-            alert("User Updated Successfully");
-            fetchUsers();
+            showToast("User Updated Successfully", "success");
+            await fetchUsers();
           } else {
-            alert("Error: " + data.message);
+            showToast(data.message || "Update failed", "error");
           }
         } catch (err) {
-          alert("Network Error");
+          showToast("Network Error", "error");
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = "💾 Save";
+          }
         }
       }
 
@@ -197,7 +551,6 @@
         window.location.href = "../index.html";
       }
 
-      // Load data on start
       fetchUsers();
     </script>
   </body>

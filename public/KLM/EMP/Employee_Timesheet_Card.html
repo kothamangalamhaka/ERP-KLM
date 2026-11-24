@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Log Report</title>
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="style/employee_timesheet_card.css" />
   </head>
 
@@ -90,42 +91,131 @@
     </div>
 
     <div class="controls-wrapper">
-      <div class="controls">
+      <div class="controls" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         <select id="empSelect">
           <option value="">Select Employee</option>
         </select>
-        <input type="date" id="dateFrom" />
-        <input type="date" id="dateTo" />
-        <button class="btn fetch-btn" onclick="fetchData()">Fetch Data</button>
+
+        <!-- Monthly / Custom Date Mode Toggle -->
+        <button
+          type="button"
+          id="dateModeToggleBtn"
+          onclick="toggleDateFilterMode()"
+          title="Switch between Month-wise and Custom Date Range"
+          style="background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 10px; font-size: 12.5px; font-weight: 600; cursor: pointer;"
+        >
+          📅 Monthly
+        </button>
+
+        <!-- Month-wise Selector (Default) -->
+        <div
+          id="monthPickerGroup"
+          style="display: inline-flex; align-items: center; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; background: #fff;"
+        >
+          <button
+            type="button"
+            onclick="shiftCardMonth(-1)"
+            style="background: #f8fafc; color: #475569; border: none; border-right: 1px solid #e2e8f0; padding: 7px 9px; cursor: pointer; font-weight: 700;"
+            title="Previous Month"
+          >
+            ◀
+          </button>
+          <select
+            id="cardMonthSel"
+            onchange="syncMonthToDates(true)"
+            style="border: none; border-right: 1px solid #e2e8f0; border-radius: 0; padding: 7px 8px; font-weight: 600; color: #1e293b; background: transparent;"
+          >
+            <option value="0">January</option>
+            <option value="1">February</option>
+            <option value="2">March</option>
+            <option value="3">April</option>
+            <option value="4">May</option>
+            <option value="5">June</option>
+            <option value="6">July</option>
+            <option value="7">August</option>
+            <option value="8">September</option>
+            <option value="9">October</option>
+            <option value="10">November</option>
+            <option value="11">December</option>
+          </select>
+          <input
+            type="number"
+            id="cardYearInp"
+            onchange="syncMonthToDates(true)"
+            onwheel="this.blur()"
+            style="width: 62px; border: none; border-right: 1px solid #e2e8f0; border-radius: 0; padding: 7px 4px; text-align: center; font-weight: 600; color: #1e293b; background: transparent;"
+          />
+          <button
+            type="button"
+            onclick="shiftCardMonth(1)"
+            style="background: #f8fafc; color: #475569; border: none; padding: 7px 9px; cursor: pointer; font-weight: 700;"
+            title="Next Month"
+          >
+            ▶
+          </button>
+        </div>
+
+        <!-- Custom Date Range Inputs (Hidden in Monthly mode) -->
+        <div id="customDateGroup" style="display: none; align-items: center; gap: 6px;">
+          <input type="date" id="dateFrom" />
+          <input type="date" id="dateTo" />
+        </div>
+
+        <button class="btn fetch-btn" onclick="fetchData()">🔍 Fetch</button>
       </div>
-      <div
-        style="
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          justify-content: center;
-        "
-      >
-       <button
-          class="btn go-back"
-          onclick="window.location.href = './staff_salary.html'"
-        >
-          Payroll
-        </button>
+
+      <div class="action-buttons-wrap">
         <button
-          class="btn go-back"
-          onclick="window.location.href = './office_staff_data.html'"
+          type="button"
+          class="mobile-menu-toggle"
+          onclick="document.getElementById('actionButtonsList').classList.toggle('open')"
+          title="Menu"
         >
-          Add New
+          ☰
         </button>
-        <button
-          id="editBtn"
-          class="btn edit-btn"
-          onclick="executeToggleEditMode()"
-        >
-          Edit
-        </button>
-        <button class="btn export-btn" onclick="exportToPNG()">Card</button>
+        <div id="actionButtonsList" class="action-buttons-list">
+          <button
+            class="btn go-back"
+            onclick="window.location.href = './staff_salary.html'"
+            title="Staff Payroll"
+          >
+            💰 Payroll
+          </button>
+          <button
+            class="btn go-back"
+            onclick="window.location.href = './office_staff_data.html'"
+            title="Add New Staff"
+          >
+            ➕ Add New
+          </button>
+          <button
+            id="editBtn"
+            class="btn edit-btn"
+            onclick="executeToggleEditMode()"
+          >
+            ✏️ Edit
+          </button>
+          <button class="btn export-btn" onclick="exportToPNG()" title="Download Card PNG">
+            🖼️ Card
+          </button>
+          <button
+            class="btn"
+            style="background: #0284c7;"
+            onclick="copyCardHQImage()"
+            title="Copy High-Quality Card Image"
+          >
+            📋 Copy
+          </button>
+          <button
+            class="btn"
+            id="btnAllStaffPdf"
+            style="background: #7c3aed;"
+            onclick="exportAllActiveStaffPDF()"
+            title="Export All Active Staff Cards as Multi-Page PDF"
+          >
+            📄 All PDF
+          </button>
+        </div>
       </div>
     </div>
 

@@ -28,6 +28,32 @@ function closeCustomAlert() {
   document.getElementById("customAlertModal").style.display = "none";
 }
 
+function showCardToast(message, isError = false) {
+  let container = document.getElementById("cardToastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "cardToastContainer";
+    container.style.cssText =
+      "position:fixed;bottom:20px;right:20px;z-index:11000;display:flex;flex-direction:column;gap:8px;pointer-events:none;";
+    document.body.appendChild(container);
+  }
+  const t = document.createElement("div");
+  t.textContent = message;
+  t.style.cssText = `padding:10px 16px;border-radius:8px;color:#fff;font-size:13px;font-weight:600;background:${
+    isError ? "#dc2626" : "#15803d"
+  };box-shadow:0 8px 20px rgba(0,0,0,0.22);transform:translateX(120%);transition:transform 0.25s ease,opacity 0.25s ease;opacity:0;`;
+  container.appendChild(t);
+  requestAnimationFrame(() => {
+    t.style.transform = "translateX(0)";
+    t.style.opacity = "1";
+  });
+  setTimeout(() => {
+    t.style.transform = "translateX(120%)";
+    t.style.opacity = "0";
+    setTimeout(() => t.remove(), 260);
+  }, 2600);
+}
+
 // Override default window.alert globally across the script
 window.alert = function (message) {
   showCustomAlert(message);
@@ -122,12 +148,26 @@ async function verifyPin() {
   }
 }
 
+let isMonthlyDateMode = true;
+let fetchGeneration = 0;
+let empFetchAbortController = null;
+
 function setDefaultDates() {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
+  const mSel = document.getElementById("cardMonthSel");
+  const yInp = document.getElementById("cardYearInp");
+  if (mSel) mSel.value = String(today.getMonth());
+  if (yInp) yInp.value = today.getFullYear();
+  syncMonthToDates(false);
+}
 
-  // Current Month First & Last Day
+function syncMonthToDates(autoFetch = false) {
+  const mSel = document.getElementById("cardMonthSel");
+  const yInp = document.getElementById("cardYearInp");
+  if (!mSel || !yInp) return;
+
+  const month = parseInt(mSel.value, 10);
+  const year = parseInt(yInp.value, 10) || new Date().getFullYear();
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
 
@@ -135,6 +175,47 @@ function setDefaultDates() {
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   document.getElementById("dateFrom").value = fmt(firstDay);
   document.getElementById("dateTo").value = fmt(lastDay);
+
+  if (autoFetch && document.getElementById("empSelect").value) {
+    fetchData();
+  }
+}
+
+function shiftCardMonth(delta) {
+  const mSel = document.getElementById("cardMonthSel");
+  const yInp = document.getElementById("cardYearInp");
+  if (!mSel || !yInp) return;
+
+  let m = parseInt(mSel.value, 10) + delta;
+  let y = parseInt(yInp.value, 10) || new Date().getFullYear();
+  if (m < 0) {
+    m = 11;
+    y -= 1;
+  } else if (m > 11) {
+    m = 0;
+    y += 1;
+  }
+  mSel.value = String(m);
+  yInp.value = y;
+  syncMonthToDates(true);
+}
+
+function toggleDateFilterMode() {
+  isMonthlyDateMode = !isMonthlyDateMode;
+  const btn = document.getElementById("dateModeToggleBtn");
+  const monthGroup = document.getElementById("monthPickerGroup");
+  const customGroup = document.getElementById("customDateGroup");
+
+  if (isMonthlyDateMode) {
+    btn.innerText = "📅 Monthly";
+    monthGroup.style.display = "inline-flex";
+    customGroup.style.display = "none";
+    syncMonthToDates(Boolean(document.getElementById("empSelect").value));
+  } else {
+    btn.innerText = "📆 Dates";
+    monthGroup.style.display = "none";
+    customGroup.style.display = "inline-flex";
+  }
 }
 
 function executeToggleEditMode() {
@@ -171,6 +252,17 @@ function executeToggleEditMode() {
 
     renderExpenses();
   }
+}
+
+function getNonFridayDaysInMonth(year, monthIndex) {
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  let count = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    if (new Date(year, monthIndex, day).getDay() !== 5) {
+      count++;
+    }
+  }
+  return count;
 }
 
 function getDatesInRange(startDate, endDate) {
@@ -221,6 +313,12 @@ async function fetchData() {
   if (!dateFrom || !dateTo) return alert("Please select both dates.");
   if (!token) return requestAccess(null);
 
+  if (empFetchAbortController) {
+    empFetchAbortController.abort();
+  }
+  empFetchAbortController = new AbortController();
+  const currentGen = ++fetchGeneration;
+
   document.getElementById("displayName").innerText = emp.name;
   document.getElementById("displayMobile").innerText =
     `Mob: ${emp.mobile || "-"}`;
@@ -255,22 +353,29 @@ async function fetchData() {
     `${new Date(dateFrom).toLocaleDateString("en-GB", fmt)} - ${new Date(dateTo).toLocaleDateString("en-GB", fmt)}`;
 
   try {
-    const res = await fetch(
-      `/api/employees/logs?empId=${empId}&from=${dateFrom}&to=${dateTo}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
+    const [res, expRes] = await Promise.all([
+      fetch(`/api/employees/logs?empId=${empId}&from=${dateFrom}&to=${dateTo}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: empFetchAbortController.signal,
+      }),
+      fetch(
+        `/api/employees/expenses?empId=${empId}&from=${dateFrom}&to=${dateTo}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: empFetchAbortController.signal,
+        },
+      ),
+    ]);
+    if (currentGen !== fetchGeneration) return;
     if (!res.ok) throw new Error("Fetch failed");
     const logs = await res.json();
 
-    const expRes = await fetch(
-      `/api/employees/expenses?empId=${empId}&from=${dateFrom}&to=${dateTo}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
     if (expRes.ok) {
       expensesData = await expRes.json();
     } else {
       expensesData = [];
     }
+    if (currentGen !== fetchGeneration) return;
 
     const logMap = {};
     logs.forEach((l) => {
@@ -303,7 +408,8 @@ async function fetchData() {
       const log = logMap[dateStrDB] || {};
 
       const isFriday = dayNameFull === "Friday";
-      const is31stDay = d.getDate() === 31;
+      const nonFriCount = getNonFridayDaysInMonth(d.getFullYear(), d.getMonth());
+      const is31stDay = d.getDate() === 31 && nonFriCount > 26;
       const isAllOvertime = isFriday || is31stDay;
 
       const rowCls = isFriday ? 'class="friday-row"' : "";
@@ -724,23 +830,33 @@ function updateSummary() {
     totalExpectedNormalHrs += sHr;
   });
 
-  let actualNormalForDeduction = totNormal;
-
-  if (totNormal > 260) {
-    totOT += totNormal - 260;
-    totNormal = 260;
-  }
-
   const empId = document.getElementById("empSelect").value;
   const emp = empDataMap[empId];
   if (!emp) return;
+
+  const dateFromVal = document.getElementById("dateFrom").value;
+  const refDate = dateFromVal ? new Date(dateFromVal + "T00:00:00") : new Date();
+  const nonFriDaysInMonth = getNonFridayDaysInMonth(
+    refDate.getFullYear(),
+    refDate.getMonth(),
+  );
+  const effectiveMonthDays = Math.min(nonFriDaysInMonth, 26);
 
   const baseSal =
     emp.current_effective_salary !== undefined
       ? emp.current_effective_salary
       : parseFloat(emp.base_salary) || 0;
   const empShiftHrPerDay = parseFloat(emp.shift_hours) || 10;
-  const rateHr = baseSal / (empShiftHrPerDay * 26);
+  const maxNormalCap = empShiftHrPerDay * effectiveMonthDays;
+
+  let actualNormalForDeduction = totNormal;
+  if (totNormal > maxNormalCap) {
+    totOT += totNormal - maxNormalCap;
+    totNormal = maxNormalCap;
+  }
+
+  const rateHr =
+    effectiveMonthDays > 0 ? baseSal / (empShiftHrPerDay * effectiveMonthDays) : 0;
 
   let baseEarned = actualNormalForDeduction * rateHr;
   let otEarned = totOT * rateHr;
@@ -787,8 +903,116 @@ function exportToPNG() {
   }, 100);
 }
 
+async function copyCardHQImage() {
+  const empId = document.getElementById("empSelect").value;
+  if (!empId) return alert("Please select an employee first.");
+
+  if (isEditMode) executeToggleEditMode();
+  const printArea = document.getElementById("printArea");
+
+  try {
+    const canvas = await html2canvas(printArea, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
+    canvas.toBlob(async (blob) => {
+      if (!blob) return alert("Failed to generate image.");
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob }),
+        ]);
+        showCardToast("✅ High-quality card image copied!");
+      } catch (clipErr) {
+        // Fallback: download HQ PNG if browser blocks clipboard on HTTP
+        const link = document.createElement("a");
+        link.download = `${(empDataMap[empId]?.name || "Staff").replace(/\s+/g, "_")}_HQ_Card.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showCardToast("Clipboard blocked; downloaded HQ image instead.");
+      }
+    }, "image/png");
+  } catch (err) {
+    showCardToast("Error copying image: " + err.message, true);
+  }
+}
+
+async function exportAllActiveStaffPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    return alert("jsPDF library not loaded!");
+  }
+  const activeEmps = Object.values(empDataMap).filter(
+    (e) => (e.status || "Active").toLowerCase() === "active",
+  );
+  if (activeEmps.length === 0) {
+    return alert("No active staff found.");
+  }
+
+  const btn = document.getElementById("btnAllStaffPdf");
+  const origText = btn ? btn.innerText : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "⏳ Generating...";
+  }
+
+  const prevEmpId = document.getElementById("empSelect").value;
+  if (isEditMode) executeToggleEditMode();
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const printArea = document.getElementById("printArea");
+
+    for (let i = 0; i < activeEmps.length; i++) {
+      const emp = activeEmps[i];
+      if (btn) btn.innerText = `⏳ ${i + 1}/${activeEmps.length}`;
+      document.getElementById("empSelect").value = emp.id;
+      await fetchData();
+      await new Promise((r) => setTimeout(r, 120));
+
+      const canvas = await html2canvas(printArea, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const margin = 6;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+      let imgW = maxW;
+      let imgH = (canvas.height * imgW) / canvas.width;
+      if (imgH > maxH) {
+        imgH = maxH;
+        imgW = (canvas.width * imgH) / canvas.height;
+      }
+      const x = (pageW - imgW) / 2;
+      if (i > 0) pdf.addPage();
+      pdf.addImage(imgData, "JPEG", x, margin, imgW, imgH);
+    }
+
+    const fromVal = document.getElementById("dateFrom").value || "Month";
+    pdf.save(`Active_Staff_Timesheet_Cards_${fromVal}.pdf`);
+    showCardToast(`✅ PDF generated for ${activeEmps.length} active staff!`);
+  } catch (err) {
+    showCardToast("PDF Export Error: " + err.message, true);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = origText;
+    }
+    if (prevEmpId) {
+      document.getElementById("empSelect").value = prevEmpId;
+      await fetchData();
+    }
+  }
+}
+
 document.getElementById("empSelect").addEventListener("change", () => {
-  // എഡിറ്റ് മോഡ് ഓൺ ആണെങ്കിൽ സേവിംഗ് ട്രിഗർ ചെയ്യാതെ നേരിട്ട് റദ്ദാക്കുക
+  if (document.activeElement && typeof document.activeElement.blur === "function") {
+    document.activeElement.blur();
+  }
   if (isEditMode) {
     isEditMode = false;
     const btn = document.getElementById("editBtn");
@@ -800,20 +1024,12 @@ document.getElementById("empSelect").addEventListener("change", () => {
     if (printArea) printArea.classList.remove("edit-mode-active");
   }
 
-  // പഴയ ആളുടെ ടേബിൾ വിവരങ്ങളും ഹെഡറുകളും ഉടൻ തന്നെ നീക്കം ചെയ്യുക
-  document.getElementById("tableBody").innerHTML = `
-    <tr>
-      <td colspan="13" style="padding: 20px; color: #666; text-align: center;">
-        Employee changed. Please click <strong>Fetch Data</strong> to view records.
-      </td>
-    </tr>`;
+  // Cancel any in-flight request from previous employee & clear old state immediately
+  if (empFetchAbortController) {
+    empFetchAbortController.abort();
+  }
+  fetchGeneration++;
 
-  // ഹെഡർ വിവരങ്ങൾ റീസെറ്റ് ചെയ്യുക
-  document.getElementById("displayName").innerText = "Select Employee & Fetch";
-  document.getElementById("displayMobile").innerText = "Mob: -";
-  document.getElementById("displayPeriod").innerText = "-";
-
-  // സമ്മറി & എക്സ്പെൻസസ് റീസെറ്റ് ചെയ്യുക
   expensesData = [];
   document.getElementById("expenseBody").innerHTML = "";
   document.getElementById("expenseSection").style.display = "none";
@@ -825,4 +1041,20 @@ document.getElementById("empSelect").addEventListener("change", () => {
   document.getElementById("otEarned").innerText = "0.00";
   document.getElementById("miscEarned").innerText = "0.00";
   document.getElementById("totalAmt").innerText = "0.00";
+
+  const selectedEmpId = document.getElementById("empSelect").value;
+  if (selectedEmpId) {
+    document.getElementById("tableBody").innerHTML = `
+      <tr>
+        <td colspan="13" style="padding: 20px; color: #666; text-align: center;">
+          Loading employee records...
+        </td>
+      </tr>`;
+    fetchData();
+  } else {
+    document.getElementById("tableBody").innerHTML = "";
+    document.getElementById("displayName").innerText = "Select Employee & Fetch";
+    document.getElementById("displayMobile").innerText = "Mob: -";
+    document.getElementById("displayPeriod").innerText = "-";
+  }
 });
