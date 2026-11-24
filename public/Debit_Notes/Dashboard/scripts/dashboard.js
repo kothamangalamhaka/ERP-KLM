@@ -130,7 +130,9 @@ function formatCombinedSite(site, company, customer) {
 function calculateKPIs() {
   let totalAmt = 0;
   let paidAmt = 0;
+  let setoffAmt = 0;
   let qcCount = 0;
+  let setoffCount = 0;
 
   records.forEach((r) => {
     // Total Amount sum
@@ -146,17 +148,32 @@ function calculateKPIs() {
         : "";
     const qc = parseFloat(qcRaw) || 0;
 
+    const isClosed =
+      String(r.status || "")
+        .trim()
+        .toLowerCase() === "closed";
+    const setoff = isClosed ? Math.max(0, tot - qc) : 0;
+
     totalAmt += tot;
     paidAmt += qc;
+    setoffAmt += setoff;
 
     if (qc > 0) {
       qcCount++;
     }
+    if (isClosed) {
+      setoffCount++;
+    }
   });
 
-  // Remaining = Total Amount - Paid Total (QC Entry sum)
-  const remainingAmt = Math.max(0, totalAmt - paidAmt);
+  // Remaining = Total Amount - Paid Total - Setoff Total
+  const remainingAmt = Math.max(0, totalAmt - paidAmt - setoffAmt);
   const remainingCount = records.filter((r) => {
+    const isClosed =
+      String(r.status || "")
+        .trim()
+        .toLowerCase() === "closed";
+    if (isClosed) return false;
     const tot =
       parseFloat(String(r.total_amount || "").replace(/,/g, "")) ||
       parseFloat(String(r.amount || "").replace(/,/g, "")) ||
@@ -180,7 +197,13 @@ function calculateKPIs() {
     `SAR ${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById("kpiPaidCount").innerText = `(${qcCount} Records)`;
 
-  // Total Amount - QC Entry sum REMAINING AMOUNT aayi kaanikkunnu
+  // Status Closed aayavayude balance SETOFF TOTAL aayi kaanikkunnu
+  document.getElementById("kpiSetoffAmount").innerText =
+    `SAR ${setoffAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("kpiSetoffCount").innerText =
+    `(${setoffCount} Records)`;
+
+  // Total Amount - Paid - Setoff REMAINING AMOUNT aayi kaanikkunnu
   document.getElementById("kpiPendingAmount").innerText =
     `SAR ${remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById("kpiPendingCount").innerText =
@@ -198,6 +221,7 @@ function groupDataByOwner() {
       groupedOwners[owner] = {
         totalAmount: 0,
         paidAmount: 0,
+        setoffAmount: 0,
         pendingAmount: 0,
         items: [],
       };
@@ -213,12 +237,20 @@ function groupDataByOwner() {
           .replace(/,/g, "")
           .trim(),
       ) || 0;
+    const isClosed =
+      String(r.status || "")
+        .trim()
+        .toLowerCase() === "closed";
+    const setoff = isClosed ? Math.max(0, tot - qc) : 0;
 
     groupedOwners[owner].totalAmount += tot;
     groupedOwners[owner].paidAmount += qc;
+    groupedOwners[owner].setoffAmount += setoff;
     groupedOwners[owner].pendingAmount = Math.max(
       0,
-      groupedOwners[owner].totalAmount - groupedOwners[owner].paidAmount,
+      groupedOwners[owner].totalAmount -
+        groupedOwners[owner].paidAmount -
+        groupedOwners[owner].setoffAmount,
     );
 
     groupedOwners[owner].items.push(r);
@@ -321,6 +353,7 @@ function renderOwnerTableRows() {
   let visibleCount = 0;
   let ownerTotal = 0;
   let ownerPaid = 0;
+  let ownerSetoff = 0;
   let ownerPending = 0;
 
   ownerData.items.forEach((item) => {
@@ -373,8 +406,15 @@ function renderOwnerTableRows() {
           .trim(),
       ) || 0;
 
+    const isClosed =
+      String(item.status || "")
+        .trim()
+        .toLowerCase() === "closed";
+    const setoffVal = isClosed ? Math.max(0, tot - paidVal) : 0;
+
     ownerTotal += tot;
     ownerPaid += paidVal;
+    ownerSetoff += setoffVal;
 
     const isPaid =
       String(item.status || "")
@@ -405,7 +445,7 @@ function renderOwnerTableRows() {
     tbody.appendChild(tr);
   });
 
-  ownerPending = Math.max(0, ownerTotal - ownerPaid);
+  ownerPending = Math.max(0, ownerTotal - ownerPaid - ownerSetoff);
 
   if (visibleCount === 0) {
     tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: #64748b; padding: 25px;">No records match your filter/search.</td></tr>`;
@@ -417,6 +457,8 @@ function renderOwnerTableRows() {
     `SAR ${ownerTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById("btmPaidAmt").innerText =
     `SAR ${ownerPaid.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("btmSetoffAmt").innerText =
+    `SAR ${ownerSetoff.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById("btmPendingAmt").innerText =
     `SAR ${ownerPending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
