@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin — User Verification</title>
+    <script>
+      (function () {
+        const saved =
+          localStorage.getItem("theme") ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+        document.documentElement.setAttribute("data-theme", saved);
+      })();
+    </script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --table-header-bg: #0f172a;
+        --table-header-color: #ffffff;
+      }
+      [data-theme="dark"] {
+        --bg: #0b1329;
+        --surface: #131f37;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: #233554;
+        --table-header-bg: #080d1a;
+        --table-header-color: #f8fafc;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        margin: 0;
+        padding: 16px 20px;
+      }
+      .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .table-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        background: var(--table-header-bg);
+        color: var(--table-header-color);
+        padding: 10px;
+        border: 1px solid var(--border);
+        text-align: center;
+      }
+      td {
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        color: var(--text);
+        vertical-align: middle;
+      }
+      .theme-toggle-btn {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        height: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header-bar">
+      <h5 class="m-0 fw-bold">
+        <i class="fa-solid fa-user-shield me-2 text-warning"></i>User Access Verification
+      </h5>
+      <div class="d-flex align-items-center gap-2">
+        <a
+          href="/Office/Customers_Docs/Mubarak/vat_customers.html"
+          class="btn btn-primary btn-sm"
+        >
+          <i class="fa-solid fa-arrow-left me-1"></i> Back to VAT Verification
+        </a>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Role</th>
+            <th>Verified Status</th>
+            <th>Created At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="usersBody">
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">Loading users...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      const API_BASE = "/py/mubarak-vat-customers";
+      const TOKEN_KEY = "mubarak_vat_token";
+      let me = null;
+
+      function getToken() {
+        return localStorage.getItem(TOKEN_KEY) || "";
+      }
+
+      function updateThemeIcon() {
+        const current = document.documentElement.getAttribute("data-theme") || "light";
+        document.getElementById("themeIcon").className =
+          current === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon";
+      }
+
+      function toggleTheme() {
+        const current = document.documentElement.getAttribute("data-theme") || "light";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+        updateThemeIcon();
+      }
+
+      function escapeHtml(s) {
+        return String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      async function loadUsers() {
+        const token = getToken();
+        if (!token) {
+          window.location.href = "/Office/Customers_Docs/Mubarak/vat_customers.html";
+          return;
+        }
+        try {
+          const meRes = await fetch(
+            `${API_BASE}/auth/me?token=${encodeURIComponent(token)}`
+          );
+          if (!meRes.ok) throw new Error("Unauthorized");
+          me = (await meRes.json()).user;
+          if (me.role !== "admin" && me.role !== "super_admin") {
+            alert("Admin access required");
+            window.location.href = "/Office/Customers_Docs/Mubarak/vat_customers.html";
+            return;
+          }
+
+          const res = await fetch(
+            `${API_BASE}/admin/users?token=${encodeURIComponent(token)}`
+          );
+          const data = await res.json();
+          const users = data.users || [];
+
+          document.getElementById("usersBody").innerHTML = users
+            .map((u) => {
+              const isSuper = u.role === "super_admin";
+              const statusText = u.is_verified
+                ? '<span class="text-success fw-bold">Verified</span>'
+                : '<span class="text-danger fw-bold">Pending</span>';
+
+              const verifyBtn = isSuper
+                ? '<span class="text-muted small">Protected</span>'
+                : u.is_verified
+                  ? `<button class="btn btn-outline-danger btn-sm" onclick="setVerify(${u.id}, false)">Revoke</button>`
+                  : `<button class="btn btn-success btn-sm" onclick="setVerify(${u.id}, true)">Verify</button>`;
+
+              const roleBtn =
+                me.role === "super_admin" && !isSuper
+                  ? u.role === "admin"
+                    ? `<button class="btn btn-outline-secondary btn-sm ms-1" onclick="setRole(${u.id}, 'user')">Make User</button>`
+                    : `<button class="btn btn-outline-warning btn-sm ms-1" onclick="setRole(${u.id}, 'admin')">Make Admin</button>`
+                  : "";
+
+              return `
+                <tr>
+                  <td class="text-center">${u.id}</td>
+                  <td class="fw-semibold">${escapeHtml(u.username)}</td>
+                  <td>${escapeHtml(u.full_name)}</td>
+                  <td class="text-center fw-semibold">${escapeHtml(u.role)}</td>
+                  <td class="text-center">${statusText}</td>
+                  <td class="text-center">${escapeHtml(u.created_at)}</td>
+                  <td class="text-center">${verifyBtn}${roleBtn}</td>
+                </tr>
+              `;
+            })
+            .join("");
+        } catch (err) {
+          document.getElementById("usersBody").innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">${escapeHtml(err.message)}</td></tr>`;
+        }
+      }
+
+      async function setVerify(userId, isVerified) {
+        const res = await fetch(
+          `${API_BASE}/admin/verify-user?token=${encodeURIComponent(getToken())}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId, is_verified: isVerified }),
+          }
+        );
+        if (res.ok) loadUsers();
+      }
+
+      async function setRole(userId, role) {
+        const res = await fetch(
+          `${API_BASE}/admin/update-role?token=${encodeURIComponent(getToken())}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId, role }),
+          }
+        );
+        if (res.ok) loadUsers();
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        updateThemeIcon();
+        loadUsers();
+      });
+    </script>
+  </body>
+</html>

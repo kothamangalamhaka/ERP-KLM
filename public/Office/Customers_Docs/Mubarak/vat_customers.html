@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VAT Customers Verification</title>
+    <script>
+      (function () {
+        const saved =
+          localStorage.getItem("theme") ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+        document.documentElement.setAttribute("data-theme", saved);
+      })();
+    </script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        --table-header-bg: #0f172a;
+        --table-header-color: #ffffff;
+        --row-verified-bg: #fef9c3;
+        --row-verified-hover: #fef08a;
+        --row-hover: #f1f5f9;
+      }
+      [data-theme="dark"] {
+        --bg: #0b1329;
+        --surface: #131f37;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: #233554;
+        --primary: #3b82f6;
+        --primary-hover: #60a5fa;
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        --table-header-bg: #080d1a;
+        --table-header-color: #f8fafc;
+        --row-verified-bg: rgba(250, 204, 21, 0.22);
+        --row-verified-hover: rgba(250, 204, 21, 0.30);
+        --row-hover: rgba(255, 255, 255, 0.04);
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        margin: 0;
+        padding: 12px 18px;
+        min-height: 100vh;
+      }
+
+      .header-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+      }
+      .header-bar h5 {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        margin: 0;
+      }
+
+      .ribbon-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .period-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 2px 8px;
+        height: 32px;
+        font-size: 12px;
+      }
+      .period-group label {
+        color: var(--text-muted);
+        font-weight: 600;
+        margin: 0;
+        white-space: nowrap;
+      }
+      .period-group input[type="date"] {
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 600;
+        outline: none;
+        color-scheme: light dark;
+      }
+
+      .header-btn {
+        padding: 4px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-weight: 600;
+      }
+
+      .theme-toggle-btn {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 4px 10px;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .kpi-strip {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .kpi-pill {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        box-shadow: var(--card-shadow);
+      }
+      .kpi-pill span {
+        font-weight: 700;
+        margin-left: 4px;
+      }
+
+      .table-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+      }
+      .table-responsive {
+        max-height: calc(100vh - 155px);
+        overflow: auto;
+      }
+
+      table.vat-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+        margin: 0;
+      }
+      table.vat-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--table-header-bg);
+        color: var(--table-header-color);
+        font-weight: 600;
+        text-align: center;
+        padding: 9px 10px;
+        border: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      table.vat-table tbody td {
+        padding: 7px 9px;
+        border: 1px solid var(--border);
+        vertical-align: middle;
+        color: var(--text);
+      }
+      table.vat-table tbody tr:hover td {
+        background-color: var(--row-hover);
+      }
+      table.vat-table tbody td.cell-verified {
+        background-color: var(--row-verified-bg) !important;
+      }
+      table.vat-table tbody tr:hover td.cell-verified {
+        background-color: var(--row-verified-hover) !important;
+      }
+      table.vat-table tbody td.merged-vendor-cell {
+        background-color: var(--surface) !important;
+        vertical-align: middle;
+      }
+
+      .status-text-active {
+        color: #16a34a;
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .status-text-released {
+        color: #dc2626;
+        font-weight: 700;
+        font-size: 12px;
+      }
+      [data-theme="dark"] .status-text-active {
+        color: #4ade80;
+      }
+      [data-theme="dark"] .status-text-released {
+        color: #f87171;
+      }
+
+      .audit-box {
+        max-height: 64px;
+        overflow-y: auto;
+        font-size: 11px;
+        line-height: 1.35;
+        min-width: 220px;
+        color: var(--text-muted);
+      }
+      .audit-item {
+        padding: 2px 0;
+        border-bottom: 1px dashed var(--border);
+      }
+      .audit-item:last-child {
+        border-bottom: none;
+      }
+      .audit-item strong {
+        color: var(--text);
+      }
+
+      /* Glassmorphism Auth Overlay */
+      .auth-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.25), transparent 55%),
+          radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.2), transparent 55%),
+          var(--bg);
+      }
+      .auth-glass-card {
+        width: 100%;
+        max-width: 400px;
+        padding: 26px 24px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.16);
+      }
+      [data-theme="dark"] .auth-glass-card {
+        background: rgba(19, 31, 55, 0.72);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+      }
+      .auth-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .auth-tab-btn {
+        flex: 1;
+        padding: 7px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .auth-tab-btn.active {
+        background: var(--primary);
+        color: #ffffff;
+        border-color: var(--primary);
+      }
+
+      .final-status-select {
+        min-width: 105px;
+        height: 28px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+
+      .notes-textarea {
+        width: 100%;
+        min-width: 210px;
+        min-height: 32px;
+        resize: vertical;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      .save-toast {
+        position: fixed;
+        bottom: 16px;
+        right: 18px;
+        padding: 7px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #0f172a;
+        color: #ffffff;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+        display: none;
+        z-index: 9999;
+      }
+
+      th.filterable-th {
+        cursor: context-menu;
+        user-select: none;
+      }
+      th.filter-active::after {
+        content: " ⏷";
+        color: #facc15;
+        font-size: 11px;
+      }
+
+      .filter-popover,
+      .doc-ctx-menu {
+        position: fixed;
+        z-index: 9500;
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+        display: none;
+      }
+      .filter-popover {
+        width: 265px;
+        padding: 10px;
+        font-size: 12px;
+      }
+      .filter-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px;
+        margin: 8px 0;
+        background: var(--bg);
+      }
+      .tree-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 0;
+      }
+      .tree-toggle {
+        cursor: pointer;
+        width: 14px;
+        display: inline-block;
+        text-align: center;
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .tree-children {
+        padding-left: 16px;
+      }
+
+      .doc-badge {
+        display: inline-block;
+        padding: 2px 4px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        user-select: none;
+        background: transparent;
+        border: none;
+      }
+      .doc-uploaded {
+        color: #16a34a;
+      }
+      .doc-pending {
+        color: #dc2626;
+      }
+      [data-theme="dark"] .doc-uploaded {
+        color: #4ade80;
+      }
+      [data-theme="dark"] .doc-pending {
+        color: #f87171;
+      }
+
+      .doc-ctx-menu {
+        min-width: 145px;
+        padding: 4px;
+      }
+      .doc-ctx-item {
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .doc-ctx-item:hover {
+        background: var(--row-hover);
+      }
+
+      .doc-preview-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 9600;
+        background: rgba(15, 23, 42, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .doc-preview-box {
+        width: 90%;
+        max-width: 820px;
+        height: 82vh;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Glassmorphism Auth Screen -->
+    <div id="authOverlay" class="auth-overlay" style="display: none;">
+      <div class="auth-glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="m-0 fw-bold">
+            <i class="fa-solid fa-shield-halved me-2 text-primary"></i>VAT Verification
+          </h5>
+          <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+            <i class="fa-solid fa-moon theme-icon-sync"></i>
+          </button>
+        </div>
+
+        <div class="auth-tabs">
+          <button type="button" id="tabLoginBtn" class="auth-tab-btn active" onclick="switchAuthTab('login')">Login</button>
+          <button type="button" id="tabSignupBtn" class="auth-tab-btn" onclick="switchAuthTab('signup')">Signup</button>
+        </div>
+
+        <div id="authMsg" class="alert py-2 px-3 small" style="display: none;"></div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="mb-2">
+            <label class="form-label small fw-semibold mb-1">Username</label>
+            <input type="text" id="loginUsername" class="form-control form-control-sm" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold mb-1">Password</label>
+            <input type="password" id="loginPassword" class="form-control form-control-sm" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold py-2">Login</button>
+        </form>
+
+        <form id="signupForm" onsubmit="handleSignup(event)" style="display: none;">
+          <div class="mb-2">
+            <label class="form-label small fw-semibold mb-1">Username</label>
+            <input type="text" id="signupUsername" class="form-control form-control-sm" required />
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold mb-1">Full Name</label>
+            <input type="text" id="signupFullName" class="form-control form-control-sm" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold mb-1">Password</label>
+            <input type="password" id="signupPassword" class="form-control form-control-sm" required />
+          </div>
+          <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold py-2">Create Account</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="mainApp" style="display: none;">
+    <div class="header-bar">
+      <h5>
+        <i class="fa-solid fa-clipboard-check me-2 text-primary"></i>VAT
+        Customers Verification
+      </h5>
+
+      <div class="ribbon-controls">
+        <div class="period-group">
+          <label for="startPeriod">Start:</label>
+          <input type="date" id="startPeriod" value="2025-06-01" />
+        </div>
+        <div class="period-group">
+          <label for="endPeriod">End:</label>
+          <input type="date" id="endPeriod" />
+        </div>
+        <button
+          class="btn btn-primary header-btn"
+          onclick="loadRecords()"
+          title="Apply Period"
+        >
+          <i class="fa-solid fa-filter"></i> Apply
+        </button>
+
+        <div class="position-relative">
+          <input
+            type="text"
+            id="ribbonSearch"
+            class="form-control form-control-sm"
+            placeholder="Search vendor, code, VAT, CR..."
+            style="
+              width: 220px;
+              height: 32px;
+              font-size: 12px;
+              padding-left: 28px;
+              background: var(--surface);
+              color: var(--text);
+              border-color: var(--border);
+            "
+            oninput="renderTable()"
+          />
+          <i
+            class="fa-solid fa-magnifying-glass position-absolute"
+            style="left: 9px; top: 9px; font-size: 12px; color: var(--text-muted);"
+          ></i>
+        </div>
+
+        <button
+          id="viewToggleBtn"
+          class="btn btn-outline-primary header-btn"
+          onclick="toggleViewMode()"
+          title="Switch Compact / Detailed View"
+        >
+          <i class="fa-solid fa-table-columns"></i> Detailed View
+        </button>
+
+        <button
+          class="btn btn-success header-btn"
+          onclick="exportExcel()"
+          title="Export to Excel"
+        >
+          <i class="fa-solid fa-file-excel"></i> Export Excel
+        </button>
+
+        <a
+          id="adminNavBtn"
+          href="/Office/Customers_Docs/Mubarak/admin.html"
+          class="btn btn-warning header-btn"
+          style="display: none; text-decoration: none;"
+          title="Admin Verification Panel"
+        >
+          <i class="fa-solid fa-user-shield"></i> Admin
+        </a>
+
+        <button
+          class="theme-toggle-btn"
+          id="themeToggleBtn"
+          onclick="toggleTheme()"
+          title="Toggle Dark / Light Theme"
+        >
+          <i class="fa-solid fa-moon theme-icon-sync" id="themeIcon"></i>
+        </button>
+
+        <button
+          class="btn btn-outline-danger header-btn"
+          onclick="logoutUser()"
+          title="Logout"
+        >
+          <i class="fa-solid fa-right-from-bracket"></i> <span id="loggedUserLabel">Logout</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi-pill">
+        Total Active in Period: <span id="kpiTotal">0</span>
+      </div>
+      <div class="kpi-pill">
+        Verified: <span id="kpiVerified" class="text-warning">0</span>
+      </div>
+      <div class="kpi-pill">
+        Pending: <span id="kpiPending" class="text-secondary">0</span>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-responsive">
+        <table class="vat-table">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="13" class="text-center py-4 text-muted">
+                Loading records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    </div>
+
+    <div id="saveToast" class="save-toast">Saved</div>
+
+    <!-- Header Right-Click Filter Popover -->
+    <div id="filterPopover" class="filter-popover">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong id="filterTitle">Filter</strong>
+        <button class="btn-close btn-sm" onclick="closeFilterPopover()"></button>
+      </div>
+      <input
+        type="text"
+        id="filterSearchInput"
+        class="form-control form-control-sm mb-1"
+        placeholder="Search..."
+        oninput="filterPopoverSearch(this.value)"
+      />
+      <div class="form-check small mt-1">
+        <input class="form-check-input" type="checkbox" id="filterSelectAll" onchange="toggleFilterSelectAll(this.checked)" />
+        <label class="form-check-label fw-semibold" for="filterSelectAll">(Select All)</label>
+      </div>
+      <div id="filterList" class="filter-list"></div>
+      <div class="d-flex justify-content-end gap-2">
+        <button class="btn btn-outline-secondary btn-sm" onclick="clearColumnFilter()">Clear</button>
+        <button class="btn btn-primary btn-sm" onclick="applyColumnFilter()">Apply</button>
+      </div>
+    </div>
+
+    <!-- Document Right-Click Context Menu -->
+    <div id="docCtxMenu" class="doc-ctx-menu"></div>
+    <input type="file" id="docFileInput" accept=".png,.jpg,.jpeg,.pdf" style="display: none;" onchange="handleDocFileSelected(event)" />
+
+    <!-- Document Preview Modal -->
+    <div id="docPreviewModal" class="doc-preview-backdrop" onclick="if(event.target===this) closeDocPreview()">
+      <div class="doc-preview-box">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+          <strong id="docPreviewTitle" class="small">Document Preview</strong>
+          <div class="d-flex gap-2 align-items-center">
+            <a id="docPreviewDownload" href="#" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:11px;">Open Tab</a>
+            <button class="btn-close btn-sm" onclick="closeDocPreview()"></button>
+          </div>
+        </div>
+        <div id="docPreviewBody" class="flex-grow-1 d-flex align-items-center justify-content-center p-2" style="overflow:auto;"></div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "/py/mubarak-vat-customers";
+      const TOKEN_KEY = "mubarak_vat_token";
+      let allRecords = [];
+      let currentUser = null;
+      let viewMode = "compact"; // "compact" | "detailed"
+      const activeColFilters = {}; // colKey -> Set of allowed values
+      let currentFilterCol = null;
+      let pendingDocAction = null;
+      const noteTimers = {};
+
+      const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      function getToken() {
+        return localStorage.getItem(TOKEN_KEY) || "";
+      }
+
+      function authHeaders() {
+        return {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        };
+      }
+
+      function updateThemeIcon() {
+        const current = document.documentElement.getAttribute("data-theme") || "light";
+        document.querySelectorAll(".theme-icon-sync").forEach((icon) => {
+          icon.className = `fa-solid ${current === "dark" ? "fa-sun" : "fa-moon"} theme-icon-sync`;
+        });
+      }
+
+      function switchAuthTab(tab) {
+        const isLogin = tab === "login";
+        document.getElementById("tabLoginBtn").classList.toggle("active", isLogin);
+        document.getElementById("tabSignupBtn").classList.toggle("active", !isLogin);
+        document.getElementById("loginForm").style.display = isLogin ? "block" : "none";
+        document.getElementById("signupForm").style.display = isLogin ? "none" : "block";
+        document.getElementById("authMsg").style.display = "none";
+      }
+
+      function showAuthMsg(msg, isSuccess = false) {
+        const el = document.getElementById("authMsg");
+        el.className = `alert py-2 px-3 small ${isSuccess ? "alert-success" : "alert-danger"}`;
+        el.textContent = msg;
+        el.style.display = "block";
+      }
+
+      async function handleLogin(e) {
+        e.preventDefault();
+        try {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: document.getElementById("loginUsername").value,
+              password: document.getElementById("loginPassword").value,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Login failed");
+          localStorage.setItem(TOKEN_KEY, data.token);
+          await initSession();
+        } catch (err) {
+          showAuthMsg(err.message);
+        }
+      }
+
+      async function handleSignup(e) {
+        e.preventDefault();
+        try {
+          const res = await fetch(`${API_BASE}/auth/signup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: document.getElementById("signupUsername").value,
+              full_name: document.getElementById("signupFullName").value,
+              password: document.getElementById("signupPassword").value,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Signup failed");
+          showAuthMsg(data.message || "Signup successful. Waiting for Admin verification.", true);
+          document.getElementById("signupForm").reset();
+        } catch (err) {
+          showAuthMsg(err.message);
+        }
+      }
+
+      function logoutUser() {
+        localStorage.removeItem(TOKEN_KEY);
+        currentUser = null;
+        document.getElementById("mainApp").style.display = "none";
+        document.getElementById("authOverlay").style.display = "flex";
+      }
+
+      async function initSession() {
+        const token = getToken();
+        if (!token) {
+          logoutUser();
+          return;
+        }
+        try {
+          const res = await fetch(
+            `${API_BASE}/auth/me?token=${encodeURIComponent(token)}`
+          );
+          if (!res.ok) {
+            logoutUser();
+            return;
+          }
+          const data = await res.json();
+          currentUser = data.user;
+          document.getElementById("authOverlay").style.display = "none";
+          document.getElementById("mainApp").style.display = "block";
+          document.getElementById("loggedUserLabel").textContent = currentUser.username;
+          document.getElementById("adminNavBtn").style.display =
+            currentUser.role === "admin" || currentUser.role === "super_admin"
+              ? "inline-flex"
+              : "none";
+          loadRecords();
+        } catch {
+          logoutUser();
+        }
+      }
+
+      function toggleTheme() {
+        const current = document.documentElement.getAttribute("data-theme") || "light";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+        updateThemeIcon();
+      }
+
+      function showToast(msg, isError = false) {
+        const el = document.getElementById("saveToast");
+        el.textContent = msg;
+        el.style.background = isError ? "#dc2626" : "#0f172a";
+        el.style.display = "block";
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(() => {
+          el.style.display = "none";
+        }, 1800);
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      async function loadRecords() {
+        const startDate = document.getElementById("startPeriod").value || "2025-06-01";
+        const endDate =
+          document.getElementById("endPeriod").value ||
+          new Date().toISOString().slice(0, 10);
+
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML =
+          '<tr><td colspan="13" class="text-center py-4 text-muted">Loading records...</td></tr>';
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/records?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&token=${encodeURIComponent(getToken())}`
+          );
+          if (res.status === 401 || res.status === 403) {
+            logoutUser();
+            return;
+          }
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Failed to load records");
+          }
+          allRecords = data.records || [];
+          renderTable();
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="13" class="text-center py-4 text-danger">${escapeHtml(err.message)}</td></tr>`;
+        }
+      }
+
+      function getColVal(r, colKey) {
+        if (colKey === "customer_code") return r.customer_code || "-";
+        if (colKey === "customer_name") return r.customer_name || "-";
+        if (colKey === "vat_no") return r.vat_no || "-";
+        if (colKey === "cr_no") return r.cr_no || "-";
+        if (colKey === "site") return r.site || "-";
+        if (colKey === "company") return r.company || "-";
+        if (colKey === "start_period") return r.start_period || "-";
+        if (colKey === "end_period") return r.end_period || "Running";
+        if (colKey === "status") return r.status || "-";
+        if (colKey === "final_status") return r.final_status || "Pending";
+        if (colKey === "notes") return r.notes || "-";
+        if (["agreement_doc", "rfq_doc", "po_doc", "conf_letter_doc", "last_doc"].includes(colKey)) {
+          return r[colKey] ? "Uploaded" : "Pending";
+        }
+        return "";
+      }
+
+      function getFilteredRecords() {
+        const q = (document.getElementById("ribbonSearch").value || "")
+          .trim()
+          .toLowerCase();
+        return allRecords.filter((r) => {
+          if (q) {
+            const hay = [
+              r.customer_code,
+              r.customer_name,
+              r.vat_no,
+              r.cr_no,
+              r.site,
+              r.company,
+              r.status,
+              r.final_status,
+              r.notes,
+            ]
+              .join(" ")
+              .toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          for (const [colKey, allowedSet] of Object.entries(activeColFilters)) {
+            if (allowedSet && !allowedSet.has(getColVal(r, colKey))) {
+              return false;
+            }
+          }
+          return true;
+        });
+      }
+
+      function toggleViewMode() {
+        viewMode = viewMode === "compact" ? "detailed" : "compact";
+        const btn = document.getElementById("viewToggleBtn");
+        btn.innerHTML =
+          viewMode === "detailed"
+            ? '<i class="fa-solid fa-compress"></i> Compact View'
+            : '<i class="fa-solid fa-table-columns"></i> Detailed View';
+        renderTable();
+      }
+
+      function renderTableHead() {
+        const cols = [
+          { key: null, label: "SN" },
+          { key: "customer_code", label: "Vendor Code" },
+          { key: "customer_name", label: "Vendor Name" },
+          { key: "vat_no", label: "VAT No" },
+          { key: "cr_no", label: "CR No" },
+          { key: "site", label: "Site Name" },
+          { key: "company", label: "Company" },
+          { key: "start_period", label: "Start Period" },
+          { key: "end_period", label: "End Period" },
+          { key: "status", label: "Status" },
+        ];
+        if (viewMode === "detailed") {
+          cols.push(
+            { key: "agreement_doc", label: "Agath" },
+            { key: "rfq_doc", label: "RFQ" },
+            { key: "po_doc", label: "PO" },
+            { key: "conf_letter_doc", label: "VAT Conf" },
+            { key: "last_doc", label: "Final Conf" }
+          );
+        }
+        cols.push(
+          { key: "final_status", label: "Final Status" },
+          { key: "notes", label: "Notes" },
+          { key: null, label: "Audit Trail" }
+        );
+
+        document.getElementById("tableHead").innerHTML = `<tr>${cols
+          .map((c) => {
+            if (!c.key) return `<th>${c.label}</th>`;
+            const activeCls = activeColFilters[c.key] ? "filter-active" : "";
+            return `<th class="filterable-th ${activeCls}" oncontextmenu="openHeaderFilter(event, '${c.key}', '${c.label}')" title="Right-click to filter">${c.label}</th>`;
+          })
+          .join("")}</tr>`;
+        return cols.length;
+      }
+
+      function updateKPIs(rows) {
+        const verified = rows.filter((r) => r.final_status === "Verified").length;
+        document.getElementById("kpiTotal").textContent = rows.length;
+        document.getElementById("kpiVerified").textContent = verified;
+        document.getElementById("kpiPending").textContent = rows.length - verified;
+      }
+
+      function renderTable() {
+        const colCount = renderTableHead();
+        const rows = getFilteredRecords();
+        updateKPIs(rows);
+
+        const tbody = document.getElementById("tableBody");
+        if (!rows.length) {
+          tbody.innerHTML =
+            `<tr><td colspan="${colCount}" class="text-center py-4 text-muted">No active records found in this period.</td></tr>`;
+          return;
+        }
+
+        // Group consecutive rows by vendor name for rowspan merging
+        const spanMap = {};
+        let i = 0;
+        let vendorSn = 0;
+        while (i < rows.length) {
+          const key = (rows[i].customer_name || "").trim().toLowerCase();
+          let j = i + 1;
+          while (j < rows.length && (rows[j].customer_name || "").trim().toLowerCase() === key) {
+            j++;
+          }
+          vendorSn++;
+          spanMap[i] = { span: j - i, sn: vendorSn };
+          i = j;
+        }
+
+        tbody.innerHTML = rows
+          .map((r, idx) => {
+            const isVerified = r.final_status === "Verified";
+            const vClass = isVerified ? "site-cell cell-verified" : "site-cell";
+            const statusClass =
+              String(r.status).toLowerCase() === "released"
+                ? "status-text-released"
+                : "status-text-active";
+            const auditHtml = (r.audit_trail || []).length
+              ? r.audit_trail
+                  .map(
+                    (a) =>
+                      `<div class="audit-item"><strong>${escapeHtml(a.created_at)}</strong> (${escapeHtml(a.changed_by)}): ${escapeHtml(a.action_summary)}</div>`
+                  )
+                  .join("")
+              : '<span class="text-muted">-</span>';
+
+            const groupInfo = spanMap[idx];
+            const vendorCells = groupInfo
+              ? `
+                <td class="text-center fw-semibold merged-vendor-cell" rowspan="${groupInfo.span}">${groupInfo.sn}</td>
+                <td class="text-center fw-semibold merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.customer_code || "-")}</td>
+                <td class="merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.customer_name)}</td>
+                <td class="text-center merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.vat_no || "-")}</td>
+                <td class="text-center merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.cr_no || "-")}</td>
+              `
+              : "";
+
+            return `
+              <tr id="row-${r.record_id}">
+                ${vendorCells}
+                <td class="${vClass}">${escapeHtml(r.site || "-")}</td>
+                <td class="text-center ${vClass}">${escapeHtml(r.company || "-")}</td>
+                <td class="text-center ${vClass}">${escapeHtml(r.start_period || "-")}</td>
+                <td class="text-center ${vClass}">${escapeHtml(r.end_period || "Running")}</td>
+                <td class="text-center ${vClass}">
+                  <span class="${statusClass}">${escapeHtml(r.status)}</span>
+                </td>
+                ${
+                  viewMode === "detailed"
+                    ? [
+                        ["agreement", "Agath", r.agreement_doc],
+                        ["rfq", "RFQ", r.rfq_doc],
+                        ["po", "PO", r.po_doc],
+                        ["conf_letter", "VAT Conf", r.conf_letter_doc],
+                        ["last", "Final Conf", r.last_doc],
+                      ]
+                        .map(([dtype, dlabel, durl]) => {
+                          if (durl) {
+                            return `<td class="text-center ${vClass}"><span class="doc-badge doc-uploaded" onclick="openDocPreview('${escapeHtml(durl)}', '${escapeHtml(r.customer_name)} - ${dlabel}')" oncontextmenu="openDocCtxMenu(event, ${r.record_id}, '${dtype}', '${dlabel}', true)" title="Tap to view, Right-click to Replace/Delete">Uploaded</span></td>`;
+                          }
+                          return `<td class="text-center ${vClass}"><span class="doc-badge doc-pending" oncontextmenu="openDocCtxMenu(event, ${r.record_id}, '${dtype}', '${dlabel}', false)" title="Right-click to Upload">Pending</span></td>`;
+                        })
+                        .join("")
+                    : ""
+                }
+                <td class="text-center ${vClass}">
+                  <select
+                    class="final-status-select"
+                    onchange="handleStatusChange(${r.record_id}, this.value)"
+                  >
+                    <option value="Pending" ${r.final_status === "Pending" ? "selected" : ""}>Pending</option>
+                    <option value="Verified" ${r.final_status === "Verified" ? "selected" : ""}>Verified</option>
+                  </select>
+                </td>
+                <td class="${vClass}">
+                  <textarea
+                    class="notes-textarea"
+                    rows="1"
+                    placeholder="Add note..."
+                    oninput="handleNotesInput(${r.record_id}, this.value)"
+                    onblur="saveRow(${r.record_id})"
+                  >${escapeHtml(r.notes)}</textarea>
+                </td>
+                <td class="${vClass}">
+                  <div class="audit-box" id="audit-${r.record_id}">${auditHtml}</div>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function handleStatusChange(recordId, newStatus) {
+        const rec = allRecords.find((r) => r.record_id === recordId);
+        if (!rec) return;
+        rec.final_status = newStatus;
+
+        const rowEl = document.getElementById(`row-${recordId}`);
+        if (rowEl) {
+          rowEl.querySelectorAll("td.site-cell").forEach((td) => {
+            td.classList.toggle("cell-verified", newStatus === "Verified");
+          });
+        }
+        updateKPIs(getFilteredRecords());
+        saveRow(recordId);
+      }
+
+      function handleNotesInput(recordId, newNotes) {
+        const rec = allRecords.find((r) => r.record_id === recordId);
+        if (!rec) return;
+        rec.notes = newNotes;
+
+        clearTimeout(noteTimers[recordId]);
+        noteTimers[recordId] = setTimeout(() => {
+          saveRow(recordId);
+        }, 700);
+      }
+
+      async function saveRow(recordId) {
+        clearTimeout(noteTimers[recordId]);
+        const rec = allRecords.find((r) => r.record_id === recordId);
+        if (!rec) return;
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/save-verification?token=${encodeURIComponent(getToken())}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              record_id: rec.record_id,
+              final_status: rec.final_status,
+              notes: rec.notes || "",
+            }),
+          });
+          if (res.status === 401 || res.status === 403) {
+            logoutUser();
+            return;
+          }
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Save failed");
+          }
+          if (data.audit_trail) {
+            rec.audit_trail = data.audit_trail;
+            const auditEl = document.getElementById(`audit-${rec.record_id}`);
+            if (auditEl) {
+              auditEl.innerHTML = data.audit_trail.length
+                ? data.audit_trail
+                    .map(
+                      (a) =>
+                        `<div class="audit-item"><strong>${escapeHtml(a.created_at)}</strong> (${escapeHtml(a.changed_by)}): ${escapeHtml(a.action_summary)}</div>`
+                    )
+                    .join("")
+                : '<span class="text-muted">-</span>';
+            }
+          }
+          showToast("Saved");
+        } catch (err) {
+          showToast(err.message || "Error saving", true);
+        }
+      }
+
+      // --- Header Right-Click Filter (with Date Tree: Year -> Month -> Date) ---
+      function openHeaderFilter(e, colKey, label) {
+        e.preventDefault();
+        currentFilterCol = colKey;
+        document.getElementById("filterTitle").textContent = `Filter: ${label}`;
+        document.getElementById("filterSearchInput").value = "";
+
+        const uniqueVals = Array.from(new Set(allRecords.map((r) => getColVal(r, colKey)))).sort();
+        const currentSet = activeColFilters[colKey] || new Set(uniqueVals);
+        const isDateCol = colKey === "start_period" || colKey === "end_period";
+        const listEl = document.getElementById("filterList");
+
+        if (isDateCol) {
+          const tree = {};
+          const specials = [];
+          uniqueVals.forEach((v) => {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+              const [yr, mo] = v.split("-");
+              tree[yr] = tree[yr] || {};
+              tree[yr][mo] = tree[yr][mo] || [];
+              tree[yr][mo].push(v);
+            } else {
+              specials.push(v);
+            }
+          });
+
+          let html = specials
+            .map(
+              (v) => `
+              <div class="tree-row filter-leaf" data-val="${escapeHtml(v)}">
+                <span class="tree-toggle"></span>
+                <input type="checkbox" class="form-check-input f-val-cb" value="${escapeHtml(v)}" ${currentSet.has(v) ? "checked" : ""} onchange="syncTreeState()" />
+                <span>${escapeHtml(v)}</span>
+              </div>`
+            )
+            .join("");
+
+          Object.keys(tree)
+            .sort()
+            .forEach((yr) => {
+              const moKeys = Object.keys(tree[yr]).sort();
+              const moHtml = moKeys
+                .map((mo) => {
+                  const moName = MONTH_NAMES[parseInt(mo, 10) - 1] || mo;
+                  const daysHtml = tree[yr][mo]
+                    .sort()
+                    .map(
+                      (d) => `
+                      <div class="tree-row filter-leaf" data-val="${d}">
+                        <input type="checkbox" class="form-check-input f-val-cb" value="${d}" ${currentSet.has(d) ? "checked" : ""} onchange="syncTreeState()" />
+                        <span>${d}</span>
+                      </div>`
+                    )
+                    .join("");
+                  return `
+                    <div class="tree-node">
+                      <div class="tree-row">
+                        <span class="tree-toggle" onclick="toggleTreeNode(this)">▶</span>
+                        <input type="checkbox" class="form-check-input f-mo-cb" onchange="toggleBranch(this)" />
+                        <span class="fw-semibold">${moName}</span>
+                      </div>
+                      <div class="tree-children" style="display:none;">${daysHtml}</div>
+                    </div>`;
+                })
+                .join("");
+
+              html += `
+                <div class="tree-node">
+                  <div class="tree-row">
+                    <span class="tree-toggle" onclick="toggleTreeNode(this)">▶</span>
+                    <input type="checkbox" class="form-check-input f-yr-cb" onchange="toggleBranch(this)" />
+                    <span class="fw-bold">${yr}</span>
+                  </div>
+                  <div class="tree-children" style="display:none;">${moHtml}</div>
+                </div>`;
+            });
+          listEl.innerHTML = html;
+          syncTreeState();
+        } else {
+          listEl.innerHTML = uniqueVals
+            .map(
+              (v) => `
+              <div class="tree-row filter-leaf" data-val="${escapeHtml(v)}">
+                <input type="checkbox" class="form-check-input f-val-cb" value="${escapeHtml(v)}" ${currentSet.has(v) ? "checked" : ""} onchange="syncSelectAllState()" />
+                <span>${escapeHtml(v)}</span>
+              </div>`
+            )
+            .join("");
+          syncSelectAllState();
+        }
+
+        const pop = document.getElementById("filterPopover");
+        pop.style.display = "block";
+        const left = Math.min(e.clientX, window.innerWidth - 280);
+        const top = Math.min(e.clientY + 6, window.innerHeight - 360);
+        pop.style.left = `${Math.max(8, left)}px`;
+        pop.style.top = `${Math.max(8, top)}px`;
+      }
+
+      function toggleTreeNode(el) {
+        const children = el.closest(".tree-node").querySelector(".tree-children");
+        const open = children.style.display === "none";
+        children.style.display = open ? "block" : "none";
+        el.textContent = open ? "▼" : "▶";
+      }
+
+      function toggleBranch(cb) {
+        const node = cb.closest(".tree-node");
+        node.querySelectorAll("input[type='checkbox']").forEach((c) => {
+          c.checked = cb.checked;
+        });
+        syncTreeState();
+      }
+
+      function syncTreeState() {
+        document.querySelectorAll(".f-mo-cb").forEach((moCb) => {
+          const kids = Array.from(moCb.closest(".tree-node").querySelectorAll(".f-val-cb"));
+          moCb.checked = kids.length > 0 && kids.every((k) => k.checked);
+        });
+        document.querySelectorAll(".f-yr-cb").forEach((yrCb) => {
+          const kids = Array.from(yrCb.closest(".tree-node").querySelectorAll(".f-val-cb"));
+          yrCb.checked = kids.length > 0 && kids.every((k) => k.checked);
+        });
+        syncSelectAllState();
+      }
+
+      function syncSelectAllState() {
+        const allCbs = Array.from(document.querySelectorAll("#filterList .f-val-cb"));
+        document.getElementById("filterSelectAll").checked =
+          allCbs.length > 0 && allCbs.every((c) => c.checked);
+      }
+
+      function toggleFilterSelectAll(checked) {
+        document.querySelectorAll("#filterList input[type='checkbox']").forEach((c) => {
+          c.checked = checked;
+        });
+      }
+
+      function filterPopoverSearch(q) {
+        const term = q.trim().toLowerCase();
+        document.querySelectorAll("#filterList .filter-leaf").forEach((row) => {
+          const match = (row.dataset.val || "").toLowerCase().includes(term);
+          row.style.display = match ? "flex" : "none";
+        });
+      }
+
+      function applyColumnFilter() {
+        const allCbs = Array.from(document.querySelectorAll("#filterList .f-val-cb"));
+        const checkedVals = allCbs.filter((c) => c.checked).map((c) => c.value);
+        if (checkedVals.length === allCbs.length) {
+          delete activeColFilters[currentFilterCol];
+        } else {
+          activeColFilters[currentFilterCol] = new Set(checkedVals);
+        }
+        closeFilterPopover();
+        renderTable();
+      }
+
+      function clearColumnFilter() {
+        delete activeColFilters[currentFilterCol];
+        closeFilterPopover();
+        renderTable();
+      }
+
+      function closeFilterPopover() {
+        document.getElementById("filterPopover").style.display = "none";
+      }
+
+      // --- Document Preview & Right-Click Context Menu ---
+      function openDocPreview(url, title) {
+        document.getElementById("docPreviewTitle").textContent = title;
+        document.getElementById("docPreviewDownload").href = url;
+        const body = document.getElementById("docPreviewBody");
+        if (url.toLowerCase().endsWith(".pdf")) {
+          body.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>`;
+        } else {
+          body.innerHTML = `<img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;" />`;
+        }
+        document.getElementById("docPreviewModal").style.display = "flex";
+      }
+
+      function closeDocPreview() {
+        document.getElementById("docPreviewModal").style.display = "none";
+        document.getElementById("docPreviewBody").innerHTML = "";
+      }
+
+      function openDocCtxMenu(e, recordId, docType, docLabel, isUploaded) {
+        e.preventDefault();
+        pendingDocAction = { recordId, docType, docLabel };
+        const menu = document.getElementById("docCtxMenu");
+        menu.innerHTML = isUploaded
+          ? `
+            <div class="doc-ctx-item text-primary" onclick="triggerDocUpload()"><i class="fa-solid fa-rotate"></i> Replace</div>
+            <div class="doc-ctx-item text-danger" onclick="triggerDocDelete()"><i class="fa-solid fa-trash"></i> Delete</div>
+          `
+          : `<div class="doc-ctx-item text-success" onclick="triggerDocUpload()"><i class="fa-solid fa-upload"></i> Upload</div>`;
+
+        menu.style.display = "block";
+        menu.style.left = `${Math.min(e.clientX, window.innerWidth - 160)}px`;
+        menu.style.top = `${Math.min(e.clientY, window.innerHeight - 90)}px`;
+      }
+
+      function triggerDocUpload() {
+        document.getElementById("docCtxMenu").style.display = "none";
+        const inp = document.getElementById("docFileInput");
+        inp.value = "";
+        inp.click();
+      }
+
+      function handleDocFileSelected(e) {
+        const file = e.target.files[0];
+        if (!file || !pendingDocAction) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const res = await fetch(
+              `${API_BASE}/upload-doc?token=${encodeURIComponent(getToken())}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  record_id: pendingDocAction.recordId,
+                  doc_type: pendingDocAction.docType,
+                  file_name: file.name,
+                  file_base64: reader.result,
+                }),
+              }
+            );
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Upload failed");
+            const rec = allRecords.find((r) => r.record_id === pendingDocAction.recordId);
+            if (rec) {
+              rec[data.col_name] = data.file_url;
+              if (data.audit_trail) rec.audit_trail = data.audit_trail;
+            }
+            renderTable();
+            showToast(`${pendingDocAction.docLabel} saved`);
+          } catch (err) {
+            showToast(err.message, true);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+
+      async function triggerDocDelete() {
+        document.getElementById("docCtxMenu").style.display = "none";
+        if (!pendingDocAction) return;
+        if (!confirm(`Delete ${pendingDocAction.docLabel} document?`)) return;
+        try {
+          const res = await fetch(
+            `${API_BASE}/delete-doc?token=${encodeURIComponent(getToken())}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                record_id: pendingDocAction.recordId,
+                doc_type: pendingDocAction.docType,
+              }),
+            }
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Delete failed");
+          const rec = allRecords.find((r) => r.record_id === pendingDocAction.recordId);
+          if (rec) {
+            rec[data.col_name] = null;
+            if (data.audit_trail) rec.audit_trail = data.audit_trail;
+          }
+          renderTable();
+          showToast(`${pendingDocAction.docLabel} deleted`);
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      }
+
+      document.addEventListener("click", (e) => {
+        const pop = document.getElementById("filterPopover");
+        if (pop.style.display === "block" && !pop.contains(e.target)) {
+          closeFilterPopover();
+        }
+        const ctx = document.getElementById("docCtxMenu");
+        if (ctx.style.display === "block" && !ctx.contains(e.target)) {
+          ctx.style.display = "none";
+        }
+      });
+
+      function exportExcel() {
+        const startDate = document.getElementById("startPeriod").value || "2025-06-01";
+        const endDate =
+          document.getElementById("endPeriod").value ||
+          new Date().toISOString().slice(0, 10);
+        const search = encodeURIComponent(
+          (document.getElementById("ribbonSearch").value || "").trim()
+        );
+        window.location.href = `${API_BASE}/export-excel?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&search=${search}&view=${viewMode}&token=${encodeURIComponent(getToken())}`;
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("endPeriod").value = new Date()
+          .toISOString()
+          .slice(0, 10);
+        updateThemeIcon();
+        initSession();
+      });
+    </script>
+  </body>
+</html>
