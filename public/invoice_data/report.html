@@ -3809,96 +3809,147 @@
             }
           }
 
-          Object.keys(siteDataMap).forEach((sName) => {
+          let relatedCleanPlates = [pClean];
+          (data.plateChanges || []).forEach((pl) => {
+            let oP = cleanPlate(pl.old_plate_no);
+            let nP = cleanPlate(pl.new_plate_no);
+            if (oP === pClean && !relatedCleanPlates.includes(nP))
+              relatedCleanPlates.push(nP);
+            if (nP === pClean && !relatedCleanPlates.includes(oP))
+              relatedCleanPlates.push(oP);
+          });
+
+          function matchPlateWithAliases(targetPlate) {
+            let raw = String(targetPlate || "").toUpperCase();
+            let parts = raw
+              .split(/➔|→|->/)
+              .map((p) => cleanPlate(p))
+              .filter(Boolean);
+            return (
+              parts.some((cp) => relatedCleanPlates.includes(cp)) ||
+              relatedCleanPlates.includes(cleanPlate(raw))
+            );
+          }
+
+          function cleanSiteCompareStrict(str) {
+            return String(str || "")
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, "")
+              .trim();
+          }
+
+          let vInvoicesSorted = (data.invoices || [])
+            .filter((i) => matchPlateWithAliases(i.plate_no))
+            .sort((a, b) => (b.id || 0) - (a.id || 0));
+
+          let vBilling = (data.billing || [])
+            .filter((b) => matchPlateWithAliases(b.plate_no))
+            .sort((a, b) => (b.id || 0) - (a.id || 0));
+
+          const activeSiteKeys = Object.keys(siteDataMap).filter((sName) => {
+            let displaySiteName = siteDataMap[sName].displayName || sName;
+            let totalTsHrs =
+              (parseFloat(siteDataMap[sName].ts_nr) || 0) +
+              (parseFloat(siteDataMap[sName].ts_ot) || 0);
+            return !(
+              (sName === "N/A" || displaySiteName.startsWith("Prev:")) &&
+              totalTsHrs === 0
+            );
+          });
+
+          const realSiteCount = activeSiteKeys.filter(
+            (k) => !k.startsWith("Prev:") && k !== "N/A",
+          ).length;
+
+          const usedBillIds = new Set();
+          const usedInvIds = new Set();
+          const matchedBillBySite = {};
+          const matchedInvBySite = {};
+
+          // Pass 1: Exact site_name match first (prevents Prev:/N/A/Re-Running from stealing primary site data)
+          activeSiteKeys.forEach((sName) => {
+            const exactBill = vBilling.find(
+              (b) =>
+                !usedBillIds.has(b.id) &&
+                (b.site_name || "").trim() === sName,
+            );
+            if (exactBill) {
+              matchedBillBySite[sName] = exactBill;
+              if (exactBill.id != null) usedBillIds.add(exactBill.id);
+            }
+
+            const exactInv = vInvoicesSorted.find(
+              (i) =>
+                !usedInvIds.has(i.id) &&
+                (i.site_name || "").trim() === sName,
+            );
+            if (exactInv) {
+              matchedInvBySite[sName] = exactInv;
+              if (exactInv.id != null) usedInvIds.add(exactInv.id);
+            }
+          });
+
+          // Pass 2: Controlled fallback only for unmatched rows using unused records
+          activeSiteKeys.forEach((sName) => {
+            const baseSName = cleanSiteCompareStrict(sName);
+            const isPrevOrNA = sName.startsWith("Prev:") || sName === "N/A";
+
+            if (!matchedBillBySite[sName]) {
+              let billMatch = vBilling.find(
+                (b) =>
+                  !usedBillIds.has(b.id) &&
+                  baseSName &&
+                  cleanSiteCompareStrict(b.site_name) === baseSName,
+              );
+              if (!billMatch && !isPrevOrNA) {
+                billMatch = vBilling.find(
+                  (b) =>
+                    !usedBillIds.has(b.id) &&
+                    (!b.site_name ||
+                      b.site_name === "N/A" ||
+                      b.site_name.trim() === ""),
+                );
+              }
+              if (!billMatch && !isPrevOrNA && realSiteCount === 1 && vBilling.length === 1 && !usedBillIds.has(vBilling[0].id)) {
+                billMatch = vBilling[0];
+              }
+              if (billMatch) {
+                matchedBillBySite[sName] = billMatch;
+                if (billMatch.id != null) usedBillIds.add(billMatch.id);
+              }
+            }
+
+            if (!matchedInvBySite[sName]) {
+              let invMatch = vInvoicesSorted.find(
+                (i) =>
+                  !usedInvIds.has(i.id) &&
+                  baseSName &&
+                  cleanSiteCompareStrict(i.site_name) === baseSName,
+              );
+              if (!invMatch && !isPrevOrNA) {
+                invMatch = vInvoicesSorted.find(
+                  (i) =>
+                    !usedInvIds.has(i.id) &&
+                    (!i.site_name ||
+                      i.site_name === "N/A" ||
+                      i.site_name.trim() === ""),
+                );
+              }
+              if (!invMatch && !isPrevOrNA && realSiteCount === 1 && vInvoicesSorted.length === 1 && !usedInvIds.has(vInvoicesSorted[0].id)) {
+                invMatch = vInvoicesSorted[0];
+              }
+              if (invMatch) {
+                matchedInvBySite[sName] = invMatch;
+                if (invMatch.id != null) usedInvIds.add(invMatch.id);
+              }
+            }
+          });
+
+          activeSiteKeys.forEach((sName) => {
             let ts_nr = siteDataMap[sName].ts_nr;
             let ts_ot = siteDataMap[sName].ts_ot;
             let displaySiteName = siteDataMap[sName].displayName || sName;
-
-            let relatedCleanPlates = [pClean];
-            (data.plateChanges || []).forEach((pl) => {
-              let oP = cleanPlate(pl.old_plate_no);
-              let nP = cleanPlate(pl.new_plate_no);
-              if (oP === pClean && !relatedCleanPlates.includes(nP))
-                relatedCleanPlates.push(nP);
-              if (nP === pClean && !relatedCleanPlates.includes(oP))
-                relatedCleanPlates.push(oP);
-            });
-
-            let vInvoices = (data.invoices || []).filter((i) => {
-              let rawP = String(i.plate_no || "").toUpperCase();
-              let pParts = rawP
-                .split(/➔|→|->/)
-                .map((p) => cleanPlate(p))
-                .filter(Boolean);
-              return (
-                pParts.some((cp) => relatedCleanPlates.includes(cp)) ||
-                relatedCleanPlates.includes(cleanPlate(rawP))
-              );
-            });
-
-            // ഏറ്റവും അവസാനം സേവ് ചെയ്ത റെക്കോർഡ് എടുക്കാൻ id DESC ക്രമത്തിൽ സോർട്ട് ചെയ്യുന്നു
-            let sortedBilling = [...(data.billing || [])].sort(
-              (a, b) => (b.id || 0) - (a.id || 0),
-            );
-
-            function matchPlateWithAliases(targetPlate) {
-              let raw = String(targetPlate || "").toUpperCase();
-              let parts = raw
-                .split(/➔|→|->/)
-                .map((p) => cleanPlate(p))
-                .filter(Boolean);
-              return (
-                parts.some((cp) => relatedCleanPlates.includes(cp)) ||
-                relatedCleanPlates.includes(cleanPlate(raw))
-              );
-            }
-
-            let billData = sortedBilling.find(
-              (b) =>
-                matchPlateWithAliases(b.plate_no) &&
-                (b.site_name || "").trim() === sName,
-            );
-
-            if (!billData) {
-              const baseSName = cleanSiteCompare(sName);
-              billData = sortedBilling.find((b) => {
-                if (!matchPlateWithAliases(b.plate_no)) return false;
-                const baseBillSite = cleanSiteCompare(b.site_name);
-                return (
-                  baseBillSite &&
-                  baseSName &&
-                  (baseBillSite === baseSName ||
-                    baseBillSite.includes(baseSName) ||
-                    baseSName.includes(baseBillSite))
-                );
-              });
-            }
-
-            if (!billData && sName.startsWith("Prev:")) {
-              billData = sortedBilling.find(
-                (b) =>
-                  matchPlateWithAliases(b.plate_no) &&
-                  (b.site_name || "").trim().startsWith("Prev:"),
-              );
-            }
-            if (!billData && sName !== "N/A") {
-              billData = sortedBilling.find(
-                (b) =>
-                  matchPlateWithAliases(b.plate_no) &&
-                  (!b.site_name ||
-                    b.site_name === "N/A" ||
-                    b.site_name.trim() === ""),
-              );
-            }
-
-            if (!billData) {
-              let vehicleMonthBills = sortedBilling.filter((b) =>
-                matchPlateWithAliases(b.plate_no),
-              );
-              if (vehicleMonthBills.length === 1) {
-                billData = vehicleMonthBills[0];
-              }
-            }
+            let billData = matchedBillBySite[sName] || null;
 
             let bill_db_nr = billData ? parseFloat(billData.nhr) || 0 : 0;
             let bill_db_ot = billData ? parseFloat(billData.othr) || 0 : 0;
@@ -3922,56 +3973,7 @@
               return;
             }
 
-            function cleanSiteCompare(str) {
-              return String(str || "")
-                .toLowerCase()
-                .replace(
-                  /prev:|\(re-running\)|re-running|re running|running|released|replaced|[^a-z0-9]/g,
-                  "",
-                )
-                .trim();
-            }
-
-            let invData = vInvoices.find(
-              (i) => (i.site_name || "").trim() === sName,
-            );
-
-            // 1. Fallback: Base site match ignoring "Re-Running", "Prev:", etc.
-            if (!invData) {
-              const baseSName = cleanSiteCompare(sName);
-              invData = vInvoices.find((i) => {
-                const baseInvSite = cleanSiteCompare(i.site_name);
-                return (
-                  baseInvSite &&
-                  baseSName &&
-                  (baseInvSite === baseSName ||
-                    baseInvSite.includes(baseSName) ||
-                    baseSName.includes(baseInvSite))
-                );
-              });
-            }
-
-            // 2. Fallback: match starting with "Prev:"
-            if (!invData && sName.startsWith("Prev:")) {
-              invData = vInvoices.find((i) =>
-                (i.site_name || "").trim().toLowerCase().startsWith("prev:"),
-              );
-            }
-
-            // 3. Fallback: match N/A or Blank site
-            if (!invData && sName !== "N/A") {
-              invData = vInvoices.find(
-                (i) =>
-                  !i.site_name ||
-                  i.site_name === "N/A" ||
-                  i.site_name.trim() === "",
-              );
-            }
-
-            // 4. Safe single invoice fallback: If vehicle has exactly 1 invoice for this month, assign it
-            if (!invData && vInvoices.length === 1) {
-              invData = vInvoices[0];
-            }
+            let invData = matchedInvBySite[sName] || null;
 
             let inv_nr_raw = invData ? invData.bill_nr : null;
             let inv_nr =

@@ -433,27 +433,27 @@ router.get("/master-report-data", async (req, res) => {
       plateChanges,
     ] = await Promise.all([
       pool.query(
-        "SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles",
+        "SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles ORDER BY plate_no ASC",
       ),
       pool.query(
-        "SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, vehicle_type, status FROM vehicle_site_log",
+        "SELECT plate_no, site_name, TO_CHAR(work_start_date, 'YYYY-MM-DD') AS work_start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') AS work_end_date, rate, field_co, site_co, vehicle_type, status FROM vehicle_site_log ORDER BY work_start_date ASC NULLS LAST, site_name ASC",
       ),
       pool.query(
-        "SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log",
+        "SELECT plate_no, driver_name, TO_CHAR(work_start_date, 'YYYY-MM-DD') AS work_start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') AS work_end_date FROM vehicle_driver_log ORDER BY work_start_date ASC NULLS LAST",
       ),
       pool.query(
         "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month=$1 AND year=$2",
         [month, year],
       ),
-      pool.query("SELECT * FROM invoice_records WHERE month=$1", [fullMonth]),
-      pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [
+      pool.query("SELECT * FROM invoice_records WHERE month=$1 ORDER BY id DESC", [fullMonth]),
+      pool.query("SELECT * FROM billing_records WHERE billing_month=$1 ORDER BY id DESC", [
         fullMonth,
       ]),
       pool.query(
-        "SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log",
+        "SELECT plate_no, owner_name, vat, TO_CHAR(work_start_date, 'YYYY-MM-DD') AS work_start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') AS work_end_date, status FROM vehicle_owner_log ORDER BY work_start_date DESC NULLS LAST",
       ),
       pool.query(
-        "SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log",
+        "SELECT plate_no, site_name, rate, TO_CHAR(work_start_date, 'YYYY-MM-DD') AS work_start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') AS work_end_date, status FROM vehicle_rate_log ORDER BY work_start_date DESC NULLS LAST",
       ),
       pool.query(
         "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
@@ -550,13 +550,13 @@ router.post("/master-report-data-batch", async (req, res) => {
       plateChanges,
     ] = await Promise.all([
       pool.query(
-        "SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles",
+        "SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles ORDER BY plate_no ASC",
       ),
       pool.query(
-        "SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, vehicle_type, status FROM vehicle_site_log",
+        "SELECT plate_no, site_name, TO_CHAR(work_start_date, 'YYYY-MM-DD') AS work_start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') AS work_end_date, rate, field_co, site_co, vehicle_type, status FROM vehicle_site_log ORDER BY work_start_date ASC NULLS LAST, site_name ASC",
       ),
       pool.query(
-        "SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log",
+        "SELECT plate_no, driver_name, TO_CHAR(work_start_date, 'YYYY-MM-DD') AS work_start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') AS work_end_date FROM vehicle_driver_log ORDER BY work_start_date ASC NULLS LAST",
       ),
       pool.query(
         `SELECT plate_no, record_date, calc_time, bd, month, year
@@ -565,18 +565,18 @@ router.post("/master-report-data-batch", async (req, res) => {
         timesheetParams,
       ),
       pool.query(
-        "SELECT * FROM invoice_records WHERE month = ANY($1::text[])",
+        "SELECT * FROM invoice_records WHERE month = ANY($1::text[]) ORDER BY id DESC",
         [fullMonths],
       ),
       pool.query(
-        "SELECT * FROM billing_records WHERE billing_month = ANY($1::text[])",
+        "SELECT * FROM billing_records WHERE billing_month = ANY($1::text[]) ORDER BY id DESC",
         [fullMonths],
       ),
       pool.query(
-        "SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log",
+        "SELECT plate_no, owner_name, vat, TO_CHAR(work_start_date, 'YYYY-MM-DD') AS work_start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') AS work_end_date, status FROM vehicle_owner_log ORDER BY work_start_date DESC NULLS LAST",
       ),
       pool.query(
-        "SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log",
+        "SELECT plate_no, site_name, rate, TO_CHAR(work_start_date, 'YYYY-MM-DD') AS work_start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') AS work_end_date, status FROM vehicle_rate_log ORDER BY work_start_date DESC NULLS LAST",
       ),
       pool.query(
         "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
