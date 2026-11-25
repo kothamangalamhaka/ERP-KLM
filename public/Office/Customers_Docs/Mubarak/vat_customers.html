@@ -53,8 +53,19 @@
         color: var(--text);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden;
+      }
+      #mainApp {
+        height: 100vh;
+        flex-direction: column;
         padding: 12px 18px;
-        min-height: 100vh;
+        box-sizing: border-box;
+      }
+      #ribbonSearch::placeholder {
+        color: var(--text-muted);
+        opacity: 1;
       }
 
       .header-bar {
@@ -164,33 +175,43 @@
         border-radius: 10px;
         box-shadow: var(--card-shadow);
         overflow: hidden;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
       .table-responsive {
-        max-height: calc(100vh - 155px);
+        flex: 1;
+        min-height: 0;
         overflow: auto;
       }
 
       table.vat-table {
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-left: 1px solid var(--border);
         font-size: 12.5px;
         margin: 0;
       }
       table.vat-table thead th {
         position: sticky;
         top: 0;
-        z-index: 5;
+        z-index: 20;
         background: var(--table-header-bg);
         color: var(--table-header-color);
         font-weight: 600;
         text-align: center;
         padding: 9px 10px;
-        border: 1px solid var(--border);
+        border-top: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
         white-space: nowrap;
       }
       table.vat-table tbody td {
         padding: 7px 9px;
-        border: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
         vertical-align: middle;
         color: var(--text);
       }
@@ -779,7 +800,7 @@
           const data = await res.json();
           currentUser = data.user;
           document.getElementById("authOverlay").style.display = "none";
-          document.getElementById("mainApp").style.display = "block";
+          document.getElementById("mainApp").style.display = "flex";
           document.getElementById("loggedUserLabel").textContent = currentUser.username;
           document.getElementById("adminNavBtn").style.display =
             currentUser.role === "admin" || currentUser.role === "super_admin"
