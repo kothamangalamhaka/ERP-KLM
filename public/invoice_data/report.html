@@ -4254,7 +4254,12 @@
               bill_db_ot: bill_db_ot > 0 ? bill_db_ot.toString() : "",
               driver_ot: driver_ot > 0 ? driver_ot.toString() : "",
               driver_amount:
-                driver_amount !== 0 ? driver_amount.toFixed(2) : "",
+                driver_amount !== 0
+                  ? (() => {
+                      const r = Math.round(driver_amount * 100) / 100;
+                      return Number.isInteger(r) ? String(r) : r.toFixed(2);
+                    })()
+                  : "",
               bill_nrate:
                 bill_nrate > 0 ? parseFloat(bill_nrate).toFixed(2) : "",
               bill_otrate:
@@ -4930,7 +4935,8 @@
         if (!raw) return;
         const parsed = normalizeInvoiceAmountCell(cell);
         if (parsed.valid && parsed.value !== null) {
-          cell.innerText = Number(parsed.value).toFixed(2);
+          const r = Math.round(Number(parsed.value) * 100) / 100;
+          cell.innerText = Number.isInteger(r) ? String(r) : r.toFixed(2);
           cell.dataset.myEdited = "true";
           const tr = cell.closest("tr");
           if (tr) {
@@ -5031,7 +5037,8 @@
             ) {
               const parsed = normalizeInvoiceAmountCell(this);
               if (parsed.valid && parsed.value !== null) {
-                this.innerText = Number(parsed.value).toFixed(2);
+                const r = Math.round(Number(parsed.value) * 100) / 100;
+                this.innerText = Number.isInteger(r) ? String(r) : r.toFixed(2);
               }
             }
             const tr = this.closest("tr");
@@ -8661,7 +8668,10 @@
                 resetVal = originalObj.driver_ot || "";
               else if (draft.field === "driver_amount")
                 resetVal = originalObj.driver_amount
-                  ? Number(originalObj.driver_amount).toFixed(2)
+                  ? (() => {
+                      const r = Math.round(Number(originalObj.driver_amount) * 100) / 100;
+                      return Number.isInteger(r) ? String(r) : r.toFixed(2);
+                    })()
                   : "";
               else if (draft.field === "inv_deduct")
                 resetVal = originalObj.inv_deduct || "";
@@ -8826,7 +8836,10 @@
             if (canUpdateCell(drvAmtTd) && rec.driver_amount !== undefined)
               drvAmtTd.innerText =
                 rec.driver_amount !== null
-                  ? Number(rec.driver_amount).toFixed(2)
+                  ? (() => {
+                      const r = Math.round(Number(rec.driver_amount) * 100) / 100;
+                      return Number.isInteger(r) ? String(r) : r.toFixed(2);
+                    })()
                   : "";
             if (canUpdateCell(dedTd) && rec.inv_deduct !== undefined)
               dedTd.innerText = rec.inv_deduct || "";

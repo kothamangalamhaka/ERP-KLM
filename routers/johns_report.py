@@ -224,8 +224,8 @@ def export_johns_excel(payload: ExportPayload):
             ("CALCULATIONS", 19, 21, calc_fill),
             ("DIFFERENCE", 22, 25, diff_fill),
             ("SUPPLIER PAYMENTS", 26, 31, amt_fill),
-            ("INVOICE AMOUNT", 32, 38, inv_fill),
-            ("P&L", 39, 39, pl_fill)
+            ("INVOICE AMOUNT", 32, 39, inv_fill),
+            ("P&L", 40, 40, pl_fill)
         ]
 
         sub_headers = [
@@ -235,7 +235,7 @@ def export_johns_excel(payload: ExportPayload):
             "Logsheet CF", "Bill Summary CF", "Supplier CF",
             "Log - Supplier", "Bill - Supplier", "Bill - Log", "Notes",
             "NR Rate", "OT Rate", "Rent", "VAT", "Total", "Net Total",
-            "Subtotal", "Deductions", "Total", "Reason", "CRN No", "Invoice No", "Bill No",
+            "Subtotal", "Deduction / Addition", "Net Inv Amt", "Total", "Reason", "CRN No", "Invoice No", "Bill No",
             "Profit / Loss"
         ]
 
@@ -423,6 +423,8 @@ def export_johns_excel(payload: ExportPayload):
                         elif c_idx == 13:
                             try:
                                 num_gl = float(cell_val)
+                                cell.value = num_gl
+                                cell.number_format = "0.00"
                                 cell.fill = pos_fill if num_gl >= 0 else neg_fill
                             except (ValueError, TypeError):
                                 cell.fill = PatternFill(start_color="FFFBEB", end_color="FFFBEB", fill_type="solid")
@@ -476,9 +478,9 @@ def export_johns_excel(payload: ExportPayload):
                     cell.fill = diff_fill
                 elif 26 <= col_idx <= 31:
                     cell.fill = amt_fill
-                elif 32 <= col_idx <= 38:
+                elif 32 <= col_idx <= 39:
                     cell.fill = inv_fill
-                elif col_idx == 39:
+                elif col_idx == 40:
                     cell.fill = pl_fill
                 else:
                     cell.fill = dark_fill
@@ -515,9 +517,22 @@ def export_johns_excel(payload: ExportPayload):
                         except (ValueError, TypeError):
                             pass
 
+                    if c_idx in [32, 33, 34, 35] and cell_val not in [None, "", "-"]:
+                        try:
+                            cell_val = float(cell_val)
+                        except (ValueError, TypeError):
+                            pass
+
                     cell = ws.cell(row=r_idx, column=c_idx, value=cell_val)
                     cell.font = cell_font
                     cell.border = thin_border
+                    if c_idx in [32, 34, 35] and isinstance(cell_val, (int, float)):
+                        cell.number_format = "0.00"
+                    elif c_idx == 33 and isinstance(cell_val, (int, float)):
+                        cell.number_format = "0.00;0.00;\"-\""
+                        cell.font = Font(name="Calibri", size=10, bold=True, color="16A34A" if cell_val < 0 else "DC2626")
+                    elif c_idx == 40 and isinstance(cell_val, (int, float)):
+                        cell.number_format = "0.00"
                     if c_idx in [22, 23, 24] and cell_val not in [None, "", "-"]:
                         try:
                             num_val = float(cell_val)

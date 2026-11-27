@@ -135,6 +135,10 @@
       tbody tr:hover {
         background-color: var(--row-hover);
       }
+      table.net-supplier-table tbody td {
+        padding: 9px 10px;
+        font-size: 11.5px;
+      }
       table {
         width: 100%;
         border-collapse: separate;
@@ -146,10 +150,14 @@
       td {
         border-right: 1px solid var(--border-color);
         border-bottom: 1px solid var(--border-color);
-        padding: 4px 5px;
+        padding: 4px 6px;
         text-align: center;
         white-space: nowrap;
         font-size: 10.5px;
+      }
+      tbody td {
+        padding: 8px 6px;
+        font-size: 11px;
       }
       thead tr:first-child th {
         position: sticky;
@@ -158,17 +166,20 @@
         background: #1e293b;
         color: #fff;
         font-size: 11px;
-        height: 28px;
+        height: 30px;
+        box-sizing: border-box;
         border-top: 1px solid var(--border-color);
       }
       thead tr:nth-child(2) th {
         position: sticky;
-        top: 28px;
+        top: 30px;
         z-index: 11;
         background: #334155;
         color: #fff;
         font-size: 11px;
-        height: 26px;
+        height: 30px;
+        box-sizing: border-box;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
       }
       th:first-child,
       td:first-child {
@@ -646,12 +657,14 @@
         box-shadow: 0 10px 24px rgba(14, 165, 233, 0.5);
       }
       .filter-icon {
+        display: none;
         font-size: 9px;
         color: #94a3b8;
         margin-left: 3px;
         pointer-events: none;
       }
       .filter-icon.filter-active {
+        display: inline;
         color: #f59e0b !important;
       }
       .excel-filter-menu {
@@ -897,7 +910,7 @@
             <th colspan="6" style="background: #059669 !important">
               SUPPLIER PAYMENTS
             </th>
-            <th colspan="7" style="background: #b91c1c !important">
+            <th colspan="8" style="background: #b91c1c !important">
               INVOICE AMOUNT
             </th>
             <th colspan="1" style="background: #4338ca !important">P&L</th>
@@ -1160,15 +1173,27 @@
             </th>
             <th
               style="
-                width: 85px;
+                width: 105px;
                 background: #991b1b;
                 color: #fff;
                 cursor: pointer;
               "
               onclick="openExcelFilterMenu(event, 'inv_deduct')"
             >
-              Deductions
+              Deduction / Addition
               <span class="filter-icon" data-key="inv_deduct">▼</span>
+            </th>
+            <th
+              style="
+                width: 90px;
+                background: #991b1b;
+                color: #fff;
+                cursor: pointer;
+              "
+              onclick="openExcelFilterMenu(event, 'inv_net_amount')"
+            >
+              Net Inv Amt
+              <span class="filter-icon" data-key="inv_net_amount">▼</span>
             </th>
             <th
               style="
@@ -1241,8 +1266,8 @@
         </thead>
         <tbody id="reportTableBody">
           <tr>
-            <td colspan="40" style="padding: 30px; color: #64748b">
-              Select date period and click "Fetch Data".
+            <td colspan="41" style="padding: 30px; color: #64748b">
+              Select date range &amp; click "Load Data" to generate report.
             </td>
           </tr>
         </tbody>
@@ -1739,7 +1764,7 @@
         activeMonthKey = "";
         document.getElementById("bottomTabsContainer").innerHTML = "";
         document.getElementById("reportTableBody").innerHTML =
-          `<tr><td colspan="40" style="padding: 30px; color: #0ea5e9; font-weight: 600;">⚡ Loading ${monthQueries[0].m.substring(0, 3)} ${String(monthQueries[0].y).slice(-2)}...</td></tr>`;
+          `<tr><td colspan="41" style="padding: 30px; color: #0ea5e9; font-weight: 600;">⚡ Loading ${monthQueries[0].m.substring(0, 3)} ${String(monthQueries[0].y).slice(-2)}...</td></tr>`;
 
         const loader = document.getElementById("loader");
         loader.style.display = "block";
@@ -2276,16 +2301,21 @@
               inv && inv.invoice_amount ? parseFloat(inv.invoice_amount) : 0;
             let inv_deduct =
               inv && inv.inv_deduct ? parseFloat(inv.inv_deduct) : 0;
+            let hasInvCalc = inv_amount > 0 || inv_deduct !== 0;
+            let inv_net_amount = hasInvCalc
+              ? (inv_amount - inv_deduct).toFixed(2)
+              : "";
+            let inv_total_num = hasInvCalc
+              ? Number(((inv_amount - inv_deduct) * 1.15).toFixed(2))
+              : null;
             let inv_total =
-              inv_amount > 0 || inv_deduct > 0
-                ? Number(((inv_amount - inv_deduct) * 1.15).toFixed(2))
-                : "";
+              inv_total_num !== null ? inv_total_num.toFixed(2) : "";
 
-            let hasInvTotal = inv_total !== "";
+            let hasInvTotal = inv_total_num !== null;
             let hasNetTotal = rent_total > 0;
             let plStatus = "";
             if (hasInvTotal && hasNetTotal)
-              plStatus = Number((inv_total - net_total).toFixed(2));
+              plStatus = Number((inv_total_num - net_total).toFixed(2));
             else if (hasInvTotal && !hasNetTotal)
               plStatus = "Not given to Supplier";
             else if (!hasInvTotal && hasNetTotal)
@@ -2310,7 +2340,12 @@
               bill_nr: bill_nr || "",
               bill_ot: bill_ot || "",
               driver_ot: driver_ot || "",
-              driver_amt: driver_amt ? driver_amt.toFixed(2) : "",
+              driver_amt: driver_amt
+                ? (() => {
+                    const r = Math.round(driver_amt * 100) / 100;
+                    return Number.isInteger(r) ? String(r) : r.toFixed(2);
+                  })()
+                : "",
               logsheet_cf,
               bill_cf,
               supplier_cf,
@@ -2326,6 +2361,7 @@
               net_total: net_total ? net_total.toFixed(2) : "",
               inv_subtotal: inv_amount ? inv_amount.toFixed(2) : "",
               inv_deduct: inv_deduct ? inv_deduct.toFixed(2) : "",
+              inv_net_amount: inv_net_amount || "",
               inv_total: inv_total || "",
               deduct_reason: inv ? inv.deduct_reason || "" : "",
               crn_no: inv ? inv.crn_no || "" : "",
@@ -2608,7 +2644,7 @@
               ? netSupplierViewMode === "compact"
                 ? 5
                 : 5 + netSupplierMonthKeys.length * 3
-              : 40;
+              : 41;
         tbody.innerHTML = `<tr><td colspan="${colSpan}" style="padding: 35px; text-align: center;"><div style="display:inline-flex; align-items:center; gap:8px; font-weight:600; color:#0ea5e9;"><div class="equalizer" style="height:20px; display:inline-flex;"><div class="equalizer-bar" style="width:4px;"></div><div class="equalizer-bar" style="width:4px;"></div><div class="equalizer-bar" style="width:4px;"></div></div> Loading ${key}...</div></td></tr>`;
         setTimeout(() => {
           applyAllFilters();
@@ -2619,6 +2655,10 @@
         const thead = document.querySelector("table thead");
         const tbl = document.querySelector(".table-wrapper table");
         if (tbl) {
+          tbl.classList.toggle(
+            "net-supplier-table",
+            activeMonthKey === "Net Supplier",
+          );
           tbl.style.minWidth =
             activeMonthKey === "Net Supplier" &&
             netSupplierViewMode === "compact"
@@ -2715,7 +2755,7 @@
               <th colspan="3" class="th-calc">CALCULATIONS</th>
               <th colspan="4" style="background:#be123c !important;">DIFFERENCE</th>
               <th colspan="6" style="background:#059669 !important;">SUPPLIER PAYMENTS</th>
-              <th colspan="7" style="background:#b91c1c !important;">INVOICE AMOUNT</th>
+              <th colspan="8" style="background:#b91c1c !important;">INVOICE AMOUNT</th>
               <th colspan="1" style="background:#4338ca !important;">P&L</th>
             </tr>
             <tr>
@@ -2751,7 +2791,8 @@
               <th style="width: 85px; background:#047857; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'rent_total')">Total <span class="filter-icon" data-key="rent_total">▼</span></th>
               <th style="width: 90px; background:#047857; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'net_total')">Net Total <span class="filter-icon" data-key="net_total">▼</span></th>
               <th style="width: 85px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'inv_subtotal')">Subtotal <span class="filter-icon" data-key="inv_subtotal">▼</span></th>
-              <th style="width: 85px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'inv_deduct')">Deductions <span class="filter-icon" data-key="inv_deduct">▼</span></th>
+              <th style="width: 105px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'inv_deduct')">Deduction / Addition <span class="filter-icon" data-key="inv_deduct">▼</span></th>
+              <th style="width: 90px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'inv_net_amount')">Net Inv Amt <span class="filter-icon" data-key="inv_net_amount">▼</span></th>
               <th style="width: 85px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'inv_total')">Total <span class="filter-icon" data-key="inv_total">▼</span></th>
               <th style="width: 120px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'deduct_reason')">Reason <span class="filter-icon" data-key="deduct_reason">▼</span></th>
               <th style="width: 90px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'crn_no')">CRN No <span class="filter-icon" data-key="crn_no">▼</span></th>
@@ -2775,7 +2816,7 @@
               ? netSupplierViewMode === "compact"
                 ? 5
                 : 5 + netSupplierMonthKeys.length * 3
-              : 40;
+              : 41;
         if (data.length === 0) {
           tbody.innerHTML = `<tr><td colspan="${colSpan}" style="padding: 20px;">No records available for this view.</td></tr>`;
           return;
@@ -2988,7 +3029,7 @@
               <td style="color:#000; font-weight:600; background-color: ${r.diff_bill_sup !== "" && Number(r.diff_bill_sup) !== 0 ? (Number(r.diff_bill_sup) > 0 ? "#dcfce7" : "#fee2e2") : "transparent"};">${r.diff_bill_sup !== "" && Number(r.diff_bill_sup) !== 0 ? r.diff_bill_sup : ""}</td>
               <td style="font-weight:700; color:#059669;">${r.supplier_payment || ""}</td>
               <td style="font-weight:700; color:#b91c1c;">${r.invoice_amount || ""}</td>
-              <td style="font-weight:700; background-color:${glBg}; color:${glColor}; font-size:11px;">${r.gain_loss}</td>
+              <td style="font-weight:700; background-color:${glBg}; color:${glColor}; font-size:11px;">${typeof r.gain_loss === "number" ? r.gain_loss.toFixed(2) : r.gain_loss}</td>
               <td style="font-weight:700; background-color:${statusBg}; color:${statusColor}; font-size:10px;">${r.status}</td>
               <td style="text-align:left; font-size:11px; max-width: 250px; width: 250px; white-space: normal; word-break: break-word;">${r.remark || "-"}</td>
               <td>${r.field_co || "-"}</td>
@@ -3122,13 +3163,14 @@
             <td style="font-weight:700;">${r.rent_total || ""}</td>
             <td style="font-weight:700; color:#059669;">${r.net_total || ""}</td>
             <td style="font-weight:600;">${r.inv_subtotal || ""}</td>
-            <td style="font-weight:600; color:#dc2626;">${r.inv_deduct || ""}</td>
+            <td style="font-weight:600; color:${r.inv_deduct ? (parseFloat(r.inv_deduct) < 0 ? '#16a34a' : '#dc2626') : '#dc2626'};">${r.inv_deduct ? Math.abs(parseFloat(r.inv_deduct)).toFixed(2) : ""}</td>
+            <td style="font-weight:600; color:#0ea5e9;">${r.inv_net_amount || ""}</td>
             <td style="font-weight:700; color:#b91c1c;">${r.inv_total || ""}</td>
             <td style="text-align:left; font-size:11px;">${r.deduct_reason || ""}</td>
             <td style="color:#0f766e; font-weight:600;">${r.crn_no || ""}</td>
             <td style="color:#1e40af; font-weight:600;">${r.inv_no || ""}</td>
             <td>${r.bill_no || ""}</td>
-            <td style="font-weight:700; background-color:${plBg}; color:${plColor}; font-size:11px;">${r.pl_status !== "" ? r.pl_status : ""}</td>
+            <td style="font-weight:700; background-color:${plBg}; color:${plColor}; font-size:11px;">${typeof r.pl_status === "number" ? r.pl_status.toFixed(2) : r.pl_status !== "" ? r.pl_status : ""}</td>
           `;
           frag.appendChild(tr);
         });
@@ -3438,6 +3480,7 @@
               r.net_total,
               r.inv_subtotal,
               r.inv_deduct,
+              r.inv_net_amount || "",
               r.inv_total,
               r.deduct_reason,
               r.crn_no,
@@ -3653,6 +3696,7 @@
               r.net_total,
               r.inv_subtotal,
               r.inv_deduct,
+              r.inv_net_amount || "",
               r.inv_total,
               r.deduct_reason,
               r.crn_no,
@@ -3904,6 +3948,7 @@
               r.net_total,
               r.inv_subtotal,
               r.inv_deduct,
+              r.inv_net_amount || "",
               r.inv_total,
               r.deduct_reason,
               r.crn_no,
