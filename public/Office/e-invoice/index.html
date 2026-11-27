@@ -1471,7 +1471,7 @@
           COMPANY NAME
         </div>
         <div class="ts-main-title" id="tsTitleHeader">
-          Equipment Timesheet for the month of Mmm YYYY
+          Equipment Timesheet for the Month of Mmm YYYY
         </div>
         <div
           style="
@@ -1490,6 +1490,20 @@
         <thead id="timesheetThead"></thead>
         <tbody id="timesheetTbody"></tbody>
       </table>
+      <div
+        id="tsUnmatchedOtBox"
+        style="
+          display: none;
+          margin-top: 12px;
+          padding: 8px 12px;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          background: #f8fafc;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #0f172a;
+        "
+      ></div>
     </div>
 
     <!-- ================= EDIT BILL POPUP MODAL ================= -->
@@ -2890,7 +2904,7 @@
         const monthName = SHORT_MONTHS[targetMonth - 1] || "Mmm";
         const tsTitleEl = document.getElementById("tsTitleHeader");
         if (tsTitleEl) {
-          tsTitleEl.innerText = `Equipment Timesheet for the month of ${monthName} ${targetYear}`;
+          tsTitleEl.innerText = `Equipment Timesheet for the Month of ${monthName} ${targetYear}`;
         }
 
         const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
@@ -2956,17 +2970,36 @@
           const qty = parseFloat(row.qty) || 0;
 
           if (isOT) {
-            overtimes.push({ seq, qty });
+            overtimes.push({ seq, vtype, qty });
           } else {
             equipments.push({ seq, vtype, normalQty: qty, otQty: 0 });
           }
         });
 
+        const unmatchedOvertimes = [];
         overtimes.forEach((ot) => {
           let match = equipments.find((e) => e.seq === ot.seq);
-          if (!match && equipments.length > 0) match = equipments[0];
-          if (match) match.otQty += ot.qty;
+          if (match) {
+            match.otQty += ot.qty;
+          } else {
+            unmatchedOvertimes.push(ot);
+          }
         });
+
+        const unmatchedBox = document.getElementById("tsUnmatchedOtBox");
+        if (unmatchedBox) {
+          if (unmatchedOvertimes.length > 0) {
+            const totalUnmatchedOt = unmatchedOvertimes.reduce(
+              (sum, item) => sum + (item.qty || 0),
+              0,
+            );
+            unmatchedBox.innerHTML = `<strong>Total Over Time:</strong> <span style="color:#b91c1c; font-weight:800;">${totalUnmatchedOt}</span>`;
+            unmatchedBox.style.display = "block";
+          } else {
+            unmatchedBox.innerHTML = "";
+            unmatchedBox.style.display = "none";
+          }
+        }
 
         tbody.innerHTML = "";
         if (equipments.length === 0) {
