@@ -11,12 +11,16 @@ router = APIRouter(prefix="/py/payment", tags=["Payment Report"])
 
 from typing import List, Optional, Any
 
+import re
+
 class InvoiceEditRecord(BaseModel):
     month: str
     plate: str
     site: str
     inv_nr: Optional[Any] = None
     inv_ot: Optional[Any] = None 
+    inv_nr_rate: Optional[Any] = None
+    inv_ot_rate: Optional[Any] = None
     inv_amount: Optional[Any] = None
     inv_deduct: Optional[Any] = None
     deduct_reason: Optional[str] = ""
@@ -26,6 +30,12 @@ class InvoiceEditRecord(BaseModel):
 
 class BulkInvoiceRequest(BaseModel):
     records: List[InvoiceEditRecord]
+
+def _strip_rate_diff_tag(reason_str: str) -> str:
+    cleaned = re.sub(r"\s*\|\s*Inv Rate Diff:\s*[+-]?\d+(?:\.\d+)?", "", reason_str or "")
+    cleaned = re.sub(r"Inv Rate Diff:\s*[+-]?\d+(?:\.\d+)?\s*\|\s*", "", cleaned)
+    cleaned = re.sub(r"Inv Rate Diff:\s*[+-]?\d+(?:\.\d+)?", "", cleaned)
+    return cleaned.strip()
 
 @router.post("/bulk-save-invoices")
 async def bulk_save_invoices(payload: BulkInvoiceRequest):
@@ -42,11 +52,11 @@ async def bulk_save_invoices(payload: BulkInvoiceRequest):
         query = """
             INSERT INTO invoice_records (
                 plate_no, month, site_name, invoice_no, bill_no, 
-                bill_nr, bill_ot, invoice_amount, inv_deduct, deduct_reason, crn_no, zoho
+                bill_nr, bill_ot, inv_nr_rate, inv_ot_rate, invoice_amount, inv_deduct, deduct_reason, crn_no, zoho
             )
             VALUES (
                 %(plate)s, %(month)s, %(site)s, COALESCE(%(inv_no)s, ''), COALESCE(%(bill_no)s, ''), 
-                %(inv_nr)s, %(inv_ot)s, %(inv_amount)s, COALESCE(%(inv_deduct)s, 0), COALESCE(%(deduct_reason)s, ''), COALESCE(%(crn_no)s, ''), 'No'
+                %(inv_nr)s, %(inv_ot)s, %(inv_nr_rate)s, %(inv_ot_rate)s, %(inv_amount)s, COALESCE(%(inv_deduct)s, 0), COALESCE(%(deduct_reason)s, ''), COALESCE(%(crn_no)s, ''), 'No'
             )
             ON CONFLICT (plate_no, month, site_name)
             DO UPDATE SET 
@@ -54,6 +64,8 @@ async def bulk_save_invoices(payload: BulkInvoiceRequest):
                 bill_no = CASE WHEN %(has_bill_no)s THEN EXCLUDED.bill_no ELSE invoice_records.bill_no END,
                 bill_nr = CASE WHEN %(has_inv_nr)s THEN EXCLUDED.bill_nr ELSE invoice_records.bill_nr END,
                 bill_ot = CASE WHEN %(has_inv_ot)s THEN EXCLUDED.bill_ot ELSE invoice_records.bill_ot END,
+                inv_nr_rate = CASE WHEN %(has_inv_nr_rate)s THEN EXCLUDED.inv_nr_rate ELSE invoice_records.inv_nr_rate END,
+                inv_ot_rate = CASE WHEN %(has_inv_ot_rate)s THEN EXCLUDED.inv_ot_rate ELSE invoice_records.inv_ot_rate END,
                 invoice_amount = CASE WHEN %(has_inv_amount)s THEN EXCLUDED.invoice_amount ELSE invoice_records.invoice_amount END,
                 inv_deduct = CASE WHEN %(has_inv_deduct)s THEN EXCLUDED.inv_deduct ELSE invoice_records.inv_deduct END,
                 deduct_reason = CASE WHEN %(has_deduct_reason)s THEN EXCLUDED.deduct_reason ELSE invoice_records.deduct_reason END,
@@ -69,10 +81,45 @@ async def bulk_save_invoices(payload: BulkInvoiceRequest):
             d["has_bill_no"] = "bill_no" in provided
             d["has_inv_nr"] = "inv_nr" in provided
             d["has_inv_ot"] = "inv_ot" in provided
+            d["has_inv_nr_rate"] = "inv_nr_rate" in provided
+            d["has_inv_ot_rate"] = "inv_ot_rate" in provided
             d["has_inv_amount"] = "inv_amount" in provided
             d["has_inv_deduct"] = "inv_deduct" in provided
             d["has_deduct_reason"] = "deduct_reason" in provided
             d["has_crn_no"] = "crn_no" in provided
+
+            if d["has_inv_nr_rate"] or d["has_inv_ot_rate"] or d["has_inv_amount"] or d["has_inv_nr"] or d["has_inv_ot"]:
+                cur.execute(
+                    "SELECT bill_nr, bill_ot, inv_nr_rate, inv_ot_rate, invoice_amount, deduct_reason FROM invoice_records WHERE plate_no=%s AND month=%s AND site_name=%s",
+                    (d["plate"], d["month"], d["site"]),
+                )
+                ex = cur.fetchone()
+                ex_nr, ex_ot, ex_nr_rate, ex_ot_rate, ex_amt, ex_reason = ex if ex else (None, None, None, None, None, "")
+
+                eff_nr = float(d["inv_nr"] if d["has_inv_nr"] else (ex_nr or 0))
+                eff_ot = float(d["inv_ot"] if d["has_inv_ot"] else (ex_ot or 0))
+                eff_nr_rate = d["inv_nr_rate"] if d["has_inv_nr_rate"] else ex_nr_rate
+                eff_ot_rate = d["inv_ot_rate"] if d["has_inv_ot_rate"] else ex_ot_rate
+                eff_amt = d["inv_amount"] if d["has_inv_amount"] else ex_amt
+                eff_reason = d["deduct_reason"] if d["has_deduct_reason"] else (ex_reason or "")
+
+                if eff_nr_rate is not None or eff_ot_rate is not None:
+                    expected_sub = round((eff_nr * float(eff_nr_rate or 0)) + (eff_ot * float(eff_ot_rate or 0)), 2)
+                    if eff_amt is None or (float(eff_amt) == 0 and not d["has_inv_amount"]):
+                        d["inv_amount"] = expected_sub
+                        d["has_inv_amount"] = True
+                    else:
+                        diff = round(float(eff_amt) - expected_sub, 2)
+                        base_reason = _strip_rate_diff_tag(eff_reason)
+                        if abs(diff) >= 0.01:
+                            sign = "+" if diff > 0 else ""
+                            tag = f"Inv Rate Diff: {sign}{diff:.2f}"
+                            d["deduct_reason"] = f"{base_reason} | {tag}" if base_reason else tag
+                            d["has_deduct_reason"] = True
+                        elif base_reason != (eff_reason or "").strip():
+                            d["deduct_reason"] = base_reason
+                            d["has_deduct_reason"] = True
+
             record_dicts.append(d)
         # 🟢 ഒറ്റയടിക്ക് അതിവേഗം ഡാറ്റ അപ്ഡേറ്റ് ചെയ്യുന്നു
         execute_batch(cur, query, record_dicts, page_size=100)

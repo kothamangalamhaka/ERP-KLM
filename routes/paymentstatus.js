@@ -822,12 +822,14 @@ router.post("/save-master-edits", async (req, res) => {
     // 1. Save Normal Invoice Records (including inv_deduct & deduct_reason)
     if (Array.isArray(invoiceRecords)) {
       for (let row of invoiceRecords) {
-        const {
+        let {
           month,
           plate,
           site,
           inv_nr,
           inv_ot,
+          inv_nr_rate,
+          inv_ot_rate,
           inv_no,
           inv_amount,
           bill_no,
@@ -838,28 +840,69 @@ router.post("/save-master-edits", async (req, res) => {
         if (!month || !plate) continue;
 
         const checkInv = await client.query(
-          "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
+          "SELECT id, bill_nr, bill_ot, inv_nr_rate, inv_ot_rate, invoice_amount, deduct_reason FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
           [plate, month, site],
         );
+
+        const ex = checkInv.rows[0] || {};
+        if (
+          inv_nr_rate !== undefined ||
+          inv_ot_rate !== undefined ||
+          inv_amount !== undefined ||
+          inv_nr !== undefined ||
+          inv_ot !== undefined
+        ) {
+          const effNr = Number(inv_nr !== undefined ? inv_nr : ex.bill_nr || 0) || 0;
+          const effOt = Number(inv_ot !== undefined ? inv_ot : ex.bill_ot || 0) || 0;
+          const effNrRate = inv_nr_rate !== undefined ? inv_nr_rate : ex.inv_nr_rate;
+          const effOtRate = inv_ot_rate !== undefined ? inv_ot_rate : ex.inv_ot_rate;
+          const effAmt = inv_amount !== undefined ? inv_amount : ex.invoice_amount;
+          const effReason = deduct_reason !== undefined ? deduct_reason : (ex.deduct_reason || "");
+
+          if (effNrRate !== null && effNrRate !== undefined || effOtRate !== null && effOtRate !== undefined) {
+            const expectedSub = Number(((effNr * Number(effNrRate || 0)) + (effOt * Number(effOtRate || 0))).toFixed(2));
+            if (effAmt === null || effAmt === undefined || (Number(effAmt) === 0 && inv_amount === undefined)) {
+              inv_amount = expectedSub;
+            } else {
+              const diff = Number((Number(effAmt) - expectedSub).toFixed(2));
+              const baseReason = String(effReason || "")
+                .replace(/\s*\|\s*Inv Rate Diff:\s*[+-]?\d+(?:\.\d+)?/g, "")
+                .replace(/Inv Rate Diff:\s*[+-]?\d+(?:\.\d+)?\s*\|\s*/g, "")
+                .replace(/Inv Rate Diff:\s*[+-]?\d+(?:\.\d+)?/g, "")
+                .trim();
+              if (Math.abs(diff) >= 0.01) {
+                const sign = diff > 0 ? "+" : "";
+                const tag = `Inv Rate Diff: ${sign}${diff.toFixed(2)}`;
+                deduct_reason = baseReason ? `${baseReason} | ${tag}` : tag;
+              } else if (baseReason !== String(effReason || "").trim()) {
+                deduct_reason = baseReason;
+              }
+            }
+          }
+        }
 
         if (checkInv.rows.length > 0) {
           await client.query(
             `UPDATE invoice_records SET 
-              invoice_no = CASE WHEN $12 THEN $1 ELSE invoice_no END,
-              bill_no = CASE WHEN $13 THEN $2 ELSE bill_no END,
-              bill_nr = CASE WHEN $14 THEN $3 ELSE bill_nr END,
-              bill_ot = CASE WHEN $15 THEN $4 ELSE bill_ot END,
-              invoice_amount = CASE WHEN $16 THEN $5 ELSE invoice_amount END,
-              inv_deduct = CASE WHEN $17 THEN $6 ELSE inv_deduct END,
-              deduct_reason = CASE WHEN $18 THEN $7 ELSE deduct_reason END,
-              crn_no = CASE WHEN $19 THEN $8 ELSE crn_no END,
+              invoice_no = CASE WHEN $14 THEN $1 ELSE invoice_no END,
+              bill_no = CASE WHEN $15 THEN $2 ELSE bill_no END,
+              bill_nr = CASE WHEN $16 THEN $3 ELSE bill_nr END,
+              bill_ot = CASE WHEN $17 THEN $4 ELSE bill_ot END,
+              inv_nr_rate = CASE WHEN $18 THEN $5 ELSE inv_nr_rate END,
+              inv_ot_rate = CASE WHEN $19 THEN $6 ELSE inv_ot_rate END,
+              invoice_amount = CASE WHEN $20 THEN $7 ELSE invoice_amount END,
+              inv_deduct = CASE WHEN $21 THEN $8 ELSE inv_deduct END,
+              deduct_reason = CASE WHEN $22 THEN $9 ELSE deduct_reason END,
+              crn_no = CASE WHEN $23 THEN $10 ELSE crn_no END,
               updated_at = CURRENT_TIMESTAMP 
-             WHERE plate_no=$9 AND month=$10 AND site_name=$11`,
+             WHERE plate_no=$11 AND month=$12 AND site_name=$13`,
             [
               inv_no ?? "",
               bill_no ?? "",
               inv_nr ?? null,
               inv_ot ?? null,
+              inv_nr_rate ?? null,
+              inv_ot_rate ?? null,
               inv_amount ?? null,
               inv_deduct ?? 0,
               deduct_reason ?? "",
@@ -871,6 +914,8 @@ router.post("/save-master-edits", async (req, res) => {
               bill_no !== undefined,
               inv_nr !== undefined,
               inv_ot !== undefined,
+              inv_nr_rate !== undefined,
+              inv_ot_rate !== undefined,
               inv_amount !== undefined,
               inv_deduct !== undefined,
               deduct_reason !== undefined,
@@ -879,7 +924,7 @@ router.post("/save-master-edits", async (req, res) => {
           );
         } else {
           await client.query(
-            "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount, inv_deduct, deduct_reason, crn_no, zoho) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'No')",
+            "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, inv_nr_rate, inv_ot_rate, invoice_amount, inv_deduct, deduct_reason, crn_no, zoho) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'No')",
             [
               plate,
               month,
@@ -888,6 +933,8 @@ router.post("/save-master-edits", async (req, res) => {
               bill_no ?? "",
               inv_nr ?? null,
               inv_ot ?? null,
+              inv_nr_rate ?? null,
+              inv_ot_rate ?? null,
               inv_amount ?? null,
               inv_deduct ?? 0,
               deduct_reason ?? "",

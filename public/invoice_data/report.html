@@ -2089,6 +2089,8 @@
               <col class="col-grp-amt" style="width: 90px" />
               <col class="col-grp-amt" style="width: 80px" />
               <col class="col-grp-amt" style="width: 90px" />
+              <col class="col-grp-inv-red" style="width: 90px" />
+              <col class="col-grp-inv-red" style="width: 90px" />
               <col class="col-grp-inv-red" style="width: 100px" />
               <col class="col-grp-inv-red" style="width: 110px" />
               <col class="col-grp-inv-red" style="width: 110px" />
@@ -2115,7 +2117,7 @@
                 <th colspan="2" class="th-driver">For Driver</th>
                 <th colspan="5" class="th-diff">DIFFERENCE</th>
                 <th colspan="5" class="th-amt">AMOUNT</th>
-                <th colspan="7" class="th-inv-red">INVOICE</th>
+                <th colspan="9" class="th-inv-red">INVOICE</th>
                 <th colspan="4" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
                 <th colspan="2" class="th-gen-nr th-gen">
@@ -2315,6 +2317,26 @@
 
                 <th
                   class="th-inv-red"
+                  style="width: 90px"
+                  data-col-key="inv_nr_rate"
+                  onclick="openExcelFilterMenu(event, 'inv_nr_rate')"
+                  title="Inv NR Rate"
+                >
+                  NR Rate
+                  <span class="filter-icon" data-key="inv_nr_rate">▼</span>
+                </th>
+                <th
+                  class="th-inv-red"
+                  style="width: 90px"
+                  data-col-key="inv_ot_rate"
+                  onclick="openExcelFilterMenu(event, 'inv_ot_rate')"
+                  title="Inv OT Rate"
+                >
+                  OT Rate
+                  <span class="filter-icon" data-key="inv_ot_rate">▼</span>
+                </th>
+                <th
+                  class="th-inv-red"
                   data-col-key="inv_subtotal"
                   onclick="openExcelFilterMenu(event, 'inv_subtotal')"
                 >
@@ -2434,7 +2456,7 @@
             </thead>
             <tbody id="reportBody">
               <tr>
-                <td colspan="41" style="padding: 30px; color: #64748b">
+                <td colspan="43" style="padding: 30px; color: #64748b">
                   Click "Load Data" to fetch reports.
                 </td>
               </tr>
@@ -3995,6 +4017,16 @@
             let diff_clear = invData ? invData.diff_clear || "No" : "No";
             let vbill_notes =
               billData && billData.remark ? billData.remark : "";
+            let inv_nr_rate_raw = invData ? invData.inv_nr_rate : null;
+            let inv_nr_rate =
+              inv_nr_rate_raw !== null && inv_nr_rate_raw !== "" && inv_nr_rate_raw !== undefined
+                ? parseFloat(inv_nr_rate_raw)
+                : "";
+            let inv_ot_rate_raw = invData ? invData.inv_ot_rate : null;
+            let inv_ot_rate =
+              inv_ot_rate_raw !== null && inv_ot_rate_raw !== "" && inv_ot_rate_raw !== undefined
+                ? parseFloat(inv_ot_rate_raw)
+                : "";
             let inv_amount = invData
               ? parseFloat(invData.invoice_amount) || 0
               : 0;
@@ -4014,6 +4046,19 @@
             let calc_ts_ot = parseFloat(ts_ot) || 0;
             let calc_inv_nr = parseFloat(inv_nr) || 0;
             let calc_inv_ot = parseFloat(inv_ot) || 0;
+
+            if (
+              inv_amount > 0 &&
+              inv_nr_rate === "" &&
+              inv_ot_rate === "" &&
+              (calc_inv_nr > 0 || calc_inv_ot > 0)
+            ) {
+              const denom = calc_inv_nr + calc_inv_ot * 0.7;
+              if (denom > 0) {
+                inv_nr_rate = inv_amount / denom;
+                inv_ot_rate = inv_nr_rate * 0.7;
+              }
+            }
 
             let diff_nr = "";
             let diff_ot = "";
@@ -4171,6 +4216,8 @@
               bill_rent: bill_rent > 0 ? bill_rent.toFixed(2) : "",
               rent_vat: rent_vat > 0 ? rent_vat.toFixed(2) : "",
               rent_total: rent_total > 0 ? rent_total.toFixed(2) : "",
+              inv_nr_rate: inv_nr_rate !== "" ? Number(inv_nr_rate).toFixed(2) : "",
+              inv_ot_rate: inv_ot_rate !== "" ? Number(inv_ot_rate).toFixed(2) : "",
               inv_subtotal: inv_amount > 0 ? inv_amount.toFixed(2) : "",
               inv_deduct: inv_deduct !== 0 ? inv_deduct.toFixed(2) : "",
               inv_total:
@@ -4503,7 +4550,7 @@
         tbody.innerHTML = "";
         if (data.length === 0) {
           tbody.innerHTML =
-            '<tr><td colspan="41" style="padding: 20px;">No data found.</td></tr>';
+            '<tr><td colspan="43" style="padding: 20px;">No data found.</td></tr>';
           return;
         }
         const fragment = document.createDocumentFragment();
@@ -4540,6 +4587,8 @@
             <td class="col-amt" style="font-weight: 700;">${row.bill_rent ? Number(row.bill_rent).toFixed(2) : ""}</td>
             <td class="col-amt" style="font-weight: 700;">${row.rent_vat ? Number(row.rent_vat).toFixed(2) : ""}</td>
             <td class="col-amt" style="font-weight: 700;">${row.rent_total ? Number(row.rent_total).toFixed(2) : ""}</td>
+            <td class="col-inv-red inv-nr-rate-cell" data-field="inv_nr_rate" style="color:#0f172a;">${row.inv_nr_rate !== "" && row.inv_nr_rate !== undefined ? Number(row.inv_nr_rate).toFixed(2) : ""}</td>
+            <td class="col-inv-red inv-ot-rate-cell" data-field="inv_ot_rate" style="color:#0f172a;">${row.inv_ot_rate !== "" && row.inv_ot_rate !== undefined ? Number(row.inv_ot_rate).toFixed(2) : ""}</td>
             <td class="col-inv-red editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_subtotal ? Number(row.inv_subtotal).toFixed(2) : ""}</td>
             <td class="col-inv-red inv-deduct-cell" style="font-weight: 700; color: #dc2626;" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}">${row.inv_deduct}</td>
             <td class="col-inv-red inv-total-cell" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
@@ -5064,6 +5113,20 @@
             let t = invOtTd.innerText.trim().replace(/,/g, "");
             let p = parseFloat(t);
             recordPayload.inv_ot = t === "" ? null : isNaN(p) ? null : p;
+          }
+
+          const invNrRateTd = tr.querySelector('[data-field="inv_nr_rate"]');
+          if (invNrRateTd && invNrRateTd.dataset.myEdited === "true") {
+            let t = invNrRateTd.innerText.trim().replace(/,/g, "");
+            let p = parseFloat(t);
+            recordPayload.inv_nr_rate = t === "" ? null : isNaN(p) ? null : p;
+          }
+
+          const invOtRateTd = tr.querySelector('[data-field="inv_ot_rate"]');
+          if (invOtRateTd && invOtRateTd.dataset.myEdited === "true") {
+            let t = invOtRateTd.innerText.trim().replace(/,/g, "");
+            let p = parseFloat(t);
+            recordPayload.inv_ot_rate = t === "" ? null : isNaN(p) ? null : p;
           }
 
           const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
@@ -5929,6 +5992,8 @@
             "",
             "",
             "",
+            "",
+            "",
             "EXTRA DETAILS",
             "",
             "",
@@ -5965,6 +6030,8 @@
             "Rent",
             "VAT",
             "Total",
+            "Inv NR Rate",
+            "Inv OT Rate",
             "Subtotal",
             "Deductions",
             "Total",
@@ -6012,6 +6079,8 @@
             r.bill_rent || "",
             r.rent_vat || "",
             r.rent_total || "",
+            r.inv_nr_rate || "",
+            r.inv_ot_rate || "",
             r.inv_subtotal || "",
             r.inv_deduct || "",
             r.inv_total || "",
@@ -6028,7 +6097,7 @@
           ]);
         });
 
-        // Total 41 columns (Indices 0 to 40)
+        // Total 43 columns (Indices 0 to 42)
         let merges = [
           { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, // VEHICLE INFO (Cols 0..9)
           { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // Logsheet Collected (Cols 10..11)
@@ -6037,9 +6106,9 @@
           { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // For Driver (Cols 16..17)
           { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFFERENCE (Cols 18..22)
           { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMOUNT (Cols 23..27)
-          { s: { r: 0, c: 28 }, e: { r: 0, c: 34 } }, // INVOICE (Cols 28..34)
-          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (Cols 35..38)
-          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (Cols 39..40)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 36 } }, // INVOICE (Cols 28..36)
+          { s: { r: 0, c: 37 }, e: { r: 0, c: 40 } }, // EXTRA DETAILS (Cols 37..40)
+          { s: { r: 0, c: 41 }, e: { r: 0, c: 42 } }, // 31 Considered as NR (Cols 41..42)
         ];
         return {
           sheet_name: "Report",
@@ -6087,6 +6156,8 @@
             "",
             "",
             "",
+            "",
+            "",
             "EXTRA DETAILS",
             "",
             "",
@@ -6123,6 +6194,8 @@
             "Rent",
             "VAT",
             "Total",
+            "Inv NR Rate",
+            "Inv OT Rate",
             "Subtotal",
             "Deductions",
             "Total",
@@ -6169,6 +6242,8 @@
             r.bill_rent || "",
             r.rent_vat || "",
             r.rent_total || "",
+            r.inv_nr_rate || "",
+            r.inv_ot_rate || "",
             r.inv_subtotal || "",
             r.inv_deduct || "",
             r.inv_total || "",
@@ -6193,9 +6268,9 @@
           { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // For Driver (Cols 16..17)
           { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFFERENCE (Cols 18..22)
           { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMOUNT (Cols 23..27)
-          { s: { r: 0, c: 28 }, e: { r: 0, c: 34 } }, // INVOICE (Cols 28..34)
-          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (Cols 35..38)
-          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (Cols 39..40)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 36 } }, // INVOICE (Cols 28..36)
+          { s: { r: 0, c: 37 }, e: { r: 0, c: 40 } }, // EXTRA DETAILS (Cols 37..40)
+          { s: { r: 0, c: 41 }, e: { r: 0, c: 42 } }, // 31 Considered as NR (Cols 41..42)
         ];
 
         return {
@@ -6547,7 +6622,7 @@
 
         document
           .querySelectorAll(
-            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell, .crn-no-cell",
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-nr-rate-cell, .inv-ot-rate-cell, .inv-deduct-cell, .deduct-reason-cell, .crn-no-cell",
           )
           .forEach((td) => {
             td.setAttribute("contenteditable", "true");
@@ -6666,11 +6741,13 @@
         if (btnSpecial) btnSpecial.style.removeProperty("display");
 
         updateEditButtonsState(false);
-        document.querySelectorAll(".editable-field").forEach((td) => {
-          td.removeAttribute("contenteditable");
-          td.classList.remove("edit-active", "formula-error");
-          delete td.dataset.myEdited;
-        });
+        document
+          .querySelectorAll(".editable-field, .inv-nr-rate-cell, .inv-ot-rate-cell")
+          .forEach((td) => {
+            td.removeAttribute("contenteditable");
+            td.classList.remove("edit-active", "formula-error");
+            delete td.dataset.myEdited;
+          });
         document
           .querySelectorAll("#reportBody tr.row-edited")
           .forEach((tr) => tr.classList.remove("row-edited"));
@@ -6761,6 +6838,22 @@
               let t = invOtTd.innerText.trim().replace(/,/g, "");
               let p = parseFloat(t);
               invRec.inv_ot = t === "" ? null : isNaN(p) ? null : p;
+              hasInvChange = true;
+            }
+
+            const invNrRateTd = tr.querySelector('[data-field="inv_nr_rate"]');
+            if (invNrRateTd && invNrRateTd.dataset.myEdited === "true") {
+              let t = invNrRateTd.innerText.trim().replace(/,/g, "");
+              let p = parseFloat(t);
+              invRec.inv_nr_rate = t === "" ? null : isNaN(p) ? null : p;
+              hasInvChange = true;
+            }
+
+            const invOtRateTd = tr.querySelector('[data-field="inv_ot_rate"]');
+            if (invOtRateTd && invOtRateTd.dataset.myEdited === "true") {
+              let t = invOtRateTd.innerText.trim().replace(/,/g, "");
+              let p = parseFloat(t);
+              invRec.inv_ot_rate = t === "" ? null : isNaN(p) ? null : p;
               hasInvChange = true;
             }
 
@@ -7920,7 +8013,10 @@
 
             const invNrTd = tr.querySelector('[data-field="inv_nr"]');
             const invOtTd = tr.querySelector('[data-field="inv_ot"]');
+            const invNrRateTd = tr.querySelector('[data-field="inv_nr_rate"]');
+            const invOtRateTd = tr.querySelector('[data-field="inv_ot_rate"]');
             const invAmtTd = tr.querySelector('[data-field="inv_amount"]');
+            const reasonTd = tr.querySelector(".deduct-reason-cell");
             const invNoTd = tr.querySelector('[data-field="inv_no"]');
             const billNoTd = tr.querySelector('[data-field="bill_no"]');
 
@@ -7928,10 +8024,18 @@
               invNrTd.innerText = rec.inv_nr !== null ? rec.inv_nr : "";
             if (canUpdateCell(invOtTd) && rec.inv_ot !== undefined)
               invOtTd.innerText = rec.inv_ot !== null ? rec.inv_ot : "";
+            if (canUpdateCell(invNrRateTd) && rec.inv_nr_rate !== undefined)
+              invNrRateTd.innerText =
+                rec.inv_nr_rate !== null ? Number(rec.inv_nr_rate).toFixed(2) : "";
+            if (canUpdateCell(invOtRateTd) && rec.inv_ot_rate !== undefined)
+              invOtRateTd.innerText =
+                rec.inv_ot_rate !== null ? Number(rec.inv_ot_rate).toFixed(2) : "";
             if (canUpdateCell(invAmtTd) && rec.inv_amount !== undefined)
               invAmtTd.innerText = rec.inv_amount
                 ? Number(rec.inv_amount).toFixed(2)
                 : "";
+            if (canUpdateCell(reasonTd) && rec.deduct_reason !== undefined)
+              reasonTd.innerText = rec.deduct_reason || "";
             if (canUpdateCell(invNoTd) && rec.inv_no !== undefined)
               invNoTd.innerText = rec.inv_no || "";
             if (canUpdateCell(billNoTd) && rec.bill_no !== undefined)
