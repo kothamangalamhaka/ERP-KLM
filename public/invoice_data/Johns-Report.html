@@ -1726,6 +1726,8 @@
       }
 
       let activeFetchAbortController = null;
+      let isFetchingReportData = false;
+      let pendingExcelExportAfterLoad = false;
 
       async function loadAllSelectedMonths() {
         if (
@@ -1760,6 +1762,8 @@
         activeFetchAbortController = new AbortController();
         const signal = activeFetchAbortController.signal;
 
+        isFetchingReportData = true;
+        pendingExcelExportAfterLoad = false;
         monthsDataset = {};
         activeMonthKey = "";
         document.getElementById("bottomTabsContainer").innerHTML = "";
@@ -1803,10 +1807,18 @@
           }
         }
 
+        if (signal.aborted) return;
+
         generateMasterDataset();
         renderBottomTabs();
 
         loader.style.display = "none";
+        isFetchingReportData = false;
+
+        if (pendingExcelExportAfterLoad) {
+          pendingExcelExportAfterLoad = false;
+          exportToExcelWorkbook();
+        }
       }
 
       function transformData(raw, monthStr, yearNum) {
@@ -2817,12 +2829,12 @@
                 ? 5
                 : 5 + netSupplierMonthKeys.length * 3
               : 41;
+        const badgeContainer = document.getElementById("diffSummaryBadges");
         if (data.length === 0) {
+          if (badgeContainer) badgeContainer.innerHTML = "";
           tbody.innerHTML = `<tr><td colspan="${colSpan}" style="padding: 20px;">No records available for this view.</td></tr>`;
           return;
         }
-
-        const badgeContainer = document.getElementById("diffSummaryBadges");
 
         if (activeMonthKey === "Net Supplier") {
           let grandSup = 0;
@@ -3443,9 +3455,11 @@
           const raw = await res.json();
           if (!raw.success) throw new Error(raw.message);
 
+          const monthMapForSummary = {};
           const sheets = queries.map((q) => {
             const label = `${q.m.substring(0, 3)} ${String(q.y).slice(-2)}`;
             const list = transformData(raw, q.m, q.y);
+            monthMapForSummary[label] = list;
             const rows = list.map((r) => [
               r.sn,
               r.site,
@@ -3491,12 +3505,115 @@
             return { sheet_name: label, rows: rows };
           });
 
+          sheets.unshift(buildSummarisedViewSheet(monthMapForSummary));
           await sendExcelBlobRequest(sheets);
         } catch (err) {
           alert("Export Error: " + err.message);
         } finally {
           hideEqualizer();
         }
+      }
+
+      function buildSummarisedViewSheet(monthMap) {
+        const rows = [];
+        let totRows = 0,
+          totSup = 0,
+          totInv = 0,
+          totPL = 0,
+          totLogSup = 0,
+          totBillSup = 0,
+          totBillLog = 0,
+          totNotGivenSup = 0,
+          totIssuedAdv = 0,
+          totBillNotRec = 0;
+
+        Object.keys(monthMap).forEach((mKey) => {
+          const list = monthMap[mKey] || [];
+          let mSup = 0,
+            mInv = 0,
+            mPL = 0,
+            mLogSup = 0,
+            mBillSup = 0,
+            mBillLog = 0,
+            mNotGivenSup = 0,
+            mIssuedAdv = 0,
+            mBillNotRec = 0;
+
+          list.forEach((r) => {
+            const sVal = parseFloat(r.net_total);
+            if (!isNaN(sVal)) mSup += sVal;
+            const iVal = parseFloat(r.inv_total);
+            if (!isNaN(iVal)) mInv += iVal;
+
+            if (typeof r.pl_status === "number") {
+              mPL += r.pl_status;
+            } else if (
+              r.pl_status !== "" &&
+              r.pl_status !== null &&
+              !isNaN(Number(r.pl_status))
+            ) {
+              mPL += Number(r.pl_status);
+            } else if (r.pl_status === "Not given to Supplier") {
+              mNotGivenSup++;
+            } else if (r.pl_status === "Issued Adv to Supplier") {
+              mIssuedAdv++;
+            } else {
+              mBillNotRec++;
+            }
+
+            const d1 = parseFloat(r.diff_log_sup);
+            if (!isNaN(d1)) mLogSup += d1;
+            const d2 = parseFloat(r.diff_bill_sup);
+            if (!isNaN(d2)) mBillSup += d2;
+            const d3 = parseFloat(r.diff_bill_log);
+            if (!isNaN(d3)) mBillLog += d3;
+          });
+
+          totRows += list.length;
+          totSup += mSup;
+          totInv += mInv;
+          totPL += mPL;
+          totLogSup += mLogSup;
+          totBillSup += mBillSup;
+          totBillLog += mBillLog;
+          totNotGivenSup += mNotGivenSup;
+          totIssuedAdv += mIssuedAdv;
+          totBillNotRec += mBillNotRec;
+
+          rows.push([
+            mKey,
+            list.length,
+            Number(mSup.toFixed(2)),
+            Number(mInv.toFixed(2)),
+            Number(mPL.toFixed(2)),
+            Number(mLogSup.toFixed(2)),
+            Number(mBillSup.toFixed(2)),
+            Number(mBillLog.toFixed(2)),
+            mNotGivenSup,
+            mIssuedAdv,
+            mBillNotRec,
+          ]);
+        });
+
+        rows.push([
+          "TOTAL / OVERALL",
+          totRows,
+          Number(totSup.toFixed(2)),
+          Number(totInv.toFixed(2)),
+          Number(totPL.toFixed(2)),
+          Number(totLogSup.toFixed(2)),
+          Number(totBillSup.toFixed(2)),
+          Number(totBillLog.toFixed(2)),
+          totNotGivenSup,
+          totIssuedAdv,
+          totBillNotRec,
+        ]);
+
+        return {
+          sheet_name: "Summarised View",
+          rows: rows,
+          is_summary: true,
+        };
       }
 
       function getFormattedExportDate() {
@@ -3542,6 +3659,13 @@
       }
 
       async function exportToExcelWorkbook() {
+        if (isFetchingReportData) {
+          pendingExcelExportAfterLoad = true;
+          showEqualizer(
+            "Data is still loading, please wait... Excel will export automatically.",
+          );
+          return;
+        }
         const keys = Object.keys(monthsDataset);
         if (keys.length === 0) {
           openDirectExportModal();
@@ -3734,6 +3858,15 @@
 
             return { sheet_name: k, rows: rows, custom_headers: customHeaders };
           });
+          const summaryMonthMap = {};
+          keys
+            .filter((k) => k !== "Master Data" && k !== "Net Supplier")
+            .forEach((k) => {
+              summaryMonthMap[k] = monthsDataset[k] || [];
+            });
+          if (Object.keys(summaryMonthMap).length > 0) {
+            sheets.unshift(buildSummarisedViewSheet(summaryMonthMap));
+          }
           await sendExcelBlobRequest(sheets);
         } catch (e) {
           alert("Export failed: " + e.message);
@@ -3913,8 +4046,14 @@
           const keys = Object.keys(bData);
           if (keys.length === 0) throw new Error("Backup contains no data.");
 
-          const sheets = keys.map((k) => {
-            const rows = bData[k].map((r) => [
+          const monthKeys = keys.filter(
+            (k) => k !== "Master Data" && k !== "Net Supplier",
+          );
+          const summaryMap = {};
+          const sheets = monthKeys.map((k) => {
+            const list = bData[k] || [];
+            summaryMap[k] = list;
+            const rows = list.map((r) => [
               r.sn,
               r.site,
               r.rate,
@@ -3958,6 +4097,39 @@
             ]);
             return { sheet_name: k, rows: rows };
           });
+
+          if (bData["Master Data"]) {
+            sheets.push({
+              sheet_name: "Master Data",
+              is_master: true,
+              rows: bData["Master Data"].map((r) => [
+                r.month,
+                r.site,
+                r.rate,
+                r.vat,
+                r.owner,
+                r.plate,
+                r.logsheet_cf,
+                r.bill_cf,
+                r.supplier_cf,
+                r.diff_bill_sup,
+                r.supplier_payment,
+                r.invoice_amount,
+                r.gain_loss,
+                r.status,
+                r.remark,
+                r.field_co,
+                r.site_co,
+                r.net_cf,
+                r.sup_nr_rate,
+                r.net_amt,
+              ]),
+            });
+          }
+
+          if (monthKeys.length > 0) {
+            sheets.unshift(buildSummarisedViewSheet(summaryMap));
+          }
 
           const safeFileName = `${backupName.replace(/[^a-zA-Z0-9_\-]/g, "_")}_${getFormattedExportDate()}.xlsx`;
           const expRes = await fetch("/py/johns-report/export-excel", {

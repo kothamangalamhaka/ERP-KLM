@@ -32,6 +32,7 @@ class ExcelSheetPayload(BaseModel):
     sheet_name: str
     rows: list[list]
     custom_headers: dict = {}
+    is_summary: bool = False
     is_master: bool = False
     is_net_supplier: bool = False
     ns_detailed: bool = False
@@ -258,6 +259,82 @@ def export_johns_excel(payload: ExportPayload):
             ws = wb.create_sheet(title=sheet_data.sheet_name[:31])
             ws.views.sheetView[0].showGridLines = True
             ws.freeze_panes = 'A3'
+
+            if sheet_data.is_summary:
+                ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=11)
+                for col in range(1, 12):
+                    c = ws.cell(row=1, column=col)
+                    c.fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+                    c.border = thin_border
+                    if col == 1:
+                        c.value = "JOHN'S INTELLIGENCE REPORT - SUMMARISED VIEW"
+                        c.font = Font(name="Calibri", size=12, bold=True, color="FFFFFF")
+                        c.alignment = Alignment(horizontal="center", vertical="center")
+
+                sum_headers = [
+                    "Month", "Vehicles / Rows", "Supplier Total", "Invoice Total",
+                    "Net Profit / Loss", "Log - Supplier", "Bill - Supplier", "Bill - Log",
+                    "Not given to Supplier", "Issued Adv to Supplier", "Bill Summary Not Received"
+                ]
+                sum_fills = [
+                    dark_fill, dark_fill, amt_fill, inv_fill, pl_fill,
+                    diff_fill, diff_fill, diff_fill,
+                    PatternFill(start_color="B45309", end_color="B45309", fill_type="solid"),
+                    PatternFill(start_color="C2410C", end_color="C2410C", fill_type="solid"),
+                    PatternFill(start_color="475569", end_color="475569", fill_type="solid"),
+                ]
+                for col_idx, (h_name, h_fill) in enumerate(zip(sum_headers, sum_fills), 1):
+                    c = ws.cell(row=2, column=col_idx, value=h_name)
+                    c.fill = h_fill
+                    c.font = hdr_font
+                    c.alignment = Alignment(horizontal="center", vertical="center")
+                    c.border = thin_border
+
+                ws.row_dimensions[1].height = 28
+                ws.row_dimensions[2].height = 26
+
+                total_row_idx = len(sheet_data.rows) + 2
+                tot_fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+
+                for r_idx, row_values in enumerate(sheet_data.rows, 3):
+                    ws.row_dimensions[r_idx].height = 22
+                    is_total_row = (r_idx == total_row_idx)
+                    for c_idx, val in enumerate(row_values, 1):
+                        c = ws.cell(row=r_idx, column=c_idx, value=val)
+                        c.border = thin_border
+                        c.font = Font(name="Calibri", size=10, bold=is_total_row)
+                        if is_total_row:
+                            c.fill = tot_fill
+
+                        if c_idx == 1:
+                            c.alignment = Alignment(horizontal="left", vertical="center")
+                            c.font = Font(name="Calibri", size=10, bold=True)
+                        elif c_idx in [2, 9, 10, 11]:
+                            c.alignment = Alignment(horizontal="center", vertical="center")
+                        else:
+                            c.alignment = Alignment(horizontal="right", vertical="center")
+                            if isinstance(val, (int, float)):
+                                c.number_format = "#,##0.00"
+
+                        if c_idx == 3:
+                            c.font = Font(name="Calibri", size=10, bold=True, color="059669")
+                        elif c_idx == 4:
+                            c.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
+                        elif c_idx == 5 and isinstance(val, (int, float)):
+                            c.fill = pos_fill if val >= 0 else neg_fill
+                            c.font = Font(name="Calibri", size=10, bold=True, color="15803D" if val >= 0 else "B91C1C")
+                        elif c_idx in [6, 7, 8] and isinstance(val, (int, float)) and val != 0:
+                            c.fill = pos_fill if val > 0 else neg_fill
+                            c.font = Font(name="Calibri", size=10, bold=is_total_row, color="15803D" if val > 0 else "B91C1C")
+
+                for col in ws.columns:
+                    c_num = col[0].column
+                    col_letter = get_column_letter(c_num)
+                    max_len = max(len(str(cell.value or '')) for cell in col[1:])
+                    ws.column_dimensions[col_letter].width = max(max_len + 4, 16)
+
+                ws.sheet_view.zoomScale = 95
+                continue
 
             if sheet_data.is_net_supplier:
                 if not sheet_data.ns_detailed:
