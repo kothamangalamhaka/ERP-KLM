@@ -681,6 +681,9 @@
       tbody tr:hover {
         background-color: #f1f5f9;
       }
+      #ownerAnalysisToast tbody tr:hover {
+        background-color: #1e293b !important;
+      }
       .status-cell {
         font-weight: bold;
         text-align: center;
@@ -4617,7 +4620,7 @@
             <td style="font-weight: 600; text-align: left; padding-left: 15px; word-wrap: break-word; color: ${row.site.startsWith("Prev:") ? (row.site_status.includes("replace") ? "#ea580c" : "#dc2626") : "inherit"};">${row.site}</td>
             <td style="font-weight: 700; color: #0f172a;">${row.rate}</td>
             <td style="font-weight: 700; background-color: ${row.vat.toLowerCase().includes("yes") ? "#fef08a" : "transparent"}; color: #854d0e;">${row.vat.toLowerCase().includes("yes") ? "Yes" : ""}</td>
-            <td class="col-owner" style="word-wrap: break-word;">${row.owner}</td>
+            <td class="col-owner" onclick="showOwnerAnalysisPopup(this)" title="Click for Owner Monthly Analysis" style="word-wrap: break-word; cursor: pointer;">${row.owner}</td>
             <td style="word-wrap: break-word;">${row.vehicle_type}</td>
             <td class="plate-cell" style="font-weight: 700; word-wrap: break-word;" oncontextmenu="copySinglePlate(event, '${row.plate}')" title="Right click to copy">${row.plate}</td>
             <td class="col-ts">${row.ts_nr}</td><td class="col-ts">${row.ts_ot}</td>
@@ -6583,6 +6586,354 @@
         el._timer = setTimeout(() => {
           el.style.display = "none";
         }, 10000);
+      }
+
+      let isOwnerPopupPinned = false;
+      let ownerPopupAllRows = [];
+      let ownerPopupFilters = {};
+      let ownerPopupFilterCol = null;
+
+      function closeOwnerPopupFilterMenu() {
+        const m = document.getElementById("ownerPopupFilterMenu");
+        if (m) m.style.display = "none";
+      }
+
+      function closeOwnerAnalysisPopup() {
+        closeOwnerPopupFilterMenu();
+        const el = document.getElementById("ownerAnalysisToast");
+        if (el) {
+          clearTimeout(el._timer);
+          el.style.display = "none";
+        }
+        isOwnerPopupPinned = false;
+      }
+
+      function resetOwnerPopupAutoHide() {
+        const el = document.getElementById("ownerAnalysisToast");
+        if (!el) return;
+        clearTimeout(el._timer);
+        if (!isOwnerPopupPinned) {
+          el._timer = setTimeout(() => {
+            const fm = document.getElementById("ownerPopupFilterMenu");
+            if (!isOwnerPopupPinned && (!fm || fm.style.display === "none")) {
+              el.style.display = "none";
+            }
+          }, 10000);
+        }
+      }
+
+      function toggleOwnerPopupPin() {
+        isOwnerPopupPinned = !isOwnerPopupPinned;
+        const pinBtn = document.getElementById("ownerPopupPinBtn");
+        if (pinBtn) {
+          pinBtn.style.background = isOwnerPopupPinned ? "#0ea5e9" : "transparent";
+          pinBtn.style.color = isOwnerPopupPinned ? "#ffffff" : "#94a3b8";
+          pinBtn.title = isOwnerPopupPinned ? "Pinned (Click to Unpin)" : "Pin Popup";
+        }
+        resetOwnerPopupAutoHide();
+      }
+
+      function renderOwnerPopupFilteredBody() {
+        const tbody = document.getElementById("ownerPopupTbody");
+        const footer = document.getElementById("ownerPopupFooter");
+        const countSpan = document.getElementById("ownerPopupCountLabel");
+        if (!tbody || !footer) return;
+
+        const esc = (s) =>
+          String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        let rowsHtml = "";
+        let totalNetInv = 0;
+        let totalSupRent = 0;
+        let visibleCount = 0;
+
+        for (let i = 0; i < ownerPopupAllRows.length; i++) {
+          const r = ownerPopupAllRows[i];
+          let pass = true;
+          for (const [k, allowed] of Object.entries(ownerPopupFilters)) {
+            if (allowed && !allowed.has(r[k])) {
+              pass = false;
+              break;
+            }
+          }
+          if (!pass) continue;
+
+          visibleCount++;
+          totalNetInv += r.netInv;
+          totalSupRent += r.supRent;
+          rowsHtml += `
+            <tr style="border-bottom:1px solid #1e293b;">
+              <td style="padding:5px 6px;color:#cbd5e1;text-align:left;">${esc(r.site)}</td>
+              <td style="padding:5px 6px;font-weight:600;color:#e2e8f0;text-align:left;white-space:nowrap;">${esc(r.plate)}</td>
+              <td style="padding:5px 6px;text-align:center;color:#4ade80;white-space:nowrap;">${esc(r.logsheet)}</td>
+              <td style="padding:5px 6px;text-align:center;color:#60a5fa;white-space:nowrap;">${esc(r.billsum)}</td>
+              <td style="padding:5px 6px;text-align:center;color:#c084fc;white-space:nowrap;">${esc(r.supplier)}</td>
+            </tr>
+          `;
+        }
+
+        tbody.innerHTML =
+          rowsHtml ||
+          `<tr><td colspan="5" style="padding:14px;text-align:center;color:#94a3b8;">No matching rows</td></tr>`;
+
+        if (countSpan) {
+          countSpan.textContent = `${visibleCount} Plate${visibleCount === 1 ? "" : "s"}`;
+        }
+
+        const diff = totalNetInv - totalSupRent;
+        const isProfit = diff >= 0;
+        const fmt = (n) => {
+          const rounded = Math.round((Number(n) || 0) * 100) / 100;
+          return rounded.toLocaleString("en-US", {
+            minimumFractionDigits: Number.isInteger(rounded) ? 0 : 2,
+            maximumFractionDigits: 2,
+          });
+        };
+
+        footer.innerHTML = `
+          <div><span style="color:#94a3b8;">Net Inv Total:</span> <strong style="color:#38bdf8;">${fmt(totalNetInv)}</strong></div>
+          <div><span style="color:#94a3b8;">Supplier Rent:</span> <strong style="color:#c084fc;">${fmt(totalSupRent)}</strong></div>
+          <div><span style="color:#94a3b8;">${isProfit ? "Profit" : "Loss"}:</span> <strong style="color:${isProfit ? "#4ade80" : "#f87171"};">${fmt(Math.abs(diff))}</strong></div>
+        `;
+      }
+
+      function openOwnerPopupFilter(e, colKey, label) {
+        e.preventDefault();
+        e.stopPropagation();
+        ownerPopupFilterCol = colKey;
+
+        const el = document.getElementById("ownerAnalysisToast");
+        if (el) clearTimeout(el._timer);
+
+        let menu = document.getElementById("ownerPopupFilterMenu");
+        if (!menu) {
+          menu = document.createElement("div");
+          menu.id = "ownerPopupFilterMenu";
+          menu.style.cssText =
+            "position:fixed;z-index:10085;background:#1e293b;color:#f8fafc;border:1px solid #475569;border-radius:8px;padding:10px;width:230px;font-size:12px;box-shadow:0 12px 28px rgba(0,0,0,0.5);display:none;";
+          menu.onclick = (ev) => ev.stopPropagation();
+          document.body.appendChild(menu);
+        }
+
+        const uniqueVals = Array.from(new Set(ownerPopupAllRows.map((r) => r[colKey]))).sort((a, b) =>
+          String(a).localeCompare(String(b), undefined, { numeric: true }),
+        );
+        const currentSet = ownerPopupFilters[colKey] || new Set(uniqueVals);
+        const esc = (s) =>
+          String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+
+        menu.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <strong style="color:#38bdf8;">Filter: ${esc(label)}</strong>
+            <button type="button" onclick="closeOwnerPopupFilterMenu()" style="background:none;border:none;color:#94a3b8;cursor:pointer;">✕</button>
+          </div>
+          <input type="text" id="ownerFilterSearchInp" placeholder="Search..." oninput="filterOwnerPopupChecklist(this.value)" style="width:100%;padding:5px 7px;margin-bottom:6px;background:#0f172a;color:#f8fafc;border:1px solid #475569;border-radius:5px;box-sizing:border-box;font-size:11.5px;" />
+          <label style="display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer;font-weight:600;">
+            <input type="checkbox" id="ownerFilterSelectAllCb" ${currentSet.size === uniqueVals.length ? "checked" : ""} onchange="toggleAllOwnerPopupFilterCbs(this.checked)" />
+            (Select All)
+          </label>
+          <div id="ownerFilterCbList" style="max-height:170px;overflow-y:auto;border:1px solid #334155;border-radius:5px;padding:5px;margin-bottom:8px;background:#0f172a;">
+            ${uniqueVals
+              .map(
+                (v) => `
+              <label class="owner-flt-item" data-val="${esc(v)}" style="display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer;">
+                <input type="checkbox" class="owner-flt-cb" value="${esc(v)}" ${currentSet.has(v) ? "checked" : ""} onchange="syncOwnerFilterSelectAll()" />
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v)}</span>
+              </label>`,
+              )
+              .join("")}
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:6px;">
+            <button type="button" onclick="clearOwnerPopupFilter()" style="padding:4px 10px;background:#334155;color:#e2e8f0;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Clear</button>
+            <button type="button" onclick="applyOwnerPopupFilter()" style="padding:4px 10px;background:#0ea5e9;color:#ffffff;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;">Apply</button>
+          </div>
+        `;
+
+        menu.style.display = "block";
+        const left = Math.min(e.clientX, window.innerWidth - 245);
+        const top = Math.min(e.clientY + 6, window.innerHeight - 310);
+        menu.style.left = `${Math.max(8, left)}px`;
+        menu.style.top = `${Math.max(8, top)}px`;
+      }
+
+      function filterOwnerPopupChecklist(q) {
+        const term = q.trim().toLowerCase();
+        document.querySelectorAll("#ownerFilterCbList .owner-flt-item").forEach((lbl) => {
+          lbl.style.display = (lbl.dataset.val || "").toLowerCase().includes(term) ? "flex" : "none";
+        });
+      }
+
+      function toggleAllOwnerPopupFilterCbs(checked) {
+        document.querySelectorAll("#ownerFilterCbList .owner-flt-cb").forEach((cb) => {
+          cb.checked = checked;
+        });
+      }
+
+      function syncOwnerFilterSelectAll() {
+        const all = Array.from(document.querySelectorAll("#ownerFilterCbList .owner-flt-cb"));
+        const selAll = document.getElementById("ownerFilterSelectAllCb");
+        if (selAll) selAll.checked = all.length > 0 && all.every((c) => c.checked);
+      }
+
+      function applyOwnerPopupFilter() {
+        const all = Array.from(document.querySelectorAll("#ownerFilterCbList .owner-flt-cb"));
+        const checked = all.filter((c) => c.checked).map((c) => c.value);
+        if (checked.length === all.length) {
+          delete ownerPopupFilters[ownerPopupFilterCol];
+        } else {
+          ownerPopupFilters[ownerPopupFilterCol] = new Set(checked);
+        }
+        closeOwnerPopupFilterMenu();
+        renderOwnerPopupFilteredBody();
+        resetOwnerPopupAutoHide();
+      }
+
+      function clearOwnerPopupFilter() {
+        delete ownerPopupFilters[ownerPopupFilterCol];
+        closeOwnerPopupFilterMenu();
+        renderOwnerPopupFilteredBody();
+        resetOwnerPopupAutoHide();
+      }
+
+      document.addEventListener("click", (e) => {
+        const fm = document.getElementById("ownerPopupFilterMenu");
+        if (fm && fm.style.display === "block" && !fm.contains(e.target)) {
+          closeOwnerPopupFilterMenu();
+          resetOwnerPopupAutoHide();
+        }
+      });
+
+      function showOwnerAnalysisPopup(td) {
+        if (!td) return;
+        const tr = td.closest("tr");
+        if (!tr) return;
+
+        let ownerName = td.innerText.trim();
+        let rMonth = tr.dataset.month || "";
+        let rYear = tr.dataset.year || "";
+        try {
+          const fv = JSON.parse(tr.dataset.fvals || "{}");
+          if (fv.owner) ownerName = fv.owner;
+          if (fv.raw_month) rMonth = fv.raw_month;
+          if (fv.raw_year) rYear = fv.raw_year;
+        } catch (e) {}
+
+        if (!ownerName) return;
+
+        ownerPopupAllRows = [];
+        ownerPopupFilters = {};
+        closeOwnerPopupFilterMenu();
+        let isVatOwner = false;
+
+        const esc = (s) =>
+          String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        for (let i = 0; i < masterData.length; i++) {
+          const d = masterData[i];
+          if (d.owner === ownerName && d.raw_month === rMonth && String(d.raw_year) === String(rYear)) {
+            if (String(d.vat || "").toLowerCase().includes("yes")) {
+              isVatOwner = true;
+            }
+            ownerPopupAllRows.push({
+              site: d.site || "-",
+              plate: d.plate || "-",
+              logsheet: `${d.ts_nr || 0} / ${d.ts_ot || 0}`,
+              billsum: `${d.inv_nr || 0} / ${d.inv_ot || 0}`,
+              supplier: `${d.bill_db_nr || 0} / ${d.bill_db_ot || 0}`,
+              netInv: parseFloat(String(d.inv_net_amount || "0").replace(/,/g, "")) || 0,
+              supRent: parseFloat(String(d.bill_rent || "0").replace(/,/g, "")) || 0,
+            });
+          }
+        }
+
+        if (ownerPopupAllRows.length === 0) return;
+
+        const vatBadgeHtml = isVatOwner
+          ? `<span style="background:#fef08a;color:#854d0e;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:700;">VAT Customer</span>`
+          : `<span style="background:#334155;color:#cbd5e1;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:600;">Non-VAT Customer</span>`;
+
+        let el = document.getElementById("ownerAnalysisToast");
+        if (!el) {
+          el = document.createElement("div");
+          el.id = "ownerAnalysisToast";
+          el.style.cssText =
+            "position:fixed;bottom:24px;left:24px;z-index:10065;background:#0f172a;color:#f8fafc;border:1px solid #334155;border-radius:10px;padding:6px 14px 12px;font-size:12px;box-shadow:0 14px 34px rgba(0,0,0,0.45);width:580px;max-width:94vw;max-height:86vh;display:flex;flex-direction:column;";
+          document.body.appendChild(el);
+        }
+        el.style.display = "flex";
+        if (!el.style.height) {
+          el.style.height = ownerPopupAllRows.length > 8 ? "460px" : "auto";
+        }
+
+        el.innerHTML = `
+          <div id="ownerPopupResizeBar" title="Drag up/down to resize height" style="height:10px;cursor:ns-resize;display:flex;align-items:center;justify-content:center;margin-bottom:4px;flex-shrink:0;">
+            <span style="width:42px;height:4px;border-radius:99px;background:#475569;display:block;"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155;padding-bottom:7px;margin-bottom:8px;gap:8px;flex-shrink:0;">
+            <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              <strong style="color:#38bdf8;font-size:13px;">👤 ${esc(ownerName)}</strong>
+              <span style="color:#94a3b8;font-size:11px;margin-left:6px;">(${esc(rMonth.substring(0, 3))} ${esc(rYear)} • <span id="ownerPopupCountLabel">${ownerPopupAllRows.length} Plates</span>)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+              ${vatBadgeHtml}
+              <button type="button" id="ownerPopupPinBtn" onclick="toggleOwnerPopupPin()" title="${isOwnerPopupPinned ? "Pinned (Click to Unpin)" : "Pin Popup"}" style="background:${isOwnerPopupPinned ? "#0ea5e9" : "transparent"};color:${isOwnerPopupPinned ? "#ffffff" : "#94a3b8"};border:1px solid #334155;border-radius:4px;font-size:12px;cursor:pointer;padding:2px 6px;">📌</button>
+              <button type="button" onclick="closeOwnerAnalysisPopup()" title="Close" style="background:none;border:none;color:#94a3b8;font-size:15px;cursor:pointer;padding:0 4px;">✕</button>
+            </div>
+          </div>
+          <div style="flex:1;min-height:120px;overflow-y:auto;border:1px solid #1e293b;border-radius:6px;margin-bottom:9px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:100%;">
+              <thead>
+                <tr style="background:#1e293b;color:#cbd5e1;position:sticky;top:0;">
+                  <th oncontextmenu="openOwnerPopupFilter(event, 'site', 'Site')" title="Right-click to filter" style="padding:6px;text-align:left;cursor:context-menu;">Site</th>
+                  <th oncontextmenu="openOwnerPopupFilter(event, 'plate', 'Plate No')" title="Right-click to filter" style="padding:6px;text-align:left;cursor:context-menu;">Plate No</th>
+                  <th oncontextmenu="openOwnerPopupFilter(event, 'logsheet', 'Logsheet')" title="Right-click to filter" style="padding:6px;text-align:center;cursor:context-menu;">Logsheet</th>
+                  <th oncontextmenu="openOwnerPopupFilter(event, 'billsum', 'Bill Summary')" title="Right-click to filter" style="padding:6px;text-align:center;cursor:context-menu;">Bill Summary</th>
+                  <th oncontextmenu="openOwnerPopupFilter(event, 'supplier', 'Supplier')" title="Right-click to filter" style="padding:6px;text-align:center;cursor:context-menu;">Supplier</th>
+                </tr>
+              </thead>
+              <tbody id="ownerPopupTbody"></tbody>
+            </table>
+          </div>
+          <div id="ownerPopupFooter" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-top:1px solid #334155;padding-top:8px;font-size:12px;"></div>
+        `;
+        renderOwnerPopupFilteredBody();
+
+        el.style.display = "flex";
+        const resizeBar = document.getElementById("ownerPopupResizeBar");
+        if (resizeBar) {
+          resizeBar.onmousedown = function (ev) {
+            ev.preventDefault();
+            const startY = ev.clientY;
+            const startH = el.getBoundingClientRect().height;
+            const maxH = Math.floor(window.innerHeight * 0.88);
+            const onMove = (mv) => {
+              const newH = Math.max(220, Math.min(maxH, startH + (startY - mv.clientY)));
+              el.style.height = newH + "px";
+            };
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          };
+        }
+        clearTimeout(el._timer);
+        if (!isOwnerPopupPinned) {
+          el._timer = setTimeout(() => {
+            if (!isOwnerPopupPinned) el.style.display = "none";
+          }, 10000);
+        }
       }
 
       function showToast(msg) {
