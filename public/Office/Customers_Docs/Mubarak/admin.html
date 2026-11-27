@@ -94,10 +94,10 @@
       </h5>
       <div class="d-flex align-items-center gap-2">
         <a
-          href="/Office/Customers_Docs/Mubarak/vat_customers.html"
+          href="/Office/Customers_Docs/Mubarak/customers.html"
           class="btn btn-primary btn-sm"
         >
-          <i class="fa-solid fa-arrow-left me-1"></i> Back to VAT Verification
+          <i class="fa-solid fa-arrow-left me-1"></i> Back to Customers Verification
         </a>
         <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
           <i class="fa-solid fa-moon" id="themeIcon"></i>
@@ -159,7 +159,7 @@
       async function loadUsers() {
         const token = getToken();
         if (!token) {
-          window.location.href = "/Office/Customers_Docs/Mubarak/vat_customers.html";
+          window.location.href = "/Office/Customers_Docs/Mubarak/customers.html";
           return;
         }
         try {
@@ -170,7 +170,7 @@
           me = (await meRes.json()).user;
           if (me.role !== "admin" && me.role !== "super_admin") {
             alert("Admin access required");
-            window.location.href = "/Office/Customers_Docs/Mubarak/vat_customers.html";
+            window.location.href = "/Office/Customers_Docs/Mubarak/customers.html";
             return;
           }
 

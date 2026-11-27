@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VAT Customers Verification</title>
+    <title>Customers Verification</title>
     <script>
       (function () {
         const saved =
@@ -479,7 +479,7 @@
       <div class="auth-glass-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h5 class="m-0 fw-bold">
-            <i class="fa-solid fa-shield-halved me-2 text-primary"></i>VAT Verification
+            <i class="fa-solid fa-shield-halved me-2 text-primary"></i>Customers Verification
           </h5>
           <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
             <i class="fa-solid fa-moon theme-icon-sync"></i>
@@ -526,8 +526,7 @@
     <div id="mainApp" style="display: none;">
     <div class="header-bar">
       <h5>
-        <i class="fa-solid fa-clipboard-check me-2 text-primary"></i>VAT
-        Customers Verification
+        <i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Customers Verification
       </h5>
 
       <div class="ribbon-controls">
@@ -587,6 +586,22 @@
           <i class="fa-solid fa-file-excel"></i> Export Excel
         </button>
 
+        <button
+          class="btn btn-info text-dark header-btn"
+          onclick="window.location.href = '/Office/Customers_Docs/VAT_Customers_Docs/index.html'"
+          title="Open VAT Customers Docs"
+        >
+          📁 VAT
+        </button>
+
+        <button
+          class="btn btn-secondary header-btn"
+          onclick="window.location.href = '/Office/Customers_Docs/Non_VAT_Customers_Docs/index.html'"
+          title="Open Non-VAT Customers Docs"
+        >
+          📁 Non-VAT
+        </button>
+
         <a
           id="adminNavBtn"
           href="/Office/Customers_Docs/Mubarak/admin.html"
@@ -624,7 +639,7 @@
         Verified: <span id="kpiVerified" class="text-warning">0</span>
       </div>
       <div class="kpi-pill">
-        Pending: <span id="kpiPending" class="text-secondary">0</span>
+        Not Verified: <span id="kpiPending" class="text-secondary">0</span>
       </div>
     </div>
 
@@ -871,6 +886,7 @@
       function getColVal(r, colKey) {
         if (colKey === "customer_code") return r.customer_code || "-";
         if (colKey === "customer_name") return r.customer_name || "-";
+        if (colKey === "is_vat") return r.is_vat || "Yes";
         if (colKey === "vat_no") return r.vat_no || "-";
         if (colKey === "cr_no") return r.cr_no || "-";
         if (colKey === "site") return r.site || "-";
@@ -878,9 +894,14 @@
         if (colKey === "start_period") return r.start_period || "-";
         if (colKey === "end_period") return r.end_period || "Running";
         if (colKey === "status") return r.status || "-";
-        if (colKey === "final_status") return r.final_status || "Pending";
+        if (colKey === "payment_status") return r.payment_status || "Pending";
+        if (colKey === "final_status") return r.final_status || "Not Verified";
         if (colKey === "notes") return r.notes || "-";
+        if (colKey === "plate_nos") return (r.plate_nos || []).join(", ") || "-";
         if (["agreement_doc", "rfq_doc", "po_doc", "conf_letter_doc", "last_doc"].includes(colKey)) {
+          if (r.customer_type === "non_vat" && ["rfq_doc", "po_doc", "conf_letter_doc"].includes(colKey)) {
+            return "";
+          }
           return r[colKey] ? "Uploaded" : "Pending";
         }
         return "";
@@ -895,13 +916,16 @@
             const hay = [
               r.customer_code,
               r.customer_name,
+              r.is_vat,
               r.vat_no,
               r.cr_no,
               r.site,
               r.company,
               r.status,
+              r.payment_status,
               r.final_status,
               r.notes,
+              ...(r.plate_nos || []),
             ]
               .join(" ")
               .toLowerCase();
@@ -931,6 +955,7 @@
           { key: null, label: "SN" },
           { key: "customer_code", label: "Vendor Code" },
           { key: "customer_name", label: "Vendor Name" },
+          { key: "is_vat", label: "VAT" },
           { key: "vat_no", label: "VAT No" },
           { key: "cr_no", label: "CR No" },
           { key: "site", label: "Site Name" },
@@ -949,8 +974,10 @@
           );
         }
         cols.push(
-          { key: "final_status", label: "Final Status" },
+          { key: "payment_status", label: "Payment Status" },
+          { key: "final_status", label: "Final Verification" },
           { key: "notes", label: "Notes" },
+          { key: "plate_nos", label: "Plate No" },
           { key: null, label: "Audit Trail" }
         );
 
@@ -983,14 +1010,17 @@
           return;
         }
 
-        // Group consecutive rows by vendor name for rowspan merging
+        // Group consecutive rows by customer_type + vendor name for rowspan merging
         const spanMap = {};
         let i = 0;
         let vendorSn = 0;
         while (i < rows.length) {
-          const key = (rows[i].customer_name || "").trim().toLowerCase();
+          const key = `${rows[i].customer_type}::${(rows[i].customer_name || "").trim().toLowerCase()}`;
           let j = i + 1;
-          while (j < rows.length && (rows[j].customer_name || "").trim().toLowerCase() === key) {
+          while (
+            j < rows.length &&
+            `${rows[j].customer_type}::${(rows[j].customer_name || "").trim().toLowerCase()}` === key
+          ) {
             j++;
           }
           vendorSn++;
@@ -1000,6 +1030,7 @@
 
         tbody.innerHTML = rows
           .map((r, idx) => {
+            const ctype = r.customer_type || "vat";
             const isVerified = r.final_status === "Verified";
             const vClass = isVerified ? "site-cell cell-verified" : "site-cell";
             const statusClass =
@@ -1015,19 +1046,24 @@
                   .join("")
               : '<span class="text-muted">-</span>';
 
+            const plateHtml = (r.plate_nos || []).length
+              ? r.plate_nos.map((p) => `<div>${escapeHtml(p)}</div>`).join("")
+              : '<span class="text-muted">-</span>';
+
             const groupInfo = spanMap[idx];
             const vendorCells = groupInfo
               ? `
                 <td class="text-center fw-semibold merged-vendor-cell" rowspan="${groupInfo.span}">${groupInfo.sn}</td>
                 <td class="text-center fw-semibold merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.customer_code || "-")}</td>
                 <td class="merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.customer_name)}</td>
+                <td class="text-center fw-semibold merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.is_vat || "Yes")}</td>
                 <td class="text-center merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.vat_no || "-")}</td>
                 <td class="text-center merged-vendor-cell" rowspan="${groupInfo.span}">${escapeHtml(r.cr_no || "-")}</td>
               `
               : "";
 
             return `
-              <tr id="row-${r.record_id}">
+              <tr id="row-${ctype}-${r.record_id}">
                 ${vendorCells}
                 <td class="${vClass}">${escapeHtml(r.site || "-")}</td>
                 <td class="text-center ${vClass}">${escapeHtml(r.company || "-")}</td>
@@ -1046,10 +1082,13 @@
                         ["last", "Final Conf", r.last_doc],
                       ]
                         .map(([dtype, dlabel, durl]) => {
-                          if (durl) {
-                            return `<td class="text-center ${vClass}"><span class="doc-badge doc-uploaded" onclick="openDocPreview('${escapeHtml(durl)}', '${escapeHtml(r.customer_name)} - ${dlabel}')" oncontextmenu="openDocCtxMenu(event, ${r.record_id}, '${dtype}', '${dlabel}', true)" title="Tap to view, Right-click to Replace/Delete">Uploaded</span></td>`;
+                          if (ctype === "non_vat" && ["rfq", "po", "conf_letter"].includes(dtype)) {
+                            return `<td class="text-center ${vClass}"></td>`;
                           }
-                          return `<td class="text-center ${vClass}"><span class="doc-badge doc-pending" oncontextmenu="openDocCtxMenu(event, ${r.record_id}, '${dtype}', '${dlabel}', false)" title="Right-click to Upload">Pending</span></td>`;
+                          if (durl) {
+                            return `<td class="text-center ${vClass}"><span class="doc-badge doc-uploaded" onclick="openDocPreview('${escapeHtml(durl)}', '${escapeHtml(r.customer_name)} - ${dlabel}')" oncontextmenu="openDocCtxMenu(event, '${ctype}', ${r.record_id}, '${dtype}', '${dlabel}', true)" title="Tap to view, Right-click to Replace/Delete">Uploaded</span></td>`;
+                          }
+                          return `<td class="text-center ${vClass}"><span class="doc-badge doc-pending" oncontextmenu="openDocCtxMenu(event, '${ctype}', ${r.record_id}, '${dtype}', '${dlabel}', false)" title="Right-click to Upload">Pending</span></td>`;
                         })
                         .join("")
                     : ""
@@ -1057,9 +1096,20 @@
                 <td class="text-center ${vClass}">
                   <select
                     class="final-status-select"
-                    onchange="handleStatusChange(${r.record_id}, this.value)"
+                    onchange="handlePaymentStatusChange('${ctype}', ${r.record_id}, this.value)"
                   >
-                    <option value="Pending" ${r.final_status === "Pending" ? "selected" : ""}>Pending</option>
+                    <option value="Paid" ${r.payment_status === "Paid" ? "selected" : ""}>Paid</option>
+                    <option value="Pending" ${r.payment_status === "Pending" ? "selected" : ""}>Pending</option>
+                    <option value="Partially Paid" ${r.payment_status === "Partially Paid" ? "selected" : ""}>Partially Paid</option>
+                    <option value="Not Paid" ${r.payment_status === "Not Paid" ? "selected" : ""}>Not Paid</option>
+                  </select>
+                </td>
+                <td class="text-center ${vClass}">
+                  <select
+                    class="final-status-select"
+                    onchange="handleStatusChange('${ctype}', ${r.record_id}, this.value)"
+                  >
+                    <option value="Not Verified" ${r.final_status !== "Verified" ? "selected" : ""}>Not Verified</option>
                     <option value="Verified" ${r.final_status === "Verified" ? "selected" : ""}>Verified</option>
                   </select>
                 </td>
@@ -1068,12 +1118,15 @@
                     class="notes-textarea"
                     rows="1"
                     placeholder="Add note..."
-                    oninput="handleNotesInput(${r.record_id}, this.value)"
-                    onblur="saveRow(${r.record_id})"
+                    oninput="handleNotesInput('${ctype}', ${r.record_id}, this.value)"
+                    onblur="saveRow('${ctype}', ${r.record_id})"
                   >${escapeHtml(r.notes)}</textarea>
                 </td>
+                <td class="${vClass}" style="white-space: nowrap;">
+                  ${plateHtml}
+                </td>
                 <td class="${vClass}">
-                  <div class="audit-box" id="audit-${r.record_id}">${auditHtml}</div>
+                  <div class="audit-box" id="audit-${ctype}-${r.record_id}">${auditHtml}</div>
                 </td>
               </tr>
             `;
@@ -1081,35 +1134,44 @@
           .join("");
       }
 
-      function handleStatusChange(recordId, newStatus) {
-        const rec = allRecords.find((r) => r.record_id === recordId);
+      function handlePaymentStatusChange(customerType, recordId, newPaymentStatus) {
+        const rec = allRecords.find((r) => r.customer_type === customerType && r.record_id === recordId);
+        if (!rec) return;
+        rec.payment_status = newPaymentStatus;
+        saveRow(customerType, recordId);
+      }
+
+      function handleStatusChange(customerType, recordId, newStatus) {
+        const rec = allRecords.find((r) => r.customer_type === customerType && r.record_id === recordId);
         if (!rec) return;
         rec.final_status = newStatus;
 
-        const rowEl = document.getElementById(`row-${recordId}`);
+        const rowEl = document.getElementById(`row-${customerType}-${recordId}`);
         if (rowEl) {
           rowEl.querySelectorAll("td.site-cell").forEach((td) => {
             td.classList.toggle("cell-verified", newStatus === "Verified");
           });
         }
         updateKPIs(getFilteredRecords());
-        saveRow(recordId);
+        saveRow(customerType, recordId);
       }
 
-      function handleNotesInput(recordId, newNotes) {
-        const rec = allRecords.find((r) => r.record_id === recordId);
+      function handleNotesInput(customerType, recordId, newNotes) {
+        const rec = allRecords.find((r) => r.customer_type === customerType && r.record_id === recordId);
         if (!rec) return;
         rec.notes = newNotes;
 
-        clearTimeout(noteTimers[recordId]);
-        noteTimers[recordId] = setTimeout(() => {
-          saveRow(recordId);
+        const timerKey = `${customerType}_${recordId}`;
+        clearTimeout(noteTimers[timerKey]);
+        noteTimers[timerKey] = setTimeout(() => {
+          saveRow(customerType, recordId);
         }, 700);
       }
 
-      async function saveRow(recordId) {
-        clearTimeout(noteTimers[recordId]);
-        const rec = allRecords.find((r) => r.record_id === recordId);
+      async function saveRow(customerType, recordId) {
+        const timerKey = `${customerType}_${recordId}`;
+        clearTimeout(noteTimers[timerKey]);
+        const rec = allRecords.find((r) => r.customer_type === customerType && r.record_id === recordId);
         if (!rec) return;
 
         try {
@@ -1119,8 +1181,10 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              customer_type: rec.customer_type || "vat",
               record_id: rec.record_id,
-              final_status: rec.final_status,
+              payment_status: rec.payment_status || "Pending",
+              final_status: rec.final_status || "Not Verified",
               notes: rec.notes || "",
             }),
           });
@@ -1134,7 +1198,7 @@
           }
           if (data.audit_trail) {
             rec.audit_trail = data.audit_trail;
-            const auditEl = document.getElementById(`audit-${rec.record_id}`);
+            const auditEl = document.getElementById(`audit-${rec.customer_type}-${rec.record_id}`);
             if (auditEl) {
               auditEl.innerHTML = data.audit_trail.length
                 ? data.audit_trail
@@ -1338,9 +1402,9 @@
         document.getElementById("docPreviewBody").innerHTML = "";
       }
 
-      function openDocCtxMenu(e, recordId, docType, docLabel, isUploaded) {
+      function openDocCtxMenu(e, customerType, recordId, docType, docLabel, isUploaded) {
         e.preventDefault();
-        pendingDocAction = { recordId, docType, docLabel };
+        pendingDocAction = { customerType, recordId, docType, docLabel };
         const menu = document.getElementById("docCtxMenu");
         menu.innerHTML = isUploaded
           ? `
@@ -1373,6 +1437,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                  customer_type: pendingDocAction.customerType,
                   record_id: pendingDocAction.recordId,
                   doc_type: pendingDocAction.docType,
                   file_name: file.name,
@@ -1382,7 +1447,7 @@
             );
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || "Upload failed");
-            const rec = allRecords.find((r) => r.record_id === pendingDocAction.recordId);
+            const rec = allRecords.find((r) => r.customer_type === pendingDocAction.customerType && r.record_id === pendingDocAction.recordId);
             if (rec) {
               rec[data.col_name] = data.file_url;
               if (data.audit_trail) rec.audit_trail = data.audit_trail;
@@ -1407,6 +1472,7 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
+                customer_type: pendingDocAction.customerType,
                 record_id: pendingDocAction.recordId,
                 doc_type: pendingDocAction.docType,
               }),
@@ -1414,7 +1480,7 @@
           );
           const data = await res.json();
           if (!res.ok) throw new Error(data.detail || "Delete failed");
-          const rec = allRecords.find((r) => r.record_id === pendingDocAction.recordId);
+          const rec = allRecords.find((r) => r.customer_type === pendingDocAction.customerType && r.record_id === pendingDocAction.recordId);
           if (rec) {
             rec[data.col_name] = null;
             if (data.audit_trail) rec.audit_trail = data.audit_trail;
