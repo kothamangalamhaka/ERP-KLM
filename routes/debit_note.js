@@ -1229,4 +1229,67 @@ router.post("/api/delete-row", verifyVatTrackerCode, async (req, res) => {
   }
 });
 
+router.post(
+  "/api/delete-attachment",
+  verifyVatTrackerCode,
+  async (req, res) => {
+    try {
+      const { id } = req.body;
+      if (!id) return res.json({ success: false, message: "ID missing" });
+
+      const prevRes = await pool.query(
+        `SELECT attachment_path FROM debit_notes WHERE id = $1`,
+        [id],
+      );
+      if (prevRes.rows.length === 0) {
+        return res.json({ success: false, message: "Row not found" });
+      }
+      const oldAtt = prevRes.rows[0].attachment_path || null;
+      const senderId = req.headers["x-client-id"] || null;
+
+      await pool.query(
+        `UPDATE debit_notes
+         SET attachment_path = NULL, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [id],
+      );
+
+      if (oldAtt) {
+        const stillUsed = await pool.query(
+          `SELECT 1 FROM debit_notes WHERE attachment_path = $1 LIMIT 1`,
+          [oldAtt],
+        );
+        if (stillUsed.rows.length === 0) {
+          const fullDisk = path.join(
+            __dirname,
+            "../public",
+            oldAtt.replace(/^\/+/, ""),
+          );
+          if (fs.existsSync(fullDisk)) {
+            try {
+              fs.unlinkSync(fullDisk);
+            } catch (e) {}
+          }
+        }
+      }
+
+      const updatedRes = await pool.query(
+        `SELECT id, received_date, submitted_date, month_year, approved_by, particulars,
+                plate_no, auto_plate_id, driver_name, site, company, customer,
+                amount, vat_status, vat_amount, total_amount, qc_entry,
+                owner_name, status, ref_no, work_order, remark, attachment_path
+         FROM debit_notes WHERE id = $1`,
+        [id],
+      );
+      if (updatedRes.rows.length > 0) {
+        broadcastDebitNoteUpdate("SAVE", updatedRes.rows[0], senderId);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      res.json({ success: false, message: error.message });
+    }
+  },
+);
+
 module.exports = router;

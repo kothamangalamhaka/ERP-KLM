@@ -734,24 +734,21 @@ function renderTable() {
 
     let attachmentHtml = "";
     if (row.attachment_path) {
-      const attFileName = row.attachment_path.split("/").pop().toUpperCase();
-      const isSharedRefAttachment = attFileName.startsWith("REF_");
-      const canReplaceInRow = isEditable && !isSharedRefAttachment;
-      const replaceBtnHtml = canReplaceInRow
-        ? `<button type="button" class="btn-attachment" style="padding:2px 5px;" onclick="triggerRowFileUpload(${idx})" title="Change file">🔄</button>`
-        : "";
-
       attachmentHtml = `
-        <div style="display:flex; align-items:center; gap:4px; justify-content:center;">
-          <button type="button" class="btn-attachment has-file" onclick="openPdfViewerModal('${row.attachment_path}', '${escapeHTML(row.plate_no || row.auto_plate_id || "")}', '${escapeHTML(row.month_year || "")}')" title="${isSharedRefAttachment ? "Shared Ref No File (Manage via Ref No Upload button)" : "View Attachment"}">📎 View</button>
-          <button type="button" class="btn-attachment has-file" style="padding:3px 6px;" onclick="downloadAttachmentWithCustomName(event, '${row.attachment_path}', '${escapeHTML(row.plate_no || row.auto_plate_id || "")}', '${escapeHTML(row.month_year || "")}')" title="Download Original Quality">📥</button>
-          ${replaceBtnHtml}
+        <div style="display:flex; align-items:center; justify-content:center;">
+          <button
+            type="button"
+            class="btn-attachment has-file"
+            onclick="openPdfViewerModal('${row.attachment_path}', '${escapeHTML(row.plate_no || row.auto_plate_id || "")}', '${escapeHTML(row.month_year || "")}')"
+            oncontextmenu="openAttMenu(event, ${idx})"
+            title="Click to View Doc | Right-click for options"
+          >📄 View Doc</button>
         </div>
       `;
     } else {
       attachmentHtml = isEditable
-        ? `<button type="button" class="btn-attachment" onclick="triggerRowFileUpload(${idx})">📤 Upload</button>`
-        : `<span style="color:#94a3b8; font-size:11px;">No file</span>`;
+        ? `<button type="button" class="btn-attachment" style="color:#b45309; border-color:#f59e0b; background:#fffbeb;" onclick="triggerRowFileUpload(${idx})" title="Click to Upload Document">⏳ Pending Upload</button>`
+        : `<span style="color:#d97706; font-size:11px; font-weight:600;">⏳ Pending Upload</span>`;
     }
 
     const receivedDateHtml = isEditable
@@ -1006,8 +1003,59 @@ function onVatStatusChange(idx, val) {
   renderTable();
 }
 
+function findDuplicateRefNoSNs(refVal, excludeIdx = -1, excludeId = null) {
+  const clean = (refVal || "").trim().toLowerCase();
+  if (!clean) return [];
+  const sns = [];
+  records.forEach((r, i) => {
+    if (i === excludeIdx) return;
+    if (excludeId !== null && r.id && Number(r.id) === Number(excludeId)) return;
+    if ((r.ref_no || "").trim().toLowerCase() === clean) {
+      sns.push(i + 1);
+    }
+  });
+  return sns;
+}
+
+function showRefDupNotice(refVal, sns) {
+  if (!sns.length) return;
+  let el = document.getElementById("refDupNoticeToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "refDupNoticeToast";
+    el.style.cssText =
+      "position:fixed;bottom:18px;right:18px;z-index:9999;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:8px;padding:9px 14px;font-size:12.5px;font-weight:600;box-shadow:0 8px 20px rgba(0,0,0,0.18);max-width:380px;";
+    document.body.appendChild(el);
+  }
+  el.textContent = `ℹ️ Ref No "${refVal.trim()}" already exists in SN: ${sns.join(", ")}`;
+  el.style.display = "block";
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => {
+    el.style.display = "none";
+  }, 4500);
+}
+
+function checkModalRefNoDuplicate(val) {
+  const hintEl = document.getElementById("mRefNoDupHint");
+  if (!hintEl) return;
+  const sns = findDuplicateRefNoSNs(val, -1, modalEditingRecordId);
+  if (sns.length > 0) {
+    hintEl.textContent = `ℹ️ Already exists in SN: ${sns.join(", ")}`;
+    hintEl.style.display = "block";
+  } else {
+    hintEl.style.display = "none";
+    hintEl.textContent = "";
+  }
+}
+
 function updateCellData(idx, field, val) {
   records[idx][field] = val;
+  if (field === "ref_no") {
+    const dupSNs = findDuplicateRefNoSNs(val, idx, records[idx]?.id || null);
+    if (dupSNs.length > 0) {
+      showRefDupNotice(val, dupSNs);
+    }
+  }
   ensureEmptyRowBuffer();
   saveRowToBackend(idx);
   renderTable();
@@ -1425,9 +1473,121 @@ function openSnMenu(e, idx) {
     : "flex";
 }
 
+let activeAttRowIndex = null;
+
+function openAttMenu(e, idx) {
+  e.preventDefault();
+  e.stopPropagation();
+  activeAttRowIndex = idx;
+
+  const snMenu = document.getElementById("snContextMenu");
+  if (snMenu) snMenu.style.display = "none";
+
+  const menu = document.getElementById("attContextMenu");
+  if (!menu) return;
+
+  const replaceBtn = document.getElementById("attCtxReplaceBtn");
+  const deleteBtn = document.getElementById("attCtxDeleteBtn");
+  if (replaceBtn) replaceBtn.style.display = isEditMode ? "flex" : "none";
+  if (deleteBtn) deleteBtn.style.display = isEditMode ? "flex" : "none";
+
+  menu.style.display = "flex";
+
+  const menuHeight = menu.offsetHeight || 110;
+  const menuWidth = menu.offsetWidth || 150;
+  let posX = e.pageX;
+  let posY = e.pageY;
+
+  if (e.clientY + menuHeight > window.innerHeight) {
+    posY = Math.max(10, e.pageY - menuHeight);
+  }
+  if (e.clientX + menuWidth > window.innerWidth) {
+    posX = Math.max(10, e.pageX - menuWidth);
+  }
+
+  menu.style.left = posX + "px";
+  menu.style.top = posY + "px";
+}
+
+function attCtxDownload() {
+  const menu = document.getElementById("attContextMenu");
+  if (menu) menu.style.display = "none";
+  if (activeAttRowIndex === null || !records[activeAttRowIndex]) return;
+  const r = records[activeAttRowIndex];
+  if (!r.attachment_path) return;
+  downloadAttachmentWithCustomName(
+    null,
+    r.attachment_path,
+    r.plate_no || r.auto_plate_id || "",
+    r.month_year || "",
+  );
+}
+
+function attCtxReplace() {
+  const menu = document.getElementById("attContextMenu");
+  if (menu) menu.style.display = "none";
+  if (!isEditMode || activeAttRowIndex === null) return;
+  triggerRowFileUpload(activeAttRowIndex);
+}
+
+let pendingAttDeleteIdx = null;
+
+function attCtxDelete() {
+  const menu = document.getElementById("attContextMenu");
+  if (menu) menu.style.display = "none";
+  if (!isEditMode || activeAttRowIndex === null || !records[activeAttRowIndex]) return;
+  const row = records[activeAttRowIndex];
+  if (!row.id || !row.attachment_path) return;
+
+  pendingAttDeleteIdx = activeAttRowIndex;
+  const modal = document.getElementById("attDeleteConfirmModal");
+  if (modal) modal.style.display = "flex";
+}
+
+function closeAttDeleteConfirm() {
+  pendingAttDeleteIdx = null;
+  const modal = document.getElementById("attDeleteConfirmModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function confirmAttDelete() {
+  const idx = pendingAttDeleteIdx;
+  closeAttDeleteConfirm();
+  if (idx === null || !records[idx]) return;
+  const row = records[idx];
+  if (!row.id || !row.attachment_path) return;
+
+  showStatus("Deleting document...", "saving");
+  try {
+    const res = await fetch("/debit-notes/api/delete-attachment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-security-code": securityCode,
+        "x-client-id": myClientId,
+      },
+      body: JSON.stringify({ id: row.id }),
+    }).then((r) => r.json());
+
+    if (!res.success) {
+      showStatus(res.message || "Delete failed", "error");
+      return;
+    }
+
+    row.attachment_path = null;
+    renderTable();
+    showStatus("Document deleted", "saved");
+  } catch (err) {
+    showStatus(err.message || "Delete error", "error");
+  }
+}
+
 document.addEventListener("click", (e) => {
   const menu = document.getElementById("snContextMenu");
   if (menu) menu.style.display = "none";
+
+  const attMenu = document.getElementById("attContextMenu");
+  if (attMenu) attMenu.style.display = "none";
 
   const monthPicker = document.getElementById("monthYearPicker");
   if (
@@ -1478,6 +1638,7 @@ function contextEditRow() {
 
   if (document.getElementById("m_ref_no")) {
     document.getElementById("m_ref_no").value = source.ref_no || "";
+    checkModalRefNoDuplicate(source.ref_no || "");
   }
   document.getElementById("m_work_order").value = source.work_order || "";
   document.getElementById("m_remark").value = source.remark || "";
@@ -1513,6 +1674,7 @@ function contextCloneRow() {
 
   if (document.getElementById("m_ref_no")) {
     document.getElementById("m_ref_no").value = source.ref_no || "";
+    checkModalRefNoDuplicate(source.ref_no || "");
   }
   document.getElementById("m_work_order").value = source.work_order || "";
   document.getElementById("m_remark").value = source.remark || "";
@@ -2227,12 +2389,120 @@ function openRefNoUploadModal() {
 
   populateRefNoSelectOptions("");
   container.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; font-size: 12px;">Search or choose a Reference No above to view matching entries.</div>`;
+  isRefModalListMode = false;
+  setRefModalViewMode(false);
   document.getElementById("refNoUploadModal").style.display = "flex";
   if (searchInp) setTimeout(() => searchInp.focus(), 60);
 }
 
 function closeRefNoUploadModal() {
   document.getElementById("refNoUploadModal").style.display = "none";
+}
+
+let isRefModalListMode = false;
+
+function setRefModalViewMode(showList) {
+  isRefModalListMode = showList;
+  const uploadSec = document.getElementById("refModalUploadSection");
+  const listSec = document.getElementById("refModalListContainer");
+  const listBtn = document.getElementById("refModalListBtn");
+  const uploadBtn = document.getElementById("refModalUploadBtn");
+
+  if (uploadSec) uploadSec.style.display = showList ? "none" : "block";
+  if (listSec) listSec.style.display = showList ? "block" : "none";
+  if (uploadBtn) uploadBtn.style.display = showList ? "none" : "inline-flex";
+  if (listBtn) listBtn.innerHTML = showList ? "← Back" : "📋 Active List";
+}
+
+function toggleRefNoUploadedList() {
+  if (!isRefModalListMode) {
+    renderRefNoUploadedList();
+    setRefModalViewMode(true);
+  } else {
+    setRefModalViewMode(false);
+  }
+}
+
+function renderRefNoUploadedList() {
+  const listContainer = document.getElementById("refModalListContainer");
+  if (!listContainer) return;
+
+  const grouped = new Map();
+  records.forEach((r, idx) => {
+    if (!r.id) return;
+    const ref = (r.ref_no || "").trim();
+    const att = (r.attachment_path || "").trim();
+    if (!ref || !att) return;
+    // Prioritize shared REF_ uploads or any attached file linked to a Ref No
+    const isBulkRefFile = att.includes("/REF_");
+    if (!isBulkRefFile) return;
+
+    const key = ref.toLowerCase();
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        refNo: ref,
+        filePath: att,
+        sns: [],
+      });
+    }
+    grouped.get(key).sns.push(idx + 1);
+  });
+
+  const items = Array.from(grouped.values()).sort((a, b) =>
+    a.refNo.localeCompare(b.refNo, undefined, { numeric: true }),
+  );
+
+  if (items.length === 0) {
+    listContainer.innerHTML = `<div style="padding: 24px; text-align: center; color: #64748b; font-size: 12.5px;">No Ref No bulk uploads found yet.</div>`;
+    return;
+  }
+
+  let html = `
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <thead>
+        <tr style="background: #0f172a; color: #ffffff; position: sticky; top: 0;">
+          <th style="padding: 8px; width: 45px; text-align: center;">SN</th>
+          <th style="padding: 8px; text-align: left;">Ref No</th>
+          <th style="padding: 8px; text-align: left;">Row SNs</th>
+          <th style="padding: 8px; text-align: center;">File</th>
+          <th style="padding: 8px; text-align: center;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  items.forEach((it, idx) => {
+    const safeRef = escapeHTML(it.refNo).replace(/'/g, "\\'");
+    const safePath = escapeHTML(it.filePath).replace(/'/g, "\\'");
+    html += `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 7px 8px; text-align: center; font-weight: 700;">${idx + 1}</td>
+        <td style="padding: 7px 8px; font-weight: 700; color: #0284c7;">${escapeHTML(it.refNo)}</td>
+        <td style="padding: 7px 8px;">${it.sns.join(", ")}</td>
+        <td style="padding: 7px 8px; text-align: center;">
+          <button type="button" class="btn btn-outline" style="padding: 3px 8px; font-size: 11px;" onclick="openPdfViewerModal('${safePath}', 'Ref: ${safeRef}', '')">📎 View</button>
+        </td>
+        <td style="padding: 7px 8px; text-align: center;">
+          <button type="button" class="btn btn-primary" style="padding: 3px 10px; font-size: 11px;" onclick="editRefNoFromList('${safeRef}')">✏️ Edit</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+  listContainer.innerHTML = html;
+}
+
+function editRefNoFromList(refNo) {
+  setRefModalViewMode(false);
+  const searchInp = document.getElementById("refModalSearchInput");
+  if (searchInp) searchInp.value = "";
+  populateRefNoSelectOptions("");
+  const selectEl = document.getElementById("refModalSelect");
+  if (selectEl) {
+    selectEl.value = refNo;
+    renderRefNoMatchingRows(refNo);
+  }
 }
 
 function renderRefNoMatchingRows(selectedRef) {

@@ -460,7 +460,12 @@
                 id="m_ref_no"
                 class="modal-input"
                 placeholder="Ref No..."
+                oninput="checkModalRefNoDuplicate(this.value)"
               />
+              <small
+                id="mRefNoDupHint"
+                style="display: none; color: #d97706; font-weight: 600; margin-top: 3px;"
+              ></small>
             </div>
             <div class="form-field">
               <label>Work Order</label>
@@ -552,84 +557,115 @@
           row you wish to exclude, then upload a single shared PDF/Image.
         </p>
 
-        <div
-          style="
-            display: grid;
-            grid-template-columns: 1fr 1.3fr;
-            gap: 10px;
-            margin-bottom: 12px;
-          "
-        >
-          <div class="form-field">
-            <label>🔍 Search Reference No</label>
+        <div id="refModalUploadSection">
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1.3fr;
+              gap: 10px;
+              margin-bottom: 12px;
+            "
+          >
+            <div class="form-field">
+              <label>🔍 Search Reference No</label>
+              <input
+                type="text"
+                id="refModalSearchInput"
+                class="modal-input"
+                placeholder="Type Ref No to filter..."
+                oninput="filterRefNoDropdown(this.value)"
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-field">
+              <label>Select Reference No</label>
+              <select
+                id="refModalSelect"
+                class="modal-input"
+                style="font-weight: 700; color: #0284c7"
+                onchange="renderRefNoMatchingRows(this.value)"
+              ></select>
+            </div>
+          </div>
+
+          <div
+            id="refModalRowsContainer"
+            style="
+              flex: 1;
+              overflow-y: auto;
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              margin-bottom: 12px;
+              max-height: 300px;
+            "
+          >
+            <div
+              style="
+                padding: 20px;
+                text-align: center;
+                color: #64748b;
+                font-size: 12px;
+              "
+            >
+              Choose a Reference No above to view matching entries.
+            </div>
+          </div>
+
+          <div class="form-field" style="margin-bottom: 8px">
+            <label>Select File (PDF / Image — Shared across checked rows)</label>
             <input
-              type="text"
-              id="refModalSearchInput"
+              type="file"
+              id="refModalFileInput"
               class="modal-input"
-              placeholder="Type Ref No to filter..."
-              oninput="filterRefNoDropdown(this.value)"
-              autocomplete="off"
+              accept=".pdf,.png,.jpg,.jpeg"
+              style="padding: 5px"
             />
           </div>
-          <div class="form-field">
-            <label>Select Reference No</label>
-            <select
-              id="refModalSelect"
-              class="modal-input"
-              style="font-weight: 700; color: #0284c7"
-              onchange="renderRefNoMatchingRows(this.value)"
-            ></select>
+
+          <div
+            id="refModalProgressContainer"
+            class="progress-wrapper"
+            style="display: none"
+          >
+            <div class="progress-bar-bg">
+              <div id="refModalProgressBar" class="progress-bar-fill"></div>
+            </div>
+            <span id="refModalProgressText" class="progress-text"
+              >Uploading: 0%</span
+            >
           </div>
         </div>
 
         <div
-          id="refModalRowsContainer"
+          id="refModalListContainer"
           style="
+            display: none;
             flex: 1;
             overflow-y: auto;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
             margin-bottom: 12px;
-            max-height: 300px;
+            max-height: 360px;
           "
-        >
-          <div
-            style="
-              padding: 20px;
-              text-align: center;
-              color: #64748b;
-              font-size: 12px;
-            "
-          >
-            Choose a Reference No above to view matching entries.
-          </div>
-        </div>
-
-        <div class="form-field" style="margin-bottom: 8px">
-          <label>Select File (PDF / Image — Shared across checked rows)</label>
-          <input
-            type="file"
-            id="refModalFileInput"
-            class="modal-input"
-            accept=".pdf,.png,.jpg,.jpeg"
-            style="padding: 5px"
-          />
-        </div>
-
-        <div
-          id="refModalProgressContainer"
-          class="progress-wrapper"
-          style="display: none"
-        >
-          <div class="progress-bar-bg">
-            <div id="refModalProgressBar" class="progress-bar-fill"></div>
-          </div>
-          <span id="refModalProgressText" class="progress-text"
-            >Uploading: 0%</span
-          >
-        </div>
+        ></div>
 
         <div class="modal-actions-bar">
+          <button
+            type="button"
+            id="refModalListBtn"
+            class="btn"
+            style="
+              margin-right: auto;
+              background: linear-gradient(135deg, #facc15 0%, #dc2626 100%);
+              color: #ffffff;
+              border: none;
+              font-weight: 700;
+              box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+            "
+            onclick="toggleRefNoUploadedList()"
+          >
+            📋 Active List
+          </button>
           <button
             type="button"
             class="btn btn-outline"
@@ -797,6 +833,65 @@
       </button>
     </div>
 
+    <!-- Context Menu for Attachment (View Doc) -->
+    <div id="attContextMenu" class="context-menu">
+      <button type="button" onclick="attCtxDownload()">
+        ⬇️ Download
+      </button>
+      <button type="button" id="attCtxReplaceBtn" onclick="attCtxReplace()">
+        🔄 Replace
+      </button>
+      <button
+        type="button"
+        id="attCtxDeleteBtn"
+        class="text-danger"
+        onclick="attCtxDelete()"
+      >
+        🗑️ Delete
+      </button>
+    </div>
+
+    <!-- Custom Delete Attachment Warning Modal -->
+    <div
+      id="attDeleteConfirmModal"
+      class="modal-overlay"
+      style="display: none; z-index: 4200; align-items: center; justify-content: center;"
+    >
+      <div class="modal-box" style="max-width: 400px; text-align: left;">
+        <div class="modal-header-bar">
+          <h3 style="color: #dc2626;">⚠️ Delete Document</h3>
+          <button
+            type="button"
+            class="modal-close-icon"
+            onclick="closeAttDeleteConfirm()"
+          >
+            ✕
+          </button>
+        </div>
+        <p class="modal-sub-text" style="margin: 10px 0 18px; font-size: 13px;">
+          Are you sure you want to permanently delete this attached document?
+          This action cannot be undone.
+        </p>
+        <div class="modal-actions-bar">
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="closeAttDeleteConfirm()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn"
+            style="background: #dc2626; color: #ffffff; border: none; font-weight: 600;"
+            onclick="confirmAttDelete()"
+          >
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Excel Filter Popup -->
     <div id="filterPopup">
       <div class="filter-header">
@@ -952,6 +1047,8 @@
           <option value="plate_no">Plate</option>
           <option value="driver_name">Driver</option>
           <option value="owner_name">Owner</option>
+          <option value="ref_no">Ref No</option>
+          <option value="work_order">Work Order</option>
         </select>
         <input
           type="text"
@@ -976,6 +1073,8 @@
             <option value="plate_no">Plate No</option>
             <option value="driver_name">Driver Name</option>
             <option value="owner_name">Owner Name</option>
+            <option value="ref_no">Reference No</option>
+            <option value="work_order">Work Order</option>
           </select>
           <div class="search-input-wrapper">
             <span class="search-icon">🔍</span>
