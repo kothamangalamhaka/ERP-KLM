@@ -4636,7 +4636,7 @@
             <td class="col-amt" style="font-weight: 700;">${row.bill_rent ? Number(row.bill_rent).toFixed(2) : ""}</td>
             <td class="col-amt" style="font-weight: 700;">${row.rent_vat ? Number(row.rent_vat).toFixed(2) : ""}</td>
             <td class="col-amt" style="font-weight: 700;">${row.rent_total ? Number(row.rent_total).toFixed(2) : ""}</td>
-            <td class="col-inv-red inv-net-cell" style="font-weight: 700; color: #0369a1;">${row.inv_net_amount ? Number(row.inv_net_amount).toFixed(2) : ""}</td>
+            <td class="col-inv-red inv-net-cell" onclick="showNetInvCalcToast(this)" title="Click for C/F &amp; Rate breakdown" style="font-weight: 700; color: #0369a1; cursor: pointer;">${row.inv_net_amount ? Number(row.inv_net_amount).toFixed(2) : ""}</td>
             <td class="col-inv-red inv-nr-rate-cell" data-field="inv_nr_rate" style="color:#0f172a;">${row.inv_nr_rate !== "" && row.inv_nr_rate !== undefined ? Number(row.inv_nr_rate).toFixed(2) : ""}</td>
             <td class="col-inv-red inv-ot-rate-cell" data-field="inv_ot_rate" style="color:#0f172a;">${row.inv_ot_rate !== "" && row.inv_ot_rate !== undefined ? Number(row.inv_ot_rate).toFixed(2) : ""}</td>
             <td class="col-inv-red editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_subtotal ? Number(row.inv_subtotal).toFixed(2) : ""}</td>
@@ -6513,6 +6513,78 @@
           },
         );
       }
+      function closeNetInvCalcToast() {
+        const el = document.getElementById("netInvCalcToast");
+        if (el) {
+          clearTimeout(el._timer);
+          el.style.display = "none";
+        }
+      }
+
+      function showNetInvCalcToast(td) {
+        if (!td) return;
+        const tr = td.closest("tr");
+        if (!tr) return;
+
+        const nrCell = tr.querySelector('[data-field="inv_nr"]');
+        const otCell = tr.querySelector('[data-field="inv_ot"]');
+        const nr = parseFloat((nrCell ? nrCell.innerText : "0").replace(/,/g, "")) || 0;
+        const ot = parseFloat((otCell ? otCell.innerText : "0").replace(/,/g, "")) || 0;
+        const netAmt = parseFloat((td.innerText || "0").replace(/,/g, "")) || 0;
+
+        if (netAmt === 0 && nr === 0 && ot === 0) return;
+
+        let billRent = 0;
+        try {
+          const fv = JSON.parse(tr.dataset.fvals || "{}");
+          billRent = parseFloat(String(fv.bill_rent || "0").replace(/,/g, "")) || 0;
+        } catch (e) {}
+
+        const cf = nr + ot * 0.7;
+        const perHrRate = cf > 0 ? netAmt / cf : 0;
+        const cfRentAmt = perHrRate * 260;
+        const gainLossDiff = netAmt - billRent;
+        const isGain = gainLossDiff >= 0;
+
+        let el = document.getElementById("netInvCalcToast");
+        if (!el) {
+          el = document.createElement("div");
+          el.id = "netInvCalcToast";
+          el.style.cssText =
+            "position:fixed;bottom:24px;right:24px;z-index:10060;background:#0f172a;color:#f8fafc;border:1px solid #334155;border-radius:10px;padding:14px 18px;font-size:13px;line-height:1.65;box-shadow:0 12px 30px rgba(0,0,0,0.35);min-width:300px;max-width:420px;";
+          document.body.appendChild(el);
+        }
+
+        const fmt = (n) => {
+          const rounded = Math.round((Number(n) || 0) * 100) / 100;
+          return rounded.toLocaleString("en-US", {
+            minimumFractionDigits: Number.isInteger(rounded) ? 0 : 2,
+            maximumFractionDigits: 2,
+          });
+        };
+
+        el.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155;padding-bottom:6px;margin-bottom:8px;">
+            <strong style="color:#38bdf8;font-size:13px;">📊 Net Invoice Breakdown</strong>
+            <button type="button" onclick="closeNetInvCalcToast()" style="background:none;border:none;color:#94a3b8;font-size:15px;cursor:pointer;padding:0 2px;">✕</button>
+          </div>
+          <div><span style="color:#94a3b8;">NR =</span> <strong>${nr}</strong> &nbsp;|&nbsp; <span style="color:#94a3b8;">OT =</span> <strong>${ot}</strong> &nbsp;|&nbsp; <span style="color:#94a3b8;">C/F =</span> <strong style="color:#facc15;">${fmt(cf)}</strong></div>
+          <div><span style="color:#94a3b8;">Net Invoice Amount =</span> <strong style="color:#4ade80;">${fmt(netAmt)}</strong></div>
+          <div><span style="color:#94a3b8;">Per Hr Rate =</span> <strong style="color:#38bdf8;">${fmt(perHrRate)}</strong></div>
+          <div><span style="color:#94a3b8;">C/F Rent Amount =</span> <strong style="color:#f472b6;">${fmt(cfRentAmt)}</strong></div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px;font-style:italic;">Per Hr Rate * 260 Hrs</div>
+          <div style="margin-top:8px;padding-top:6px;border-top:1px solid #334155;">
+            <span style="color:#94a3b8;">${isGain ? "Gain" : "Loss"} =</span>
+            <strong style="color:${isGain ? "#4ade80" : "#f87171"};">${fmt(Math.abs(gainLossDiff))}</strong>
+          </div>
+        `;
+        el.style.display = "block";
+        clearTimeout(el._timer);
+        el._timer = setTimeout(() => {
+          el.style.display = "none";
+        }, 10000);
+      }
+
       function showToast(msg) {
         let toast = document.getElementById("toastMsg");
         toast.innerText = msg;
