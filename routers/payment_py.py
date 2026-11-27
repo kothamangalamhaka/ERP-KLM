@@ -121,28 +121,50 @@ async def bulk_save_invoices(payload: BulkInvoiceRequest):
                             d["has_deduct_reason"] = True
 
             record_dicts.append(d)
-        # 🟢 ഒറ്റയടിക്ക് അതിവേഗം ഡാറ്റ അപ്ഡേറ്റ് ചെയ്യുന്നു
-        execute_batch(cur, query, record_dicts, page_size=100)
+        saved_dicts = []
+        failed_rows = []
+        for idx_r, d in enumerate(record_dicts):
+            sp_name = f"sp_inv_{idx_r}"
+            try:
+                cur.execute(f"SAVEPOINT {sp_name}")
+                cur.execute(query, d)
+                cur.execute(f"RELEASE SAVEPOINT {sp_name}")
+                saved_dicts.append(d)
+            except Exception as row_err:
+                cur.execute(f"ROLLBACK TO SAVEPOINT {sp_name}")
+                failed_rows.append({
+                    "plate": d.get("plate"),
+                    "month": d.get("month"),
+                    "site": d.get("site"),
+                    "column": "Database",
+                    "reason": str(row_err),
+                })
 
         conn.commit()
         cur.close()
         conn.close()
 
         # 🟢 Notify Node.js SSE Stream to push live sync to all browser clients
-        try:
-            import urllib.request
-            import json
-            node_port = os.getenv("PORT", "5000")
-            req_data = json.dumps({"eventType": "INLINE_EDITS_SAVED", "records": record_dicts}).encode('utf-8')
-            req = urllib.request.Request(
-                f"http://127.0.0.1:{node_port}/payment/notify-sync",
-                data=req_data,
-                headers={"Content-Type": "application/json"}
-            )
-            urllib.request.urlopen(req, timeout=2)
-        except Exception as notify_err:
-            print("Sync notify failed:", notify_err)
+        if saved_dicts:
+            try:
+                import urllib.request
+                import json
+                node_port = os.getenv("PORT", "5000")
+                req_data = json.dumps({"eventType": "INLINE_EDITS_SAVED", "records": saved_dicts}).encode('utf-8')
+                req = urllib.request.Request(
+                    f"http://127.0.0.1:{node_port}/payment/notify-sync",
+                    data=req_data,
+                    headers={"Content-Type": "application/json"}
+                )
+                urllib.request.urlopen(req, timeout=2)
+            except Exception as notify_err:
+                print("Sync notify failed:", notify_err)
 
-        return {"success": True, "message": f"Successfully updated {len(record_dicts)} records via Python Engine!"}
+        return {
+            "success": True,
+            "saved_count": len(saved_dicts),
+            "failed_rows": failed_rows,
+            "message": f"Updated {len(saved_dicts)} records" + (f", {len(failed_rows)} failed" if failed_rows else ""),
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

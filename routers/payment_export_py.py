@@ -72,8 +72,8 @@ async def generate_excel(payload: ExportRequest):
                                 except Exception:
                                     pass
 
-                    # Invoice No (col index 35) & Bill No (col index 36) strictly text aayirikkum
-                    if not sheet_data.is_vbv and c_idx in [35, 36]:
+                    # Invoice No (col index 36) & Bill No (col index 37) strictly text aayirikkum
+                    if not sheet_data.is_vbv and c_idx in [36, 37]:
                         parsed_row.append(str(val).strip())
                         continue
 
@@ -145,7 +145,7 @@ async def generate_excel(payload: ExportRequest):
                     ["A16207"] * 2 +
                     ["BE123C"] * 5 +
                     ["059669"] * 5 +
-                    ["B91C1C"] * 9 +
+                    ["B91C1C"] * 10 +
                     ["334155"] * 4 +
                     ["166534"] * 2
                 )
@@ -197,8 +197,11 @@ async def generate_excel(payload: ExportRequest):
 
                     if isinstance(cell.value, (datetime.date, datetime.datetime)):
                         cell.number_format = "mmm yy"
-                    elif c_idx in [36, 37] and not sheet_data.is_vbv:
-                        # 1-based index: Col 36 (AJ) = Invoice No, Col 37 (AK) = Bill No
+                    elif c_idx == 32 and not sheet_data.is_vbv and isinstance(cell.value, (int, float)):
+                        # Deduction/Addition: Positive = Red, Negative = Green (no minus sign)
+                        cell.number_format = "[Red]#,##0.00;[Green]#,##0.00"
+                    elif c_idx in [37, 38] and not sheet_data.is_vbv:
+                        # 1-based index: Col 37 (AK) = Invoice No, Col 38 (AL) = Bill No
                         cell.number_format = "@"
                     elif isinstance(cell.value, (int, float)):
                         if isinstance(cell.value, float):

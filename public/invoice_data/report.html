@@ -727,12 +727,14 @@
       }
 
       .filter-icon {
+        display: none;
         font-size: 10px;
         margin-left: 6px;
         color: #cbd5e1;
         transition: color 0.2s;
       }
       .filter-icon.filter-active {
+        display: inline;
         color: #f59e0b !important;
       }
       .excel-filter-menu {
@@ -1143,6 +1145,34 @@
           <button class="custom-alert-btn" onclick="submitMasterPrompt()">
             Submit
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="saveErrorReportModal" class="custom-alert-overlay" style="z-index: 10050;">
+      <div class="custom-alert-box" style="width: 720px; max-width: 95vw; text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 10px;">
+          <h3 style="margin: 0; color: #dc2626; font-size: 16px;">⚠️ Partial Save / Validation Errors</h3>
+          <button type="button" onclick="closeSaveErrorReportModal()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #64748b;">✕</button>
+        </div>
+        <p id="saveErrorSummary" style="margin: 0 0 12px 0; font-size: 13px; color: #0f172a; font-weight: 600;"></p>
+        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 15px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; min-width: 100%;">
+            <thead>
+              <tr style="background: #0f172a; color: #ffffff;">
+                <th style="padding: 7px 8px; text-align: left;">Plate No</th>
+                <th style="padding: 7px 8px; text-align: center;">Month</th>
+                <th style="padding: 7px 8px; text-align: left;">Site</th>
+                <th style="padding: 7px 8px; text-align: left;">Vehicle Type</th>
+                <th style="padding: 7px 8px; text-align: left;">Cell / Column</th>
+                <th style="padding: 7px 8px; text-align: left;">Reason</th>
+              </tr>
+            </thead>
+            <tbody id="saveErrorTableBody"></tbody>
+          </table>
+        </div>
+        <div style="text-align: right;">
+          <button type="button" class="custom-alert-btn" onclick="closeSaveErrorReportModal()">OK</button>
         </div>
       </div>
     </div>
@@ -2089,6 +2119,7 @@
               <col class="col-grp-amt" style="width: 90px" />
               <col class="col-grp-amt" style="width: 80px" />
               <col class="col-grp-amt" style="width: 90px" />
+              <col class="col-grp-inv-red" style="width: 100px" />
               <col class="col-grp-inv-red" style="width: 90px" />
               <col class="col-grp-inv-red" style="width: 90px" />
               <col class="col-grp-inv-red" style="width: 100px" />
@@ -2117,7 +2148,7 @@
                 <th colspan="2" class="th-driver">For Driver</th>
                 <th colspan="5" class="th-diff">DIFFERENCE</th>
                 <th colspan="5" class="th-amt">AMOUNT</th>
-                <th colspan="9" class="th-inv-red">INVOICE</th>
+                <th colspan="10" class="th-inv-red">INVOICE</th>
                 <th colspan="4" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
                 <th colspan="2" class="th-gen-nr th-gen">
@@ -2317,6 +2348,16 @@
 
                 <th
                   class="th-inv-red"
+                  style="width: 100px"
+                  data-col-key="inv_net_amount"
+                  onclick="openExcelFilterMenu(event, 'inv_net_amount')"
+                  title="Net Invoice Amount (Subtotal - Deduction/Addition)"
+                >
+                  Net Inv Amt
+                  <span class="filter-icon" data-key="inv_net_amount">▼</span>
+                </th>
+                <th
+                  class="th-inv-red"
                   style="width: 90px"
                   data-col-key="inv_nr_rate"
                   onclick="openExcelFilterMenu(event, 'inv_nr_rate')"
@@ -2345,11 +2386,11 @@
                 </th>
                 <th
                   class="th-inv-red"
-                  style="width: 110px"
+                  style="width: 120px"
                   data-col-key="inv_deduct"
                   onclick="openExcelFilterMenu(event, 'inv_deduct')"
                 >
-                  Deductions
+                  Deduction/Addition
                   <span class="filter-icon" data-key="inv_deduct">▼</span>
                 </th>
                 <th
@@ -2456,7 +2497,7 @@
             </thead>
             <tbody id="reportBody">
               <tr>
-                <td colspan="43" style="padding: 30px; color: #64748b">
+                <td colspan="44" style="padding: 30px; color: #64748b">
                   Click "Load Data" to fetch reports.
                 </td>
               </tr>
@@ -4037,9 +4078,11 @@
                 ? parseFloat(invData.inv_deduct) || 0
                 : 0;
             let deduct_reason = invData ? invData.deduct_reason || "" : "";
+            let inv_net_amount = 0;
             let calculated_total = 0;
-            if (inv_amount > 0 || inv_deduct > 0) {
-              calculated_total = (inv_amount - inv_deduct) * 1.15;
+            if (inv_amount > 0 || inv_deduct !== 0) {
+              inv_net_amount = inv_amount - inv_deduct;
+              calculated_total = inv_net_amount * 1.15;
             }
 
             let calc_ts_nr = parseFloat(ts_nr) || 0;
@@ -4220,6 +4263,8 @@
               inv_ot_rate: inv_ot_rate !== "" ? Number(inv_ot_rate).toFixed(2) : "",
               inv_subtotal: inv_amount > 0 ? inv_amount.toFixed(2) : "",
               inv_deduct: inv_deduct !== 0 ? inv_deduct.toFixed(2) : "",
+              inv_net_amount:
+                inv_net_amount !== 0 ? inv_net_amount.toFixed(2) : "",
               inv_total:
                 calculated_total > 0 ? calculated_total.toFixed(2) : "",
               deduct_reason: deduct_reason,
@@ -4550,11 +4595,15 @@
         tbody.innerHTML = "";
         if (data.length === 0) {
           tbody.innerHTML =
-            '<tr><td colspan="43" style="padding: 20px;">No data found.</td></tr>';
+            '<tr><td colspan="44" style="padding: 20px;">No data found.</td></tr>';
           return;
         }
         const fragment = document.createDocumentFragment();
         data.forEach((row) => {
+          const dedNum = parseFloat(row.inv_deduct);
+          const dedColor = !isNaN(dedNum) && dedNum < 0 ? "#16a34a" : "#dc2626";
+          const dedDisp =
+            !isNaN(dedNum) && dedNum !== 0 ? Math.abs(dedNum).toFixed(2) : "";
           const tr = document.createElement("tr");
           tr.dataset.site = row.site;
           tr.dataset.plate = row.plate;
@@ -4587,10 +4636,11 @@
             <td class="col-amt" style="font-weight: 700;">${row.bill_rent ? Number(row.bill_rent).toFixed(2) : ""}</td>
             <td class="col-amt" style="font-weight: 700;">${row.rent_vat ? Number(row.rent_vat).toFixed(2) : ""}</td>
             <td class="col-amt" style="font-weight: 700;">${row.rent_total ? Number(row.rent_total).toFixed(2) : ""}</td>
+            <td class="col-inv-red inv-net-cell" style="font-weight: 700; color: #0369a1;">${row.inv_net_amount ? Number(row.inv_net_amount).toFixed(2) : ""}</td>
             <td class="col-inv-red inv-nr-rate-cell" data-field="inv_nr_rate" style="color:#0f172a;">${row.inv_nr_rate !== "" && row.inv_nr_rate !== undefined ? Number(row.inv_nr_rate).toFixed(2) : ""}</td>
             <td class="col-inv-red inv-ot-rate-cell" data-field="inv_ot_rate" style="color:#0f172a;">${row.inv_ot_rate !== "" && row.inv_ot_rate !== undefined ? Number(row.inv_ot_rate).toFixed(2) : ""}</td>
             <td class="col-inv-red editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_subtotal ? Number(row.inv_subtotal).toFixed(2) : ""}</td>
-            <td class="col-inv-red inv-deduct-cell" style="font-weight: 700; color: #dc2626;" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}">${row.inv_deduct}</td>
+            <td class="col-inv-red inv-deduct-cell" data-raw-val="${row.inv_deduct || ""}" style="font-weight: 700; color: ${dedColor};" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}">${dedDisp}</td>
             <td class="col-inv-red inv-total-cell" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
               <td class="col-inv-red deduct-reason-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
               <td class="col-inv-red crn-no-cell" data-field="crn_no" style="color:#0f766e; font-weight:600; word-wrap: break-word;">${row.crn_no || ""}</td>
@@ -4909,20 +4959,69 @@
         }
       });
 
+      function getSignedDeductValue(dedCell) {
+        if (!dedCell) return 0;
+        const isFocused = document.activeElement === dedCell;
+        const raw = isFocused
+          ? dedCell.innerText.trim()
+          : dedCell.dataset.rawVal !== undefined
+            ? String(dedCell.dataset.rawVal).trim()
+            : dedCell.innerText.trim();
+        const num = parseFloat(raw.replace(/,/g, ""));
+        return isNaN(num) ? 0 : num;
+      }
+
+      function formatDeductCellDisplay(dedCell, signedNum) {
+        if (!dedCell) return;
+        if (signedNum === null || signedNum === undefined || isNaN(signedNum) || signedNum === 0) {
+          dedCell.dataset.rawVal = "";
+          dedCell.innerText = "";
+          dedCell.style.color = "#dc2626";
+          return;
+        }
+        dedCell.dataset.rawVal = Number(signedNum).toFixed(2);
+        dedCell.innerText = Math.abs(Number(signedNum)).toFixed(2);
+        dedCell.style.color = Number(signedNum) < 0 ? "#16a34a" : "#dc2626";
+      }
+
+      function recalcInvRowTotals(tr) {
+        if (!tr) return;
+        const subCell = tr.querySelector('[data-field="inv_amount"]');
+        const dedCell = tr.querySelector(".inv-deduct-cell");
+        const netCell = tr.querySelector(".inv-net-cell");
+        const totCell = tr.querySelector(".inv-total-cell");
+
+        const sub = parseFloat((subCell ? subCell.innerText : "0").replace(/,/g, "")) || 0;
+        const ded = getSignedDeductValue(dedCell);
+        const net = sub - ded;
+
+        if (netCell) {
+          netCell.innerText = sub > 0 || ded !== 0 ? net.toFixed(2) : "";
+        }
+        if (totCell) {
+          totCell.innerText = sub > 0 || ded !== 0 ? (net * 1.15).toFixed(2) : "";
+        }
+      }
+
       function activateEditModeCells() {
         document.querySelectorAll(".editable-field").forEach((td) => {
           td.classList.add("edit-active");
-          td.setAttribute("contenteditable", "true");
-          td.addEventListener("focus", function () {
+          if (td.dataset.isLockedByOther !== "true") {
+            td.setAttribute("contenteditable", "true");
+          }
+          td.onfocus = function () {
             if (this.dataset.isLockedByOther === "true") {
               this.blur();
               return;
             }
             const tr = this.closest("tr");
             emitCellLock(tr, this.dataset.field, "LOCK");
-          });
+          };
 
-          td.addEventListener("blur", function () {
+          td.onblur = function () {
+            if (this.dataset.field === "inv_amount") {
+              normalizeInvoiceAmountCell(this);
+            }
             if (
               this.classList.contains("driver-amount-cell") &&
               this.dataset.myEdited === "true"
@@ -4934,40 +5033,29 @@
             }
             const tr = this.closest("tr");
             emitCellLock(tr, this.dataset.field, "UNLOCK");
-          });
+          };
 
-          td.addEventListener("input", function () {
+          td.oninput = function () {
             const tr = this.closest("tr");
             this.dataset.myEdited = "true";
+            delete this.dataset.remoteDraft;
             tr.classList.add("row-edited");
             if (isMasterEditMode) {
               tr.classList.add("special-row-edited");
             }
             if (this.dataset.field === "inv_amount") {
-              let subText = this.innerText.replace(/,/g, "");
-              let dedCell = tr.querySelector(".inv-deduct-cell");
-              let dedText = dedCell ? dedCell.innerText.replace(/,/g, "") : "0";
-              let sub = parseFloat(subText) || 0;
-              let ded = parseFloat(dedText) || 0;
-              let totCell = tr.querySelector(".inv-total-cell");
-              if (totCell) {
-                totCell.innerText =
-                  sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
-              }
+              recalcInvRowTotals(tr);
             }
             emitTypingUpdate(tr, this.dataset.field, this.innerText.trim());
-          });
-          if (td.dataset.field === "inv_amount" && !td.dataset.formulaEnabled) {
-            td.dataset.formulaEnabled = "true";
-            td.addEventListener("blur", function () {
-              normalizeInvoiceAmountCell(this);
-            });
-            td.addEventListener("keydown", function (event) {
+          };
+
+          if (td.dataset.field === "inv_amount") {
+            td.onkeydown = function (event) {
               if (event.key === "Enter") {
                 event.preventDefault();
                 this.blur();
               }
-            });
+            };
           }
         });
       }
@@ -4975,89 +5063,168 @@
       document
         .getElementById("reportTable")
         .addEventListener("paste", function (e) {
-          if (!isEditMode) return;
-          let target = e.target;
-          if (!target.classList.contains("editable-field")) return;
+          if (!isEditMode && !isSpecialEditMode && !isMasterEditMode) return;
+          let target = e.target.closest("td");
+          if (!target || !target.classList.contains("edit-active")) return;
           e.preventDefault();
           let text = (e.originalEvent || e).clipboardData.getData("text/plain");
           let rows = text.split(/\r\n|\n|\r/);
           let currentCell = target;
           let currentRow = currentCell.parentElement;
           let editableCellsInRow = Array.from(
-            currentRow.querySelectorAll(".editable-field"),
+            currentRow.querySelectorAll(".edit-active"),
           ).filter((cell) => cell.offsetParent !== null);
           let startColIndex = editableCellsInRow.indexOf(currentCell);
+          if (startColIndex === -1) return;
 
           for (let i = 0; i < rows.length; i++) {
             if (!rows[i].trim() && i === rows.length - 1) break;
-            let cols = rows[i].split("\t");
-            if (currentRow) {
-              currentRow.classList.add("row-edited");
-              let editables = Array.from(
-                currentRow.querySelectorAll(".editable-field"),
-              );
-              for (let j = 0; j < cols.length; j++) {
-                let targetCol = startColIndex + j;
-                if (targetCol < editables.length) {
-                  let targetCell = editables[targetCol];
-                  let val = cols[j].trim();
-                  targetCell.innerText = val;
-                  targetCell.dataset.myEdited = "true";
-                  delete targetCell.dataset.remoteDraft;
-
-                  let fieldName = targetCell.dataset.field;
-                  if (!fieldName) {
-                    if (targetCell.classList.contains("vbill-cell"))
-                      fieldName = "vbill_notes";
-                    else if (targetCell.classList.contains("bill-nr-cell"))
-                      fieldName = "bill_nr";
-                    else if (targetCell.classList.contains("bill-ot-cell"))
-                      fieldName = "bill_ot";
-                    else if (targetCell.classList.contains("driver-ot-cell"))
-                      fieldName = "driver_ot";
-                    else if (
-                      targetCell.classList.contains("driver-amount-cell")
-                    )
-                      fieldName = "driver_amount";
-                    else if (targetCell.classList.contains("inv-deduct-cell"))
-                      fieldName = "inv_deduct";
-                    else if (
-                      targetCell.classList.contains("deduct-reason-cell")
-                    )
-                      fieldName = "deduct_reason";
-                    else if (targetCell.classList.contains("crn-no-cell"))
-                      fieldName = "crn_no";
-                  }
-
-                  if (targetCell.dataset.field === "inv_amount") {
-                    let subText = val.replace(/,/g, "");
-                    let dedCell = currentRow.querySelector(".inv-deduct-cell");
-                    let dedText = dedCell
-                      ? dedCell.innerText.replace(/,/g, "")
-                      : "0";
-                    let sub = parseFloat(subText) || 0;
-                    let ded = parseFloat(dedText) || 0;
-                    let totCell = currentRow.querySelector(".inv-total-cell");
-                    if (totCell) {
-                      totCell.innerText =
-                        sub > 0 || ded > 0
-                          ? ((sub - ded) * 1.15).toFixed(2)
-                          : "";
-                    }
-                  }
-
-                  if (fieldName) {
-                    emitTypingUpdate(currentRow, fieldName, val);
-                  }
-                }
-              }
+            while (currentRow && currentRow.style.display === "none") {
               currentRow = currentRow.nextElementSibling;
             }
+            if (!currentRow) break;
+
+            let cols = rows[i].split("\t");
+            currentRow.classList.add("row-edited");
+            if (isSpecialEditMode || isMasterEditMode) {
+              currentRow.classList.add("special-row-edited");
+            }
+            let editables = Array.from(
+              currentRow.querySelectorAll(".edit-active"),
+            ).filter((cell) => cell.offsetParent !== null);
+
+            for (let j = 0; j < cols.length; j++) {
+              let targetCol = startColIndex + j;
+              if (targetCol < editables.length) {
+                let targetCell = editables[targetCol];
+                if (targetCell.dataset.isLockedByOther === "true") continue;
+
+                let val = cols[j].trim();
+                targetCell.innerText = val;
+                targetCell.dataset.myEdited = "true";
+                delete targetCell.dataset.remoteDraft;
+
+                let fieldName = targetCell.dataset.field;
+                if (!fieldName) {
+                  if (targetCell.classList.contains("vbill-cell"))
+                    fieldName = "vbill_notes";
+                  else if (targetCell.classList.contains("bill-nr-cell"))
+                    fieldName = "bill_nr";
+                  else if (targetCell.classList.contains("bill-ot-cell"))
+                    fieldName = "bill_ot";
+                  else if (targetCell.classList.contains("driver-ot-cell"))
+                    fieldName = "driver_ot";
+                  else if (targetCell.classList.contains("driver-amount-cell"))
+                    fieldName = "driver_amount";
+                  else if (targetCell.classList.contains("inv-deduct-cell"))
+                    fieldName = "inv_deduct";
+                  else if (targetCell.classList.contains("deduct-reason-cell"))
+                    fieldName = "deduct_reason";
+                  else if (targetCell.classList.contains("crn-no-cell"))
+                    fieldName = "crn_no";
+                }
+
+                if (fieldName === "inv_deduct") {
+                  const pNum = parseFloat(val.replace(/,/g, ""));
+                  formatDeductCellDisplay(targetCell, isNaN(pNum) ? 0 : pNum);
+                }
+                if (
+                  fieldName === "inv_amount" ||
+                  fieldName === "inv_deduct"
+                ) {
+                  recalcInvRowTotals(currentRow);
+                }
+
+                if (fieldName === "driver_amount") {
+                  evaluateDriverAmountLive(targetCell);
+                } else if (fieldName) {
+                  emitTypingUpdate(currentRow, fieldName, val);
+                }
+              }
+            }
+            currentRow = currentRow.nextElementSibling;
           }
         });
+      function parseStrictNumericCell(cell) {
+        const raw = (
+          cell.classList.contains("inv-deduct-cell") &&
+          document.activeElement !== cell &&
+          cell.dataset.rawVal !== undefined
+            ? String(cell.dataset.rawVal)
+            : (cell.innerText || "")
+        ).trim();
+        const cleaned = raw.replace(/,/g, "");
+        if (cleaned === "") {
+          cell.classList.remove("formula-error");
+          return { valid: true, value: null };
+        }
+        if (/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(cleaned)) {
+          cell.classList.remove("formula-error");
+          return { valid: true, value: Number(cleaned) };
+        }
+        cell.classList.add("formula-error");
+        return { valid: false, value: null, reason: `Invalid number "${raw}"` };
+      }
+
+      function getRowErrorMeta(tr) {
+        let vType = "-";
+        try {
+          const fv = JSON.parse(tr.dataset.fvals || "{}");
+          if (fv.vehicle_type) vType = fv.vehicle_type;
+        } catch (e) {}
+        if (vType === "-" && tr.cells && tr.cells[5]) {
+          vType = tr.cells[5].innerText.trim() || "-";
+        }
+        return {
+          plate: tr.dataset.plate || tr.dataset.masterPlate || "-",
+          month: `${tr.dataset.month || ""} ${tr.dataset.year || ""}`.trim() || "-",
+          site: tr.dataset.site || "-",
+          vehicle_type: vType,
+        };
+      }
+
+      function showSaveErrorReportModal(savedCount, errorList) {
+        const summaryEl = document.getElementById("saveErrorSummary");
+        const tbodyEl = document.getElementById("saveErrorTableBody");
+        if (!summaryEl || !tbodyEl) return;
+
+        summaryEl.innerHTML =
+          savedCount > 0
+            ? `<span style="color:#16a34a;">✓ ${savedCount} row(s) saved successfully.</span> <span style="color:#dc2626;">${errorList.length} error(s) skipped (highlighted in red — fix &amp; save again).</span>`
+            : `<span style="color:#dc2626;">No rows saved. Please fix the ${errorList.length} error(s) below:</span>`;
+
+        const esc = (s) =>
+          String(s ?? "-")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        tbodyEl.innerHTML = errorList
+          .map(
+            (e) => `
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 6px 8px; font-weight: 700;">${esc(e.plate)}</td>
+                <td style="padding: 6px 8px; text-align: center;">${esc(e.month)}</td>
+                <td style="padding: 6px 8px;">${esc(e.site)}</td>
+                <td style="padding: 6px 8px;">${esc(e.vehicle_type)}</td>
+                <td style="padding: 6px 8px; font-weight: 600; color: #0284c7;">${esc(e.column)}</td>
+                <td style="padding: 6px 8px; color: #dc2626;">${esc(e.reason)}</td>
+              </tr>
+            `,
+          )
+          .join("");
+
+        document.getElementById("saveErrorReportModal").style.display = "flex";
+      }
+
+      function closeSaveErrorReportModal() {
+        document.getElementById("saveErrorReportModal").style.display = "none";
+      }
+
       async function saveInlineEdits() {
         let updates = [];
-        let hasInvalidFormula = false;
+        let validationErrors = [];
+        let validRowElements = [];
         const rows = document.querySelectorAll("#reportBody tr.row-edited");
         if (rows.length === 0) {
           window.alert("No changes detected to save!");
@@ -5081,59 +5248,46 @@
 
           let site = tr.dataset.site;
           let plate = tr.dataset.masterPlate;
-
-          const getCellVal = (field, fallbackVal) => {
-            const td = tr.querySelector(`[data-field="${field}"]`);
-            return td && td.dataset.myEdited === "true"
-              ? td.innerText.trim()
-              : fallbackVal;
-          };
-
-          let originalObj =
-            masterData.find(
-              (d) =>
-                (d.master_plate === plate || d.plate === plate) &&
-                d.site === site &&
-                `${d.raw_month} ${d.raw_year}` ===
-                  `${tr.dataset.month} ${tr.dataset.year}`,
-            ) || {};
-
           let preciseMonth = `${tr.dataset.month} ${tr.dataset.year}`;
           let recordPayload = { month: preciseMonth, site, plate };
+          const meta = getRowErrorMeta(tr);
+          let rowHasError = false;
 
           const invNrTd = tr.querySelector('[data-field="inv_nr"]');
           if (invNrTd && invNrTd.dataset.myEdited === "true") {
-            let t = invNrTd.innerText.trim().replace(/,/g, "");
-            let p = parseFloat(t);
-            recordPayload.inv_nr = t === "" ? null : isNaN(p) ? null : p;
+            const p = parseStrictNumericCell(invNrTd);
+            if (!p.valid) {
+              rowHasError = true;
+              validationErrors.push({ ...meta, column: "Bill Summary NR", reason: p.reason });
+            } else {
+              recordPayload.inv_nr = p.value;
+            }
           }
 
           const invOtTd = tr.querySelector('[data-field="inv_ot"]');
           if (invOtTd && invOtTd.dataset.myEdited === "true") {
-            let t = invOtTd.innerText.trim().replace(/,/g, "");
-            let p = parseFloat(t);
-            recordPayload.inv_ot = t === "" ? null : isNaN(p) ? null : p;
-          }
-
-          const invNrRateTd = tr.querySelector('[data-field="inv_nr_rate"]');
-          if (invNrRateTd && invNrRateTd.dataset.myEdited === "true") {
-            let t = invNrRateTd.innerText.trim().replace(/,/g, "");
-            let p = parseFloat(t);
-            recordPayload.inv_nr_rate = t === "" ? null : isNaN(p) ? null : p;
-          }
-
-          const invOtRateTd = tr.querySelector('[data-field="inv_ot_rate"]');
-          if (invOtRateTd && invOtRateTd.dataset.myEdited === "true") {
-            let t = invOtRateTd.innerText.trim().replace(/,/g, "");
-            let p = parseFloat(t);
-            recordPayload.inv_ot_rate = t === "" ? null : isNaN(p) ? null : p;
+            const p = parseStrictNumericCell(invOtTd);
+            if (!p.valid) {
+              rowHasError = true;
+              validationErrors.push({ ...meta, column: "Bill Summary OT", reason: p.reason });
+            } else {
+              recordPayload.inv_ot = p.value;
+            }
           }
 
           const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
           if (invAmountCell && invAmountCell.dataset.myEdited === "true") {
             const parsedAmount = normalizeInvoiceAmountCell(invAmountCell);
-            if (!parsedAmount.valid) hasInvalidFormula = true;
-            recordPayload.inv_amount = parsedAmount.value;
+            if (!parsedAmount.valid) {
+              rowHasError = true;
+              validationErrors.push({
+                ...meta,
+                column: "Invoice Subtotal",
+                reason: invAmountCell.title || "Invalid formula",
+              });
+            } else {
+              recordPayload.inv_amount = parsedAmount.value;
+            }
           }
 
           const crnTd = tr.querySelector('[data-field="crn_no"]');
@@ -5158,12 +5312,19 @@
 
           const deductTd = tr.querySelector(".inv-deduct-cell");
           if (deductTd && deductTd.dataset.myEdited === "true") {
-            let dVal = deductTd.innerText.trim().replace(/,/g, "");
-            recordPayload.inv_deduct =
-              dVal === "" ? 0 : isNaN(parseFloat(dVal)) ? 0 : parseFloat(dVal);
+            const p = parseStrictNumericCell(deductTd);
+            if (!p.valid) {
+              rowHasError = true;
+              validationErrors.push({ ...meta, column: "Deductions", reason: p.reason });
+            } else {
+              recordPayload.inv_deduct = p.value === null ? 0 : p.value;
+            }
           }
 
-          updates.push(recordPayload);
+          if (!rowHasError) {
+            updates.push(recordPayload);
+            validRowElements.push(tr);
+          }
         });
 
         // 🟢 FIX: Restore hidden state
@@ -5174,10 +5335,18 @@
           }
         });
 
+        if (updates.length === 0) {
+          if (validationErrors.length > 0) {
+            showSaveErrorReportModal(0, validationErrors);
+          } else {
+            window.alert("No changes detected to save!");
+          }
+          return;
+        }
+
         document.getElementById("loader").style.display = "block";
         const token = localStorage.getItem("timesheetToken");
         try {
-          // 🟢 വേഗതയേറിയ Python API-ലേക്ക് അഭ്യർത്ഥന അയക്കുന്നു
           const res = await fetch("/py/payment/bulk-save-invoices", {
             method: "POST",
             headers: {
@@ -5188,12 +5357,37 @@
           });
           const data = await res.json();
           if (data.success) {
-            showToast("✓ Changes Saved Successfully!");
-            isEditMode = false;
-            updateEditButtonsState(false);
+            const dbFailed = (data.failed_rows || []).map((f) => {
+              const matchedTr = validRowElements.find(
+                (tr) =>
+                  tr.dataset.masterPlate === f.plate &&
+                  tr.dataset.site === f.site &&
+                  `${tr.dataset.month} ${tr.dataset.year}` === f.month,
+              );
+              const m = matchedTr ? getRowErrorMeta(matchedTr) : { plate: f.plate, month: f.month, site: f.site, vehicle_type: "-" };
+              return { ...m, column: f.column || "Database", reason: f.reason };
+            });
+            const allErrors = validationErrors.concat(dbFailed);
+            const savedCount = updates.length - dbFailed.length;
 
-            if (isBatchViewActive) executeBatchView(true);
-            else fetchAndRenderUI(true);
+            if (allErrors.length > 0) {
+              validRowElements.forEach((tr) => {
+                const isDbFailed = dbFailed.some(
+                  (f) => f.site === tr.dataset.site && f.month === `${tr.dataset.month} ${tr.dataset.year}`,
+                );
+                if (!isDbFailed) {
+                  tr.classList.remove("row-edited");
+                  tr.querySelectorAll(".editable-field").forEach((td) => delete td.dataset.myEdited);
+                }
+              });
+              showSaveErrorReportModal(savedCount, allErrors);
+            } else {
+              showToast("✓ Changes Saved Successfully!");
+              isEditMode = false;
+              updateEditButtonsState(false);
+              if (isBatchViewActive) executeBatchView(true);
+              else fetchAndRenderUI(true);
+            }
           } else {
             window.alert(
               "Error: " + (data.detail || data.message || "Unknown error"),
@@ -5994,6 +6188,7 @@
             "",
             "",
             "",
+            "",
             "EXTRA DETAILS",
             "",
             "",
@@ -6030,10 +6225,11 @@
             "Rent",
             "VAT",
             "Total",
-            "Inv NR Rate",
-            "Inv OT Rate",
+            "NR Rate",
+            "OT Rate",
             "Subtotal",
-            "Deductions",
+            "Deduction/Addition",
+            "Net Amount",
             "Total",
             "Reason",
             "CRN No",
@@ -6083,6 +6279,7 @@
             r.inv_ot_rate || "",
             r.inv_subtotal || "",
             r.inv_deduct || "",
+            r.inv_net_amount || "",
             r.inv_total || "",
             r.deduct_reason || "",
             r.crn_no || "",
@@ -6106,9 +6303,9 @@
           { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // For Driver (Cols 16..17)
           { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFFERENCE (Cols 18..22)
           { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMOUNT (Cols 23..27)
-          { s: { r: 0, c: 28 }, e: { r: 0, c: 36 } }, // INVOICE (Cols 28..36)
-          { s: { r: 0, c: 37 }, e: { r: 0, c: 40 } }, // EXTRA DETAILS (Cols 37..40)
-          { s: { r: 0, c: 41 }, e: { r: 0, c: 42 } }, // 31 Considered as NR (Cols 41..42)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 37 } }, // INVOICE (Cols 28..37)
+          { s: { r: 0, c: 38 }, e: { r: 0, c: 41 } }, // EXTRA DETAILS (Cols 38..41)
+          { s: { r: 0, c: 42 }, e: { r: 0, c: 43 } }, // 31 Considered as NR (Cols 42..43)
         ];
         return {
           sheet_name: "Report",
@@ -6158,6 +6355,7 @@
             "",
             "",
             "",
+            "",
             "EXTRA DETAILS",
             "",
             "",
@@ -6194,10 +6392,11 @@
             "Rent",
             "VAT",
             "Total",
-            "Inv NR Rate",
-            "Inv OT Rate",
+            "NR Rate",
+            "OT Rate",
             "Subtotal",
-            "Deductions",
+            "Deduction/Addition",
+            "Net Amount",
             "Total",
             "Reason",
             "CRN No",
@@ -6246,6 +6445,7 @@
             r.inv_ot_rate || "",
             r.inv_subtotal || "",
             r.inv_deduct || "",
+            r.inv_net_amount || "",
             r.inv_total || "",
             r.deduct_reason || "",
             r.crn_no || "",
@@ -6268,9 +6468,9 @@
           { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // For Driver (Cols 16..17)
           { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFFERENCE (Cols 18..22)
           { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMOUNT (Cols 23..27)
-          { s: { r: 0, c: 28 }, e: { r: 0, c: 36 } }, // INVOICE (Cols 28..36)
-          { s: { r: 0, c: 37 }, e: { r: 0, c: 40 } }, // EXTRA DETAILS (Cols 37..40)
-          { s: { r: 0, c: 41 }, e: { r: 0, c: 42 } }, // 31 Considered as NR (Cols 41..42)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 37 } }, // INVOICE (Cols 28..37)
+          { s: { r: 0, c: 38 }, e: { r: 0, c: 41 } }, // EXTRA DETAILS (Cols 38..41)
+          { s: { r: 0, c: 42 }, e: { r: 0, c: 43 } }, // 31 Considered as NR (Cols 42..43)
         ];
 
         return {
@@ -6647,12 +6847,20 @@
                 this.blur();
                 return;
               }
+              if (this.classList.contains("inv-deduct-cell") && this.dataset.rawVal !== undefined && this.dataset.rawVal !== "") {
+                this.innerText = this.dataset.rawVal;
+              }
               const tr = this.closest("tr");
               const fKey = getFieldKey(this);
               if (fKey) emitCellLock(tr, fKey, "LOCK");
             };
 
             td.onblur = function () {
+              if (this.classList.contains("inv-deduct-cell")) {
+                const rawNum = parseFloat(this.innerText.trim().replace(/,/g, ""));
+                formatDeductCellDisplay(this, isNaN(rawNum) ? 0 : rawNum);
+                recalcInvRowTotals(this.closest("tr"));
+              }
               const tr = this.closest("tr");
               const fKey = getFieldKey(this);
               if (fKey) emitCellLock(tr, fKey, "UNLOCK");
@@ -6668,18 +6876,8 @@
               let fieldName = getFieldKey(this);
 
               if (this.classList.contains("inv-deduct-cell")) {
-                let subCell = tr.querySelector('[data-field="inv_amount"]');
-                let subText = subCell
-                  ? subCell.innerText.replace(/,/g, "")
-                  : "0";
-                let dedText = this.innerText.replace(/,/g, "");
-                let sub = parseFloat(subText) || 0;
-                let ded = parseFloat(dedText) || 0;
-                let totCell = tr.querySelector(".inv-total-cell");
-                if (totCell) {
-                  totCell.innerText =
-                    sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
-                }
+                this.dataset.rawVal = this.innerText.trim();
+                recalcInvRowTotals(tr);
               }
 
               if (fieldName) {
@@ -6811,6 +7009,8 @@
         try {
           let normalUpdates = [];
           let specialUpdates = [];
+          let validationErrors = [];
+          let validRowElements = [];
 
           const uniqueRows = Array.from(new Set(editedRows));
 
@@ -6820,6 +7020,8 @@
             const preciseMonth = `${tr.dataset.month} ${tr.dataset.year}`;
             const site = tr.dataset.site;
             const plate = tr.dataset.masterPlate;
+            const meta = getRowErrorMeta(tr);
+            let rowHasError = false;
 
             // 1. Normal Invoice Data (Only edited cells)
             let invRec = { month: preciseMonth, site, plate };
@@ -6827,41 +7029,66 @@
 
             const invNrTd = tr.querySelector('[data-field="inv_nr"]');
             if (invNrTd && invNrTd.dataset.myEdited === "true") {
-              let t = invNrTd.innerText.trim().replace(/,/g, "");
-              let p = parseFloat(t);
-              invRec.inv_nr = t === "" ? null : isNaN(p) ? null : p;
-              hasInvChange = true;
+              const p = parseStrictNumericCell(invNrTd);
+              if (!p.valid) {
+                rowHasError = true;
+                validationErrors.push({ ...meta, column: "Bill Summary NR", reason: p.reason });
+              } else {
+                invRec.inv_nr = p.value;
+                hasInvChange = true;
+              }
             }
 
             const invOtTd = tr.querySelector('[data-field="inv_ot"]');
             if (invOtTd && invOtTd.dataset.myEdited === "true") {
-              let t = invOtTd.innerText.trim().replace(/,/g, "");
-              let p = parseFloat(t);
-              invRec.inv_ot = t === "" ? null : isNaN(p) ? null : p;
-              hasInvChange = true;
+              const p = parseStrictNumericCell(invOtTd);
+              if (!p.valid) {
+                rowHasError = true;
+                validationErrors.push({ ...meta, column: "Bill Summary OT", reason: p.reason });
+              } else {
+                invRec.inv_ot = p.value;
+                hasInvChange = true;
+              }
             }
 
             const invNrRateTd = tr.querySelector('[data-field="inv_nr_rate"]');
             if (invNrRateTd && invNrRateTd.dataset.myEdited === "true") {
-              let t = invNrRateTd.innerText.trim().replace(/,/g, "");
-              let p = parseFloat(t);
-              invRec.inv_nr_rate = t === "" ? null : isNaN(p) ? null : p;
-              hasInvChange = true;
+              const p = parseStrictNumericCell(invNrRateTd);
+              if (!p.valid) {
+                rowHasError = true;
+                validationErrors.push({ ...meta, column: "Inv NR Rate", reason: p.reason });
+              } else {
+                invRec.inv_nr_rate = p.value;
+                hasInvChange = true;
+              }
             }
 
             const invOtRateTd = tr.querySelector('[data-field="inv_ot_rate"]');
             if (invOtRateTd && invOtRateTd.dataset.myEdited === "true") {
-              let t = invOtRateTd.innerText.trim().replace(/,/g, "");
-              let p = parseFloat(t);
-              invRec.inv_ot_rate = t === "" ? null : isNaN(p) ? null : p;
-              hasInvChange = true;
+              const p = parseStrictNumericCell(invOtRateTd);
+              if (!p.valid) {
+                rowHasError = true;
+                validationErrors.push({ ...meta, column: "Inv OT Rate", reason: p.reason });
+              } else {
+                invRec.inv_ot_rate = p.value;
+                hasInvChange = true;
+              }
             }
 
             const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
             if (invAmountCell && invAmountCell.dataset.myEdited === "true") {
               const parsedAmount = normalizeInvoiceAmountCell(invAmountCell);
-              invRec.inv_amount = parsedAmount.value;
-              hasInvChange = true;
+              if (!parsedAmount.valid) {
+                rowHasError = true;
+                validationErrors.push({
+                  ...meta,
+                  column: "Invoice Subtotal",
+                  reason: invAmountCell.title || "Invalid formula",
+                });
+              } else {
+                invRec.inv_amount = parsedAmount.value;
+                hasInvChange = true;
+              }
             }
 
             const invNoTd = tr.querySelector('[data-field="inv_no"]');
@@ -6878,14 +7105,14 @@
 
             const deductTd = tr.querySelector(".inv-deduct-cell");
             if (deductTd && deductTd.dataset.myEdited === "true") {
-              let dVal = deductTd.innerText.trim().replace(/,/g, "");
-              invRec.inv_deduct =
-                dVal === ""
-                  ? 0
-                  : isNaN(parseFloat(dVal))
-                    ? 0
-                    : parseFloat(dVal);
-              hasInvChange = true;
+              const p = parseStrictNumericCell(deductTd);
+              if (!p.valid) {
+                rowHasError = true;
+                validationErrors.push({ ...meta, column: "Deductions", reason: p.reason });
+              } else {
+                invRec.inv_deduct = p.value === null ? 0 : p.value;
+                hasInvChange = true;
+              }
             }
 
             const reasonTd = tr.querySelector(".deduct-reason-cell");
@@ -6898,10 +7125,6 @@
             if (crnTd && crnTd.dataset.myEdited === "true") {
               invRec.crn_no = crnTd.innerText.trim();
               hasInvChange = true;
-            }
-
-            if (hasInvChange) {
-              normalUpdates.push(invRec);
             }
 
             // 2. Special Billing & Driver Data (Only edited cells)
@@ -6921,56 +7144,63 @@
 
             const billNrTd = tr.querySelector(".bill-nr-cell");
             if (billNrTd && billNrTd.dataset.myEdited === "true") {
-              let nrVal = billNrTd.innerText.trim().replace(/,/g, "");
-              billRec.bill_nr =
-                nrVal === ""
-                  ? null
-                  : isNaN(parseFloat(nrVal))
-                    ? null
-                    : parseFloat(nrVal);
-              hasBillChange = true;
+              const p = parseStrictNumericCell(billNrTd);
+              if (!p.valid) {
+                rowHasError = true;
+                validationErrors.push({ ...meta, column: "Supplier NR", reason: p.reason });
+              } else {
+                billRec.bill_nr = p.value;
+                hasBillChange = true;
+              }
             }
 
             const billOtTd = tr.querySelector(".bill-ot-cell");
             if (billOtTd && billOtTd.dataset.myEdited === "true") {
-              let otVal = billOtTd.innerText.trim().replace(/,/g, "");
-              billRec.bill_ot =
-                otVal === ""
-                  ? null
-                  : isNaN(parseFloat(otVal))
-                    ? null
-                    : parseFloat(otVal);
-              hasBillChange = true;
+              const p = parseStrictNumericCell(billOtTd);
+              if (!p.valid) {
+                rowHasError = true;
+                validationErrors.push({ ...meta, column: "Supplier OT", reason: p.reason });
+              } else {
+                billRec.bill_ot = p.value;
+                hasBillChange = true;
+              }
             }
 
             const driverOtTd = tr.querySelector(".driver-ot-cell");
             if (driverOtTd && driverOtTd.dataset.myEdited === "true") {
-              let dOtVal = driverOtTd.innerText.trim().replace(/,/g, "");
-              billRec.driver_ot =
-                dOtVal === ""
-                  ? null
-                  : isNaN(parseFloat(dOtVal))
-                    ? null
-                    : parseFloat(dOtVal);
-              hasBillChange = true;
+              const p = parseStrictNumericCell(driverOtTd);
+              if (!p.valid) {
+                rowHasError = true;
+                validationErrors.push({ ...meta, column: "For Driver OT", reason: p.reason });
+              } else {
+                billRec.driver_ot = p.value;
+                hasBillChange = true;
+              }
             }
 
             const driverAmountTd = tr.querySelector(".driver-amount-cell");
             if (driverAmountTd && driverAmountTd.dataset.myEdited === "true") {
               const parsedDrvAmt = normalizeInvoiceAmountCell(driverAmountTd);
               if (!parsedDrvAmt.valid) {
-                window.alert("Invalid formula in For Driver AMT column!");
-                return;
+                rowHasError = true;
+                validationErrors.push({
+                  ...meta,
+                  column: "For Driver AMT",
+                  reason: driverAmountTd.title || "Invalid formula",
+                });
+              } else {
+                billRec.driver_amount =
+                  parsedDrvAmt.value === null
+                    ? null
+                    : Number(parsedDrvAmt.value.toFixed(2));
+                hasBillChange = true;
               }
-              billRec.driver_amount =
-                parsedDrvAmt.value === null
-                  ? null
-                  : Number(parsedDrvAmt.value.toFixed(2));
-              hasBillChange = true;
             }
 
-            if (hasBillChange) {
-              specialUpdates.push(billRec);
+            if (!rowHasError) {
+              if (hasInvChange) normalUpdates.push(invRec);
+              if (hasBillChange) specialUpdates.push(billRec);
+              if (hasInvChange || hasBillChange) validRowElements.push(tr);
             }
           });
 
@@ -6982,7 +7212,16 @@
             }
           });
 
-          // 🟢 ഒരൊറ്റ API കോൾ വഴി Invoice Data-യും Special Billing Data-യും ഒന്നിച്ചു സേവ് ചെയ്യുന്നു
+          if (normalUpdates.length === 0 && specialUpdates.length === 0) {
+            if (validationErrors.length > 0) {
+              showSaveErrorReportModal(0, validationErrors);
+            } else {
+              lockMasterEditMode();
+              showToast("No changes were made.");
+            }
+            return;
+          }
+
           const res = await fetch("/payment/save-master-edits", {
             method: "POST",
             headers: {
@@ -7002,11 +7241,37 @@
             );
           }
 
-          lockMasterEditMode();
-          showToast("✓ All Master Data Saved Successfully!");
+          const dbFailed = (data.failedRows || []).map((f) => {
+            const matchedTr = validRowElements.find(
+              (tr) =>
+                tr.dataset.masterPlate === f.plate &&
+                tr.dataset.site === f.site &&
+                `${tr.dataset.month} ${tr.dataset.year}` === f.month,
+            );
+            const m = matchedTr ? getRowErrorMeta(matchedTr) : { plate: f.plate, month: f.month, site: f.site, vehicle_type: "-" };
+            return { ...m, column: f.column || "Database", reason: f.reason };
+          });
 
-          if (isBatchViewActive) executeBatchView(true);
-          else fetchAndRenderUI(true);
+          const allErrors = validationErrors.concat(dbFailed);
+          const savedCount = validRowElements.length - dbFailed.length;
+
+          if (allErrors.length > 0) {
+            validRowElements.forEach((tr) => {
+              const isDbFailed = dbFailed.some(
+                (f) => f.site === tr.dataset.site && f.month === `${tr.dataset.month} ${tr.dataset.year}`,
+              );
+              if (!isDbFailed) {
+                tr.classList.remove("row-edited", "special-row-edited");
+                tr.querySelectorAll(".edit-active").forEach((td) => delete td.dataset.myEdited);
+              }
+            });
+            showSaveErrorReportModal(savedCount, allErrors);
+          } else {
+            lockMasterEditMode();
+            showToast("✓ All Master Data Saved Successfully!");
+            if (isBatchViewActive) executeBatchView(true);
+            else fetchAndRenderUI(true);
+          }
         } catch (err) {
           window.alert(err.message);
         } finally {
@@ -7167,11 +7432,12 @@
 
       async function saveSpecialEdits() {
         let updates = [];
+        let validationErrors = [];
+        let validRowElements = [];
         const rows = document.querySelectorAll(
           "#reportBody tr.special-row-edited",
         );
 
-        // മാറ്റങ്ങൾ ഒന്നുമില്ലെങ്കിൽ വെറുതെ ലോക്ക് ചെയ്യുക
         if (rows.length === 0) {
           lockSpecialEditMode();
           return;
@@ -7184,8 +7450,6 @@
             tr.style.display = "";
           }
         });
-
-        document.getElementById("loader").style.display = "block";
 
         rows.forEach((tr) => {
           const hasMySpecialEdits = Array.from(
@@ -7209,6 +7473,8 @@
           let site = vbillTd.dataset.site;
           let rMonth = vbillTd.dataset.month;
           let rYear = vbillTd.dataset.year;
+          const meta = getRowErrorMeta(tr);
+          let rowHasError = false;
 
           let specialPayload = {
             plate_no: plate,
@@ -7222,27 +7488,44 @@
           }
 
           if (billNrTd && billNrTd.dataset.myEdited === "true") {
-            let t = billNrTd.innerText.trim().replace(/,/g, "");
-            specialPayload.bill_nr =
-              t === "" ? null : isNaN(parseFloat(t)) ? null : parseFloat(t);
+            const p = parseStrictNumericCell(billNrTd);
+            if (!p.valid) {
+              rowHasError = true;
+              validationErrors.push({ ...meta, column: "Supplier NR", reason: p.reason });
+            } else {
+              specialPayload.bill_nr = p.value;
+            }
           }
 
           if (billOtTd && billOtTd.dataset.myEdited === "true") {
-            let t = billOtTd.innerText.trim().replace(/,/g, "");
-            specialPayload.bill_ot =
-              t === "" ? null : isNaN(parseFloat(t)) ? null : parseFloat(t);
+            const p = parseStrictNumericCell(billOtTd);
+            if (!p.valid) {
+              rowHasError = true;
+              validationErrors.push({ ...meta, column: "Supplier OT", reason: p.reason });
+            } else {
+              specialPayload.bill_ot = p.value;
+            }
           }
 
           if (driverOtTd && driverOtTd.dataset.myEdited === "true") {
-            let t = driverOtTd.innerText.trim().replace(/,/g, "");
-            specialPayload.driver_ot =
-              t === "" ? null : isNaN(parseFloat(t)) ? null : parseFloat(t);
+            const p = parseStrictNumericCell(driverOtTd);
+            if (!p.valid) {
+              rowHasError = true;
+              validationErrors.push({ ...meta, column: "For Driver OT", reason: p.reason });
+            } else {
+              specialPayload.driver_ot = p.value;
+            }
           }
 
           if (driverAmountTd && driverAmountTd.dataset.myEdited === "true") {
             const parsedDrvAmt = normalizeInvoiceAmountCell(driverAmountTd);
             if (!parsedDrvAmt.valid) {
-              hasInvalidFormula = true;
+              rowHasError = true;
+              validationErrors.push({
+                ...meta,
+                column: "For Driver AMT",
+                reason: driverAmountTd.title || "Invalid formula",
+              });
             } else {
               specialPayload.driver_amount =
                 parsedDrvAmt.value === null
@@ -7252,9 +7535,13 @@
           }
 
           if (deductTd && deductTd.dataset.myEdited === "true") {
-            let t = deductTd.innerText.trim().replace(/,/g, "");
-            specialPayload.inv_deduct =
-              t === "" ? 0 : isNaN(parseFloat(t)) ? 0 : parseFloat(t);
+            const p = parseStrictNumericCell(deductTd);
+            if (!p.valid) {
+              rowHasError = true;
+              validationErrors.push({ ...meta, column: "Deductions", reason: p.reason });
+            } else {
+              specialPayload.inv_deduct = p.value === null ? 0 : p.value;
+            }
           }
 
           if (reasonTd && reasonTd.dataset.myEdited === "true") {
@@ -7265,7 +7552,10 @@
             specialPayload.crn_no = crnTd.innerText.trim();
           }
 
-          updates.push(specialPayload);
+          if (!rowHasError) {
+            updates.push(specialPayload);
+            validRowElements.push(tr);
+          }
         });
 
         // 🟢 FIX: Restore hidden state
@@ -7276,6 +7566,16 @@
           }
         });
 
+        if (updates.length === 0) {
+          if (validationErrors.length > 0) {
+            showSaveErrorReportModal(0, validationErrors);
+          } else {
+            lockSpecialEditMode();
+          }
+          return;
+        }
+
+        document.getElementById("loader").style.display = "block";
         const token = localStorage.getItem("timesheetToken");
         try {
           const res = await fetch("/payment/save-bulk-vbill-notes", {
@@ -7288,10 +7588,36 @@
           });
           const data = await res.json();
           if (data.success) {
-            showToast("✓ Special edits saved successfully!");
-            lockSpecialEditMode();
-            if (isBatchViewActive) executeBatchView(true);
-            else fetchAndRenderUI(true);
+            const dbFailed = (data.failedRows || []).map((f) => {
+              const matchedTr = validRowElements.find(
+                (tr) =>
+                  tr.dataset.masterPlate === f.plate &&
+                  tr.dataset.site === f.site &&
+                  `${tr.dataset.month} ${tr.dataset.year}` === f.month,
+              );
+              const m = matchedTr ? getRowErrorMeta(matchedTr) : { plate: f.plate, month: f.month, site: f.site, vehicle_type: "-" };
+              return { ...m, column: f.column || "Database", reason: f.reason };
+            });
+            const allErrors = validationErrors.concat(dbFailed);
+            const savedCount = updates.length - dbFailed.length;
+
+            if (allErrors.length > 0) {
+              validRowElements.forEach((tr) => {
+                const isDbFailed = dbFailed.some(
+                  (f) => f.site === tr.dataset.site && f.month === `${tr.dataset.month} ${tr.dataset.year}`,
+                );
+                if (!isDbFailed) {
+                  tr.classList.remove("special-row-edited");
+                  tr.querySelectorAll(".edit-active").forEach((td) => delete td.dataset.myEdited);
+                }
+              });
+              showSaveErrorReportModal(savedCount, allErrors);
+            } else {
+              showToast("✓ Special edits saved successfully!");
+              lockSpecialEditMode();
+              if (isBatchViewActive) executeBatchView(true);
+              else fetchAndRenderUI(true);
+            }
           } else {
             window.alert("Error: " + data.message);
           }

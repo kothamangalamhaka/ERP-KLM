@@ -819,10 +819,16 @@ router.post("/save-master-edits", async (req, res) => {
     client = await pool.connect();
     await client.query("BEGIN");
 
+    const failedRows = [];
+
     // 1. Save Normal Invoice Records (including inv_deduct & deduct_reason)
     if (Array.isArray(invoiceRecords)) {
-      for (let row of invoiceRecords) {
-        let {
+      for (let i = 0; i < invoiceRecords.length; i++) {
+        let row = invoiceRecords[i];
+        const spName = `sp_master_inv_${i}`;
+        try {
+          await client.query(`SAVEPOINT ${spName}`);
+          let {
           month,
           plate,
           site,
@@ -942,6 +948,17 @@ router.post("/save-master-edits", async (req, res) => {
             ],
           );
         }
+          await client.query(`RELEASE SAVEPOINT ${spName}`);
+        } catch (rowErr) {
+          await client.query(`ROLLBACK TO SAVEPOINT ${spName}`);
+          failedRows.push({
+            plate: row.plate || "",
+            month: row.month || "",
+            site: row.site || "",
+            column: "Invoice Row",
+            reason: rowErr.message,
+          });
+        }
       }
     }
 
@@ -1024,7 +1041,7 @@ router.post("/save-master-edits", async (req, res) => {
       invoiceRecords,
       billingRecords,
     });
-    res.json({ success: true, message: "Master Edits Saved Successfully!" });
+    res.json({ success: true, failedRows, message: "Master Edits Saved Successfully!" });
   } catch (err) {
     if (client) await client.query("ROLLBACK");
     console.error("Master Edit Save Error:", err);
