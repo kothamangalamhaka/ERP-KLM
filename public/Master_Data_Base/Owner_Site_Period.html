@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+    />
+    <title>Owner Site Period | Haka ERP</title>
+    <link rel="stylesheet" href="style/owner_site_period.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <button
+          class="icon-button"
+          type="button"
+          onclick="window.location.href = './Database.html'"
+          title="Back to Master Database"
+        >
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <div>
+          <h1>Owner Site Period</h1>
+        </div>
+
+        <nav class="vat-ribbon" aria-label="VAT status filter">
+          <button
+            class="ribbon-button active"
+            type="button"
+            data-vat="YES"
+          >
+            VAT = Yes <span class="count" id="vatYesCount">0</span>
+          </button>
+          <button
+            class="ribbon-button"
+            type="button"
+            data-vat="NO"
+          >
+            VAT = No <span class="count" id="vatNoCount">0</span>
+          </button>
+          <button
+            class="ribbon-button"
+            type="button"
+            data-vat="PARTIAL"
+          >
+            VAT = Partial <span class="count" id="vatPartialCount">0</span>
+          </button>
+          <button
+            class="ribbon-button"
+            type="button"
+            data-vat="BLANK"
+          >
+            VAT = Blank <span class="count" id="vatBlankCount">0</span>
+          </button>
+          <button
+            class="ribbon-button section-toggle-btn"
+            type="button"
+            id="btnSectionToggle"
+            title="Split same site into sections when all equipment released before next mobilization"
+          >
+            <span class="material-icons" style="font-size: 16px">call_split</span>
+            Split Sections: OFF
+          </button>
+        </nav>
+      </div>
+
+      <div class="top-actions">
+        <div class="search-box">
+          <span class="material-icons">search</span>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search owner, site, plate..."
+            autocomplete="off"
+          />
+        </div>
+
+        <button
+          class="icon-button"
+          type="button"
+          onclick="toggleTheme()"
+          title="Toggle Dark/Light Mode"
+        >
+          <span class="material-icons" id="themeIcon">dark_mode</span>
+        </button>
+
+        <button
+          class="icon-button"
+          type="button"
+          onclick="loadSummaryData()"
+          title="Refresh Data"
+        >
+          <span class="material-icons">refresh</span>
+        </button>
+
+        <span class="user-chip">
+          <span class="material-icons">account_circle</span>
+          <span id="currentUserName"></span>
+        </span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="table-wrapper">
+        <table class="period-table" id="periodTable">
+          <thead>
+            <tr>
+              <th class="col-sn">SN</th>
+              <th class="col-owner">Owner Name</th>
+              <th class="col-site">Site Name</th>
+              <th class="col-plate">Plate No</th>
+              <th class="col-period">Period (Work Start - Last Working Day)</th>
+            </tr>
+          </thead>
+          <tbody id="periodTableBody">
+            <tr>
+              <td colspan="5" class="empty-state">Loading data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <footer class="company-bottom-bar" id="companyBottomBar" aria-label="Companies">
+      <span class="company-loading">Loading companies...</span>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script src="script/owner_site_period.js"></script>
+  </body>
+</html>
