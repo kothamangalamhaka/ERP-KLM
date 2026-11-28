@@ -157,7 +157,8 @@ def get_records():
                 if isinstance(orig_list, list) and len(orig_list) > 0:
                     valid_list = [
                         d for d in orig_list
-                        if (d.get("file_path") and os.path.exists(d.get("file_path")))
+                        if (not d.get("file_path") and not d.get("file_url"))
+                        or (d.get("file_path") and os.path.exists(d.get("file_path")))
                         or bool(check_public_file_exists(d.get("file_url")))
                     ]
                     if len(valid_list) != len(orig_list):
@@ -1002,8 +1003,8 @@ class CommonMultiDocUploadPayload(BaseModel):
     category: str  # 'ishtimara' or 'other'
     doc_id: Optional[str] = None
     doc_title: str
-    file_name: str
-    file_base64: str
+    file_name: Optional[str] = ""
+    file_base64: Optional[str] = ""
 
 
 @router.post("/upload-common-multi-doc")
@@ -1013,8 +1014,12 @@ def upload_common_multi_doc(payload: CommonMultiDocUploadPayload):
     if not col_name:
         return {"success": False, "error": "Invalid category"}
 
-    ext = os.path.splitext(payload.file_name)[1].lower()
-    if ext not in [".png", ".jpg", ".jpeg", ".pdf"]:
+    has_file = bool((payload.file_base64 or "").strip())
+    if not has_file and payload.category.lower() != "ishtimara":
+        return {"success": False, "error": "File is required for Other Docs"}
+
+    ext = os.path.splitext(payload.file_name or "")[1].lower() if has_file else ""
+    if has_file and ext not in [".png", ".jpg", ".jpeg", ".pdf"]:
         return {"success": False, "error": "Only PNG, JPG, PDF allowed"}
 
     conn = None
@@ -1060,24 +1065,35 @@ def upload_common_multi_doc(payload: CommonMultiDocUploadPayload):
                 except Exception:
                     pass
 
-        raw_b64 = payload.file_base64.split(",", 1)[1] if "," in payload.file_base64 else payload.file_base64
-        file_bytes = base64.b64decode(raw_b64)
+        if not title_clean:
+            conn.rollback()
+            return {"success": False, "error": "Plate No / Title is required"}
 
-        title_clean = payload.doc_title.strip() or os.path.splitext(payload.file_name)[0]
-        saved_filename = f"{sanitize_name(title_clean)}_{doc_uid}{ext}"
-        dest_path = os.path.join(target_dir, saved_filename)
-        with open(dest_path, "wb") as f:
-            f.write(file_bytes)
-
-        rel_url = f"/uploads/Customer_Docs/VAT_Customer_Docs/{cust_folder_name}/{sub_folder}/{saved_filename}"
-        new_entry = {
-            "id": doc_uid,
-            "title": title_clean,
-            "file_path": dest_path,
-            "file_url": rel_url,
-            "filename": payload.file_name,
-            "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        }
+        if has_file:
+            raw_b64 = payload.file_base64.split(",", 1)[1] if "," in payload.file_base64 else payload.file_base64
+            file_bytes = base64.b64decode(raw_b64)
+            saved_filename = f"{sanitize_name(title_clean)}_{doc_uid}{ext}"
+            dest_path = os.path.join(target_dir, saved_filename)
+            with open(dest_path, "wb") as f:
+                f.write(file_bytes)
+            rel_url = f"/uploads/Customer_Docs/VAT_Customer_Docs/{cust_folder_name}/{sub_folder}/{saved_filename}"
+            new_entry = {
+                "id": doc_uid,
+                "title": title_clean,
+                "file_path": dest_path,
+                "file_url": rel_url,
+                "filename": payload.file_name,
+                "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        else:
+            new_entry = {
+                "id": doc_uid,
+                "title": title_clean,
+                "file_path": None,
+                "file_url": None,
+                "filename": None,
+                "uploaded_at": None,
+            }
 
         if existing_idx != -1:
             docs[existing_idx] = new_entry

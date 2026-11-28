@@ -1724,15 +1724,15 @@
         });
 
         const totalPlates = custs.reduce((s, c) => s + c.ishtimara_docs.length, 0);
-        ws.mergeCells("A1:E1");
+        ws.mergeCells("A1:F1");
         const titleCell = ws.getCell("A1");
-        titleCell.value = `Non-VAT Customers — Uploaded Ishtimara Register (${custs.length} Customers, ${totalPlates} Plates)`;
+        titleCell.value = `Non-VAT Customers — Ishtimara Register (${custs.length} Customers, ${totalPlates} Plates)`;
         titleCell.font = { size: 12, bold: true, color: { argb: "FFFFFFFF" } };
         titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF334155" } };
         titleCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
         ws.getRow(1).height = 26;
 
-        const hdr = ws.addRow(["SN", "Customer Code", "Customer Name", "CR No", "Ishtimara (Plate No)"]);
+        const hdr = ws.addRow(["SN", "Customer Code", "Customer Name", "CR No", "Ishtimara (Plate No)", "Status"]);
         hdr.height = 22;
         hdr.eachCell((cell) => {
           cell.font = { size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
@@ -1761,6 +1761,7 @@
 
           docs.forEach((d, dIdx) => {
             const plate = (d.title || "Ishtimara").trim();
+            const statusText = d.file_url ? "Uploaded" : "Pending";
             maxPlateLen = Math.max(maxPlateLen, plate.length + 4);
             const r = ws.addRow([
               dIdx === 0 ? idx + 1 : "",
@@ -1768,10 +1769,23 @@
               dIdx === 0 ? c.customer_name || "" : "",
               dIdx === 0 ? c.cr_no || "-" : "",
               plate,
+              statusText,
             ]);
             r.height = 20;
             r.eachCell((cell, colNum) => {
-              cell.font = { size: 10, bold: colNum === 3 };
+              cell.font = { size: 10, bold: colNum === 3 || colNum === 6 };
+              if (colNum === 6) {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: d.file_url ? "FFDCFCE7" : "FFFEE2E2" },
+                };
+                cell.font = {
+                  size: 10,
+                  bold: true,
+                  color: { argb: d.file_url ? "FF15803D" : "FFB91C1C" },
+                };
+              }
               cell.alignment = {
                 horizontal: colNum === 3 || colNum === 5 ? "left" : "center",
                 vertical: "middle",
@@ -1800,6 +1814,7 @@
           { width: Math.min(maxCustLen, 45) },
           { width: 16 },
           { width: Math.min(maxPlateLen, 30) },
+          { width: 14 },
         ];
 
         const buf = await wb.xlsx.writeBuffer();
@@ -1817,18 +1832,18 @@
         if (e) e.preventDefault();
         const custs = Object.values(groupedCustomers || {});
         let totalIsh = 0;
-        let custWithIsh = 0;
+        let uploadedIsh = 0;
+        let pendingIsh = 0;
         custs.forEach((c) => {
-          const cnt = Array.isArray(c.ishtimara_docs)
-            ? c.ishtimara_docs.length
-            : 0;
-          if (cnt > 0) {
-            totalIsh += cnt;
-            custWithIsh += 1;
-          }
+          const list = Array.isArray(c.ishtimara_docs) ? c.ishtimara_docs : [];
+          totalIsh += list.length;
+          list.forEach((d) => {
+            if (d.file_url) uploadedIsh += 1;
+            else pendingIsh += 1;
+          });
         });
         showErpToast(
-          `🪪 Total Ishtimara: ${totalIsh} (across ${custWithIsh} customers)`,
+          `🪪 Total: ${totalIsh} | Uploaded: ${uploadedIsh} | Pending: ${pendingIsh}`,
           "success",
         );
       }
@@ -2072,12 +2087,15 @@
           activeMultiDocCategory === "ishtimara"
             ? cust.ishtimara_docs || []
             : cust.other_docs || [];
-        const docs = [...rawDocs].sort((a, b) =>
-          String(a.title || "").localeCompare(String(b.title || ""), undefined, {
+        const docs = [...rawDocs].sort((a, b) => {
+          const aPending = !(a.file_url || a.file_path);
+          const bPending = !(b.file_url || b.file_path);
+          if (aPending !== bPending) return aPending ? -1 : 1;
+          return String(a.title || "").localeCompare(String(b.title || ""), undefined, {
             numeric: true,
             sensitivity: "base",
-          }),
-        );
+          });
+        });
 
         if (docs.length === 0) {
           tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No documents uploaded yet.</td></tr>`;
@@ -2090,22 +2108,33 @@
               /"/g,
               "&quot;",
             );
+            const hasFile = Boolean(d.file_url);
             const safeUrl = String(d.file_url || "").replace(/'/g, "\\'");
-            return `
-          <tr>
-            <td style="text-align:center; font-weight:700;">${idx + 1}</td>
-            <td>
-              <span class="doc-name-display"
+            const nameCellHtml = hasFile
+              ? `<span class="doc-name-display"
                     title="Single click to open • Double click to edit name"
                     onclick="handleMultiDocNameClick(event, '${safeUrl}', '${safeTitle.replace(/'/g, "\\'")}')"
                     ondblclick="enableMultiDocNameEdit(event, '${d.id}', '${safeTitle.replace(/'/g, "\\'")}')">
-                <i class="fa-solid fa-file-lines"></i> ${safeTitle}
-              </span>
-            </td>
-            <td class="small text-muted">${d.uploaded_at || "-"}</td>
+                  <i class="fa-solid fa-file-lines"></i> ${safeTitle}
+                </span>`
+              : `<span class="fw-semibold" style="cursor:pointer;"
+                    title="Double click to edit Plate No"
+                    ondblclick="enableMultiDocNameEdit(event, '${d.id}', '${safeTitle.replace(/'/g, "\\'")}')">
+                  <i class="fa-solid fa-id-card text-muted me-1"></i>${safeTitle}
+                </span>`;
+            const statusCellHtml = hasFile
+              ? `<span class="small text-muted">${d.uploaded_at || "-"}</span>`
+              : `<span class="badge bg-danger-subtle text-danger border border-danger-subtle">Pending</span>`;
+            const uploadBtnIcon = hasFile ? "🔄" : "⬆️";
+            const uploadBtnTitle = hasFile ? "Replace File" : "Upload File";
+            return `
+          <tr>
+            <td style="text-align:center; font-weight:700;">${idx + 1}</td>
+            <td>${nameCellHtml}</td>
+            <td>${statusCellHtml}</td>
             <td style="text-align:center; white-space:nowrap;">
-              <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Replace File" onclick="triggerReplaceCommonMultiDoc('${d.id}')">🔄</button>
-              <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete File" onclick="confirmDeleteCommonMultiDoc('${d.id}', '${safeTitle.replace(/'/g, "\\'")}')">🗑️</button>
+              <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="${uploadBtnTitle}" onclick="triggerReplaceCommonMultiDoc('${d.id}')">${uploadBtnIcon}</button>
+              <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete" onclick="confirmDeleteCommonMultiDoc('${d.id}', '${safeTitle.replace(/'/g, "\\'")}')">🗑️</button>
             </td>
           </tr>
         `;
@@ -2183,21 +2212,27 @@
         const fileInput = document.getElementById("multiDocNewFile");
         const titleInput = document.getElementById("multiDocNewTitle");
         const uploadBtn = document.getElementById("btnMultiDocUpload");
-        if (!fileInput.files.length) {
+        const hasFile = fileInput.files.length > 0;
+        if (!hasFile && activeMultiDocCategory !== "ishtimara") {
           showErpToast("Please select a PDF or Image file to upload.", "error");
           return;
         }
-        const file = fileInput.files[0];
+        if (!hasFile && !titleInput.value.trim()) {
+          showErpToast("Please enter Plate No or select a file.", "error");
+          return;
+        }
+        const file = hasFile ? fileInput.files[0] : null;
         const docTitle =
-          titleInput.value.trim() || file.name.replace(/\.[^/.]+$/, "");
+          titleInput.value.trim() ||
+          (file ? file.name.replace(/\.[^/.]+$/, "") : "");
 
         if (uploadBtn) {
           uploadBtn.disabled = true;
           uploadBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Uploading...`;
         }
 
-        try {
-          const b64 = await readFileAsBase64(file);
+          try {
+          const b64 = file ? await readFileAsBase64(file) : "";
           const res = await fetch(`${API_BASE}/upload-common-multi-doc`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2205,7 +2240,7 @@
               customer_name: cust.customer_name,
               category: activeMultiDocCategory,
               doc_title: docTitle,
-              file_name: file.name,
+              file_name: file ? file.name : "",
               file_base64: b64,
             }),
           });
@@ -2218,7 +2253,10 @@
               sugBox.innerHTML = "";
               sugBox.style.display = "none";
             }
-            showErpToast(`✅ "${docTitle}" uploaded`, "success");
+            showErpToast(
+              file ? `✅ "${docTitle}" uploaded` : `✅ "${docTitle}" added (Pending)`,
+              "success",
+            );
             await fetchTableData();
           } else {
             showErpToast(json.error || "Upload failed", "error");
@@ -3291,10 +3329,13 @@
               const endHtml = l.end_date
                 ? `<span>${formatDateDDMMMYY(l.end_date)}</span>`
                 : `<span class="badge bg-success">Running</span>`;
+              const docTitleHtml = doc.file_url
+                ? `<span class="doc-name-display" onclick="previewDocPopup('${safeUrl}', '${safeTitle}')"><i class="fa-solid fa-id-card"></i> ${escapeHtmlSafe(doc.title || "Ishtimara")}</span>`
+                : `<span class="fw-semibold"><i class="fa-solid fa-id-card text-muted me-1"></i>${escapeHtmlSafe(doc.title || "Ishtimara")}</span> <span class="badge bg-danger-subtle text-danger ms-1">Pending</span>`;
               return `
               <tr>
                 <td style="text-align:center; font-weight:700;">${idx + 1}</td>
-                <td><span class="doc-name-display" onclick="previewDocPopup('${safeUrl}', '${safeTitle}')"><i class="fa-solid fa-id-card"></i> ${doc.title || "Ishtimara"}</span></td>
+                <td>${docTitleHtml}</td>
                 <td>${l.start_date ? formatDateDDMMMYY(l.start_date) : "-"}</td>
                 <td>${endHtml}</td>
                 <td style="text-align:center;">
