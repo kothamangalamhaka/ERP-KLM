@@ -914,8 +914,15 @@
                     class="form-control"
                     id="master_cust_name"
                     placeholder="Enter Company / Customer Name"
+                    autocomplete="off"
+                    oninput="renderMasterCustomerSuggestions(this.value)"
                     required
                   />
+                  <div
+                    id="masterCustSuggestions"
+                    class="mt-1 small"
+                    style="display: none; max-height: 140px; overflow-y: auto"
+                  ></div>
                 </div>
                 <div class="col-12 col-sm-6">
                   <label class="form-label small fw-semibold">VAT No</label>
@@ -1034,7 +1041,7 @@
                     required
                   />
                 </div>
-                <div class="col-12 col-sm-6 col-md-4">
+                <div class="col-12 col-sm-6 col-md-8">
                   <label class="form-label small fw-semibold">Company</label>
                   <select
                     class="form-select"
@@ -1048,47 +1055,14 @@
                     <option value="__NEW__">+ Add New</option>
                   </select>
                 </div>
-                <div class="col-12 col-sm-6 col-md-4">
-                  <label class="form-label small fw-semibold">Status</label>
-                  <select class="form-select" id="engagement_status">
-                    <option value="Active">Active</option>
-                    <option value="Released">Released</option>
-                  </select>
-                </div>
               </div>
 
-              <div class="row g-3 mt-1">
-                <div class="col-12 col-sm-6 col-md-4">
-                  <label class="form-label small fw-semibold">Start Date</label>
-                  <input
-                    type="date"
-                    class="form-control"
-                    id="engagement_joining_date"
-                  />
-                </div>
-                <div class="col-12 col-sm-6 col-md-4">
-                  <label class="form-label small fw-semibold"
-                    >Release Date</label
-                  >
-                  <input
-                    type="date"
-                    class="form-control"
-                    id="engagement_release_date"
-                  />
-                </div>
-                <div class="col-12 col-sm-6 col-md-4">
-                  <label class="form-label small fw-semibold">Remark</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="engagement_remark"
-                    placeholder="Remarks if any"
-                  />
-                </div>
-              </div>
+              <input type="hidden" id="engagement_status" value="Active" />
+              <input type="hidden" id="engagement_joining_date" value="" />
+              <input type="hidden" id="engagement_release_date" value="" />
 
               <div class="row g-3 mt-1">
-                <div class="col-12">
+                <div class="col-12 col-sm-6 col-md-6">
                   <label class="form-label small fw-semibold"
                     >Project Name</label
                   >
@@ -1098,6 +1072,15 @@
                     id="engagement_project_name"
                     maxlength="255"
                     placeholder="Enter Full Project Name"
+                  />
+                </div>
+                <div class="col-12 col-sm-6 col-md-6">
+                  <label class="form-label small fw-semibold">Remark</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="engagement_remark"
+                    placeholder="Remarks if any"
                   />
                 </div>
               </div>
@@ -1359,12 +1342,19 @@
                     id="multiDocNewTitle"
                     class="form-control form-control-sm"
                     placeholder="Enter document name..."
+                    autocomplete="off"
+                    oninput="renderMultiDocTitleSuggestions(this.value)"
                     style="
                       background: var(--surface);
                       color: var(--text);
                       border-color: var(--border);
                     "
                   />
+                  <div
+                    id="multiDocTitleSuggestions"
+                    class="mt-1 small"
+                    style="display: none; max-height: 120px; overflow-y: auto"
+                  ></div>
                 </div>
                 <div class="col-12 col-sm-5">
                   <label class="form-label small fw-semibold mb-1"
@@ -1946,6 +1936,11 @@
           `${fieldLabel} <span class="text-muted fw-normal" style="font-size: 10px;">(Tap to Open • Double-Tap to Edit)</span>`;
         document.getElementById("multiDocNewTitle").value = "";
         document.getElementById("multiDocNewFile").value = "";
+        const titleSugBox = document.getElementById("multiDocTitleSuggestions");
+        if (titleSugBox) {
+          titleSugBox.innerHTML = "";
+          titleSugBox.style.display = "none";
+        }
 
         renderCommonMultiDocRows();
         const modalEl = document.getElementById("commonMultiDocModal");
@@ -2919,8 +2914,103 @@
         return `${prefix}${String(maxNum + 1).padStart(4, "0")}`;
       }
 
+      function escapeHtmlSafe(val) {
+        return String(val ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderMasterCustomerSuggestions(rawVal) {
+        const box = document.getElementById("masterCustSuggestions");
+        if (!box) return;
+        const q = String(rawVal || "").trim().toLowerCase();
+        if (!q) {
+          box.innerHTML = "";
+          box.style.display = "none";
+          return;
+        }
+        const allCusts = Object.values(groupedCustomers || {});
+        const exact = allCusts.find(
+          (c) => (c.customer_name || "").trim().toLowerCase() === q,
+        );
+        const matches = allCusts
+          .filter((c) => (c.customer_name || "").toLowerCase().includes(q))
+          .slice(0, 6);
+
+        if (matches.length === 0) {
+          box.innerHTML = `<span class="text-success fw-semibold">✅ New customer name (no duplicate found)</span>`;
+          box.style.display = "block";
+          return;
+        }
+
+        const warnHtml = exact
+          ? `<div class="text-danger fw-bold mb-1">⚠️ "${escapeHtmlSafe(exact.customer_name)}" already exists!</div>`
+          : `<div class="text-warning-emphasis fw-semibold mb-1">Similar existing customers:</div>`;
+        const listHtml = matches
+          .map(
+            (c) =>
+              `<div class="px-2 py-1 border rounded mb-1" style="background: var(--bg);">${escapeHtmlSafe(
+                c.customer_code ? `[${c.customer_code}] ` : "",
+              )}${escapeHtmlSafe(c.customer_name)}</div>`,
+          )
+          .join("");
+        box.innerHTML = warnHtml + listHtml;
+        box.style.display = "block";
+      }
+
+      function renderMultiDocTitleSuggestions(rawVal) {
+        const box = document.getElementById("multiDocTitleSuggestions");
+        if (!box || !selectedActiveCustomerKey) return;
+        const q = String(rawVal || "").trim().toLowerCase();
+        if (!q) {
+          box.innerHTML = "";
+          box.style.display = "none";
+          return;
+        }
+        const cust = groupedCustomers[selectedActiveCustomerKey];
+        const docs =
+          activeMultiDocCategory === "ishtimara"
+            ? cust?.ishtimara_docs || []
+            : cust?.other_docs || [];
+
+        const exact = docs.find(
+          (d) => (d.title || "").trim().toLowerCase() === q,
+        );
+        const matches = docs
+          .filter((d) => (d.title || "").toLowerCase().includes(q))
+          .slice(0, 5);
+
+        if (matches.length === 0) {
+          box.innerHTML = `<span class="text-success fw-semibold">✅ No duplicate found</span>`;
+          box.style.display = "block";
+          return;
+        }
+
+        const warnHtml = exact
+          ? `<div class="text-danger fw-bold mb-1">⚠️ "${escapeHtmlSafe(exact.title)}" already uploaded!</div>`
+          : `<div class="text-warning-emphasis fw-semibold mb-1">Matching uploaded items:</div>`;
+        const listHtml = matches
+          .map(
+            (d) =>
+              `<div class="px-2 py-1 border rounded mb-1" style="background: var(--surface);">${escapeHtmlSafe(
+                d.title || "Document",
+              )}</div>`,
+          )
+          .join("");
+        box.innerHTML = warnHtml + listHtml;
+        box.style.display = "block";
+      }
+
       function openAddCustomerModal() {
         document.getElementById("addCustomerMasterForm").reset();
+        const sugBox = document.getElementById("masterCustSuggestions");
+        if (sugBox) {
+          sugBox.innerHTML = "";
+          sugBox.style.display = "none";
+        }
         const badge = document.getElementById("nextVatCodeBadge");
         if (badge) badge.innerText = getNextCustomerCode("VC");
         const modalEl = document.getElementById("addCustomerMasterModal");
@@ -3345,21 +3435,31 @@
               const checked = existing ? "checked" : "";
               const sDate = existing?.start_date || "";
               const eDate = existing?.end_date || "";
+              const titleText = d.title || "Ishtimara";
               return `
-              <tr>
+              <tr class="site-ish-row" data-title="${escapeHtmlSafe(titleText.toLowerCase())}">
                 <td style="text-align:center;">
-                  <input type="checkbox" class="form-check-input site-ish-chk" data-doc-id="${d.id}" ${checked}>
+                  <input type="checkbox" class="form-check-input site-ish-chk" data-doc-id="${escapeHtmlSafe(d.id)}" ${checked}>
                 </td>
-                <td class="fw-semibold">${d.title || "Ishtimara"}</td>
-                <td><input type="date" class="form-control form-control-sm site-ish-start" data-doc-id="${d.id}" value="${sDate}"></td>
-                <td><input type="date" class="form-control form-control-sm site-ish-end" data-doc-id="${d.id}" value="${eDate}" placeholder="Blank = Running"></td>
+                <td class="fw-semibold">${escapeHtmlSafe(titleText)}</td>
+                <td><input type="date" class="form-control form-control-sm site-ish-start" data-doc-id="${escapeHtmlSafe(d.id)}" value="${escapeHtmlSafe(sDate)}"></td>
+                <td><input type="date" class="form-control form-control-sm site-ish-end" data-doc-id="${escapeHtmlSafe(d.id)}" value="${escapeHtmlSafe(eDate)}" placeholder="Blank = Running"></td>
               </tr>
             `;
             })
             .join("");
 
           container.innerHTML = `
-            <div class="table-responsive border rounded mb-3">
+            <div class="d-flex align-items-center justify-content-end gap-2 mb-2">
+              <div class="input-group input-group-sm" id="siteIshSearchWrap" style="max-width: 260px; display: none;">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" id="siteIshSearchInput" class="form-control" placeholder="Search Plate No..." autocomplete="off" oninput="filterSiteIshtimaraRows(this.value)">
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary" title="Search Plate No" onclick="toggleSiteIshtimaraSearch()">
+                <i class="fa-solid fa-magnifying-glass"></i> Search
+              </button>
+            </div>
+            <div class="table-responsive border rounded mb-3" style="max-height: 360px; overflow-y: auto;">
               <table class="table table-hover align-middle m-0" style="color: var(--text); font-size: 13px;">
                 <thead>
                   <tr style="background: var(--table-header-bg); color: var(--table-header-color); font-size: 11px; text-transform: uppercase;">
@@ -3377,6 +3477,28 @@
             </div>
           `;
         }
+      }
+
+      function toggleSiteIshtimaraSearch() {
+        const wrap = document.getElementById("siteIshSearchWrap");
+        const inp = document.getElementById("siteIshSearchInput");
+        if (!wrap) return;
+        const isHidden = wrap.style.display === "none" || !wrap.style.display;
+        wrap.style.display = isHidden ? "flex" : "none";
+        if (isHidden && inp) {
+          inp.focus();
+        } else if (inp) {
+          inp.value = "";
+          filterSiteIshtimaraRows("");
+        }
+      }
+
+      function filterSiteIshtimaraRows(query) {
+        const q = String(query || "").trim().toLowerCase();
+        document.querySelectorAll("tr.site-ish-row").forEach((tr) => {
+          const title = tr.getAttribute("data-title") || "";
+          tr.classList.toggle("d-none", Boolean(q && !title.includes(q)));
+        });
       }
 
       async function saveSiteIshtimaraLinks() {

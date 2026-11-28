@@ -62,6 +62,15 @@
             <span class="material-icons" style="font-size: 16px">call_split</span>
             Split Sections: OFF
           </button>
+          <button
+            class="ribbon-button vat-split-btn"
+            type="button"
+            id="btnVatSplitView"
+            title="Compare unique Owners & Plate Numbers in VAT vs Non-VAT divisions"
+          >
+            <span class="material-icons" style="font-size: 16px">view_column</span>
+            VAT vs Non-VAT
+          </button>
         </nav>
       </div>
 
@@ -102,7 +111,7 @@
     </header>
 
     <main class="main-content">
-      <div class="table-wrapper">
+      <div class="table-wrapper" id="periodTableWrapper">
         <table class="period-table" id="periodTable">
           <thead>
             <tr>
@@ -119,6 +128,48 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="vat-split-grid" id="vatSplitGrid" style="display: none">
+        <section class="vat-division-card">
+          <div class="division-header division-vat">
+            <span>VAT</span>
+            <span class="division-stats" id="vatDivStats">0 Owners • 0 Vehicles</span>
+          </div>
+          <div class="division-table-wrap">
+            <table class="period-table">
+              <thead>
+                <tr>
+                  <th class="col-sn">SN</th>
+                  <th class="col-owner">Owner Name</th>
+                  <th class="col-plate">Plate No (Unique)</th>
+                  <th class="col-count">Count</th>
+                </tr>
+              </thead>
+              <tbody id="vatDivBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="vat-division-card">
+          <div class="division-header division-nonvat">
+            <span>Non-VAT (incl. Unmatched Blank)</span>
+            <span class="division-stats" id="nonVatDivStats">0 Owners • 0 Vehicles</span>
+          </div>
+          <div class="division-table-wrap">
+            <table class="period-table">
+              <thead>
+                <tr>
+                  <th class="col-sn">SN</th>
+                  <th class="col-owner">Owner Name</th>
+                  <th class="col-plate">Plate No (Unique)</th>
+                  <th class="col-count">Count</th>
+                </tr>
+              </thead>
+              <tbody id="nonVatDivBody"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </main>
 

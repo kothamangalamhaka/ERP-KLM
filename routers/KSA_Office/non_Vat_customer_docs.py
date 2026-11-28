@@ -1783,12 +1783,38 @@ def save_site_ishtimara(payload: SiteIshtimaraSavePayload):
             }
             for it in payload.items
         ]
+        start_dates = sorted([d["start_date"] for d in data_list if d["start_date"]])
+        auto_joining = start_dates[0] if start_dates else None
+
+        if not data_list:
+            auto_status = "Active"
+            auto_release = None
+        elif any(not d["end_date"] for d in data_list):
+            auto_status = "Active"
+            auto_release = None
+        else:
+            end_dates = sorted([d["end_date"] for d in data_list if d["end_date"]])
+            auto_status = "Released"
+            auto_release = end_dates[-1] if end_dates else None
+
         cur.execute(
-            "UPDATE non_vat_customer_records SET site_ishtimara = %s::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
-            (json.dumps(data_list), payload.customer_id),
+            """UPDATE non_vat_customer_records
+               SET site_ishtimara = %s::jsonb,
+                   joining_date = %s,
+                   status = %s,
+                   release_date = %s,
+                   updated_at = CURRENT_TIMESTAMP
+               WHERE id = %s""",
+            (json.dumps(data_list), auto_joining, auto_status, auto_release, payload.customer_id),
         )
         conn.commit()
-        return {"success": True, "site_ishtimara": data_list}
+        return {
+            "success": True,
+            "site_ishtimara": data_list,
+            "joining_date": auto_joining,
+            "status": auto_status,
+            "release_date": auto_release,
+        }
     except Exception as e:
         if conn:
             conn.rollback()

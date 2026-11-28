@@ -16,6 +16,7 @@ let allCompanies = [];
 let selectedCompany = "";
 let selectedVat = "YES";
 let splitBySections = false;
+let isVatSplitView = false;
 let searchTerm = "";
 let toastTimer = null;
 
@@ -327,6 +328,9 @@ function renderCompanyButtons() {
 
   bar.querySelectorAll(".company-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
+      isVatSplitView = false;
+      const btnVatSplitView = document.getElementById("btnVatSplitView");
+      if (btnVatSplitView) btnVatSplitView.classList.remove("active");
       selectedCompany = btn.getAttribute("data-company") || "";
       renderCompanyButtons();
       renderTable();
@@ -357,8 +361,130 @@ function updateVatCounts(companyRecords) {
   document.getElementById("vatBlankCount").textContent = ownerSets.BLANK.size;
 }
 
+function renderVatSplitView(companyRecords) {
+  const vatBody = document.getElementById("vatDivBody");
+  const nonVatBody = document.getElementById("nonVatDivBody");
+  const vatStats = document.getElementById("vatDivStats");
+  const nonVatStats = document.getElementById("nonVatDivStats");
+
+  // Step 1: Identify owners who already have at least one VAT (YES or PARTIAL) record
+  const ownersWithVat = new Set();
+  companyRecords.forEach((rec) => {
+    if (rec.vatCategory === "YES" || rec.vatCategory === "PARTIAL") {
+      const ownerKey = (rec.owner || "(No Owner)")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+      ownersWithVat.add(ownerKey);
+    }
+  });
+
+  // Step 2: Bucket records into VAT vs Non-VAT (Blank goes to VAT if owner has VAT, else Non-VAT)
+  const vatOwnersMap = new Map();
+  const nonVatOwnersMap = new Map();
+
+  companyRecords.forEach((rec) => {
+    const ownerDisplay = (rec.owner || "(No Owner)")
+      .replace(/\s+/g, " ")
+      .trim();
+    const ownerKey = ownerDisplay.toUpperCase();
+    const plateDisplay = (rec.plate || "(No Plate)")
+      .replace(/\s+/g, " ")
+      .trim();
+    const plateKey = plateDisplay.toUpperCase();
+
+    let targetMap;
+    if (rec.vatCategory === "YES" || rec.vatCategory === "PARTIAL") {
+      targetMap = vatOwnersMap;
+    } else if (rec.vatCategory === "BLANK" && ownersWithVat.has(ownerKey)) {
+      targetMap = vatOwnersMap;
+    } else {
+      targetMap = nonVatOwnersMap;
+    }
+
+    if (!targetMap.has(ownerKey)) {
+      targetMap.set(ownerKey, {
+        owner: ownerDisplay,
+        ownerIsBlank: !rec.owner,
+        platesMap: new Map(),
+      });
+    }
+
+    // Deduplicate plate numbers per owner
+    const ownerEntry = targetMap.get(ownerKey);
+    if (!ownerEntry.platesMap.has(plateKey)) {
+      ownerEntry.platesMap.set(plateKey, plateDisplay);
+    }
+  });
+
+  const q = searchTerm.trim().toLowerCase();
+  const buildDivisionRows = (map) => {
+    let rows = Array.from(map.values())
+      .map((entry) => ({
+        owner: entry.owner,
+        ownerIsBlank: entry.ownerIsBlank,
+        plates: Array.from(entry.platesMap.values()).sort((a, b) =>
+          a.localeCompare(b),
+        ),
+      }))
+      .sort((a, b) => a.owner.localeCompare(b.owner));
+
+    if (q) {
+      rows = rows.filter(
+        (r) =>
+          r.owner.toLowerCase().includes(q) ||
+          r.plates.some((p) => p.toLowerCase().includes(q)),
+      );
+    }
+    return rows;
+  };
+
+  const vatRows = buildDivisionRows(vatOwnersMap);
+  const nonVatRows = buildDivisionRows(nonVatOwnersMap);
+
+  const renderDivisionHtml = (rows, emptyLabel) => {
+    if (rows.length === 0) {
+      return `<tr><td colspan="4" class="empty-state">${escapeHtml(emptyLabel)}</td></tr>`;
+    }
+    return rows
+      .map((row, idx) => {
+        const platesHtml = row.plates
+          .map((p) => `<div class="cell-line">${escapeHtml(p)}</div>`)
+          .join("");
+        return `
+          <tr>
+            <td class="col-sn">${idx + 1}</td>
+            <td class="col-owner ${row.ownerIsBlank ? "muted-label" : ""}">${escapeHtml(
+              row.owner,
+            )}</td>
+            <td class="col-plate"><div class="cell-lines">${platesHtml}</div></td>
+            <td class="col-count">${row.plates.length}</td>
+          </tr>
+        `;
+      })
+      .join("");
+  };
+
+  const vatVehicles = vatRows.reduce((sum, r) => sum + r.plates.length, 0);
+  const nonVatVehicles = nonVatRows.reduce((sum, r) => sum + r.plates.length, 0);
+
+  vatStats.textContent = `${vatRows.length} Owners • ${vatVehicles} Vehicles`;
+  nonVatStats.textContent = `${nonVatRows.length} Owners • ${nonVatVehicles} Vehicles`;
+
+  vatBody.innerHTML = renderDivisionHtml(
+    vatRows,
+    "No VAT records across all companies.",
+  );
+  nonVatBody.innerHTML = renderDivisionHtml(
+    nonVatRows,
+    "No Non-VAT records across all companies.",
+  );
+}
+
 function renderTable() {
   const tbody = document.getElementById("periodTableBody");
+  const tableWrapper = document.getElementById("periodTableWrapper");
+  const vatSplitGrid = document.getElementById("vatSplitGrid");
 
   const selectedCompanyKey = selectedCompany.toUpperCase();
   const companyRecords = allRecords.filter(
@@ -366,6 +492,16 @@ function renderTable() {
   );
 
   updateVatCounts(companyRecords);
+
+  if (isVatSplitView) {
+    if (tableWrapper) tableWrapper.style.display = "none";
+    if (vatSplitGrid) vatSplitGrid.style.display = "grid";
+    renderVatSplitView(allRecords);
+    return;
+  }
+
+  if (tableWrapper) tableWrapper.style.display = "";
+  if (vatSplitGrid) vatSplitGrid.style.display = "none";
 
   const vatRecords = companyRecords.filter(
     (r) => r.vatCategory === selectedVat,
@@ -514,10 +650,14 @@ function initPage() {
   document.getElementById("currentUserName").textContent =
     authUser?.username || "User";
 
+  const btnVatSplitView = document.getElementById("btnVatSplitView");
+
   document
     .querySelectorAll(".vat-ribbon .ribbon-button[data-vat]")
     .forEach((btn) => {
       btn.addEventListener("click", () => {
+        isVatSplitView = false;
+        if (btnVatSplitView) btnVatSplitView.classList.remove("active");
         document
           .querySelectorAll(".vat-ribbon .ribbon-button[data-vat]")
           .forEach((b) => b.classList.remove("active"));
@@ -530,11 +670,21 @@ function initPage() {
   const btnSectionToggle = document.getElementById("btnSectionToggle");
   if (btnSectionToggle) {
     btnSectionToggle.addEventListener("click", () => {
+      isVatSplitView = false;
+      if (btnVatSplitView) btnVatSplitView.classList.remove("active");
       splitBySections = !splitBySections;
       btnSectionToggle.classList.toggle("active", splitBySections);
       btnSectionToggle.innerHTML = `<span class="material-icons" style="font-size: 16px">call_split</span> Split Sections: ${
         splitBySections ? "ON" : "OFF"
       }`;
+      renderTable();
+    });
+  }
+
+  if (btnVatSplitView) {
+    btnVatSplitView.addEventListener("click", () => {
+      isVatSplitView = !isVatSplitView;
+      btnVatSplitView.classList.toggle("active", isVatSplitView);
       renderTable();
     });
   }
