@@ -1750,7 +1750,12 @@
         let maxPlateLen = 18;
 
         custs.forEach((c, idx) => {
-          const docs = c.ishtimara_docs;
+          const docs = [...c.ishtimara_docs].sort((a, b) =>
+            String(a.title || "").localeCompare(String(b.title || ""), undefined, {
+              numeric: true,
+              sensitivity: "base",
+            }),
+          );
           maxCustLen = Math.max(maxCustLen, (c.customer_name || "").length + 4);
           const startRow = ws.lastRow.number + 1;
 
@@ -2063,10 +2068,16 @@
         )
           return;
         const cust = groupedCustomers[selectedActiveCustomerKey];
-        const docs =
+        const rawDocs =
           activeMultiDocCategory === "ishtimara"
             ? cust.ishtimara_docs || []
             : cust.other_docs || [];
+        const docs = [...rawDocs].sort((a, b) =>
+          String(a.title || "").localeCompare(String(b.title || ""), undefined, {
+            numeric: true,
+            sensitivity: "base",
+          }),
+        );
 
         if (docs.length === 0) {
           tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No documents uploaded yet.</td></tr>`;
@@ -3318,7 +3329,13 @@
             return;
           }
           const linkedMap = new Map(linked.map((l) => [String(l.doc_id), l]));
-          const rows = allDocs
+          const sortedDocs = [...allDocs].sort((a, b) =>
+            String(a.title || "").localeCompare(String(b.title || ""), undefined, {
+              numeric: true,
+              sensitivity: "base",
+            }),
+          );
+          const rows = sortedDocs
             .map((d) => {
               const existing = linkedMap.get(String(d.id));
               const checked = existing ? "checked" : "";
