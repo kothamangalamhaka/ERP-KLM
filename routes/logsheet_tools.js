@@ -1,11 +1,8 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { exec } = require("child_process");
-const { createClient } = require("webdav");
 const sharp = require("sharp");
 
 let pdfLib;
@@ -19,16 +16,29 @@ const { verifyEditor } = require("../middlewares/auth");
 
 const router = express.Router();
 
-const ncUrl = process.env.NEXTCLOUD_URL;
-const ncUser = process.env.NEXTCLOUD_USER;
-const ncPass = process.env.NEXTCLOUD_PASS;
+const BASE_DIR = path.resolve(
+  process.env.LOGSHEET_BASE_PATH || "/home/fefei/Server_DB",
+);
 
-const client = createClient(ncUrl, {
-  username: ncUser,
-  password: ncPass,
-});
+function resolveSafePath(relPath) {
+  if (!relPath || typeof relPath !== "string") return null;
+  const cleaned = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const resolved = path.resolve(BASE_DIR, cleaned);
+  if (resolved !== BASE_DIR && !resolved.startsWith(BASE_DIR + path.sep)) {
+    return null;
+  }
+  return resolved;
+}
 
-// 🟢 1. ROTATE & SAVE DIRECTLY TO NEXTCLOUD
+async function syncSambaPermissions(targetPath, isDir = false) {
+  try {
+    await fs.promises.chmod(targetPath, isDir ? 0o775 : 0o664);
+    const baseStat = await fs.promises.stat(BASE_DIR);
+    await fs.promises.chown(targetPath, baseStat.uid, baseStat.gid);
+  } catch (_) {}
+}
+
+// 1. ROTATE & SAVE DIRECTLY ON LOCAL DISK
 router.post("/rotate-file", verifyEditor, async (req, res) => {
   try {
     const { filePath, rotation } = req.body;
@@ -38,33 +48,34 @@ router.post("/rotate-file", verifyEditor, async (req, res) => {
         .json({ success: false, message: "No path provided" });
     }
 
-    const exists = await client.exists(filePath);
-    if (!exists) {
-      return res
-        .status(404)
-        .json({ success: false, message: "File not found in Nextcloud" });
+    const absPath = resolveSafePath(filePath);
+    if (!absPath) {
+      return res.status(403).json({ success: false, message: "Invalid path" });
     }
 
-    const ext = path.extname(filePath).toLowerCase();
+    if (!fs.existsSync(absPath)) {
+      return res
+        .status(404)
+        .json({ success: false, message: "File not found" });
+    }
+
+    const ext = path.extname(absPath).toLowerCase();
     const rotDeg = parseInt(rotation, 10) || 0;
 
     if (rotDeg === 0 || rotDeg % 90 !== 0) {
       return res.json({ success: true, message: "No rotation needed" });
     }
 
-    // Download file buffer from Nextcloud
-    const fileBuffer = await client.getFileContents(filePath);
+    const fileBuffer = await fs.promises.readFile(absPath);
 
     if ([".jpg", ".jpeg", ".png", ".webp"].includes(ext)) {
-      const rotatedBuffer = await sharp(Buffer.from(fileBuffer))
+      const rotatedBuffer = await sharp(fileBuffer)
         .rotate(rotDeg)
         .withMetadata()
         .toBuffer();
 
-      // Put rotated file back to Nextcloud (Overwrite)
-      await client.putFileContents(filePath, rotatedBuffer, {
-        overwrite: true,
-      });
+      await fs.promises.writeFile(absPath, rotatedBuffer);
+      await syncSambaPermissions(absPath, false);
       return res.json({
         success: true,
         message: "Image rotated and saved successfully",
@@ -76,7 +87,7 @@ router.post("/rotate-file", verifyEditor, async (req, res) => {
           .json({ success: false, message: "pdf-lib library not installed" });
       }
 
-      const pdfDoc = await pdfLib.PDFDocument.load(Buffer.from(fileBuffer));
+      const pdfDoc = await pdfLib.PDFDocument.load(fileBuffer);
       const pages = pdfDoc.getPages();
       pages.forEach((page) => {
         const currentRot = page.getRotation().angle;
@@ -84,9 +95,8 @@ router.post("/rotate-file", verifyEditor, async (req, res) => {
       });
 
       const savedBytes = await pdfDoc.save();
-      await client.putFileContents(filePath, Buffer.from(savedBytes), {
-        overwrite: true,
-      });
+      await fs.promises.writeFile(absPath, Buffer.from(savedBytes));
+      await syncSambaPermissions(absPath, false);
       return res.json({
         success: true,
         message: "PDF rotated and saved successfully",
@@ -98,12 +108,12 @@ router.post("/rotate-file", verifyEditor, async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("WebDAV Rotate Save Error:", err);
+    console.error("Local Rotate Save Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// 🟢 2. RENAME FILE ON NEXTCLOUD
+// 2. RENAME FILE ON LOCAL DISK
 router.post("/rename-file", verifyEditor, async (req, res) => {
   try {
     const { oldPath, newName } = req.body;
@@ -113,16 +123,21 @@ router.post("/rename-file", verifyEditor, async (req, res) => {
         .json({ success: false, message: "Old path missing" });
     }
 
-    const exists = await client.exists(oldPath);
-    if (!exists) {
+    const absOldPath = resolveSafePath(oldPath);
+    if (!absOldPath) {
+      return res.status(403).json({ success: false, message: "Invalid path" });
+    }
+
+    if (!fs.existsSync(absOldPath)) {
       return res.status(404).json({
         success: false,
-        message: "Original file not found in Nextcloud",
+        message: "Original file not found",
       });
     }
 
-    const dir = path.posix.dirname(oldPath);
-    const ext = path.extname(oldPath);
+    const relDir = path.posix.dirname(oldPath);
+    const absDir = path.dirname(absOldPath);
+    const ext = path.extname(absOldPath);
     let cleanBaseName = path.basename(newName, ext).trim();
 
     cleanBaseName = cleanBaseName.replace(/[/\\?%*:|"<>]/g, "-");
@@ -132,28 +147,31 @@ router.post("/rename-file", verifyEditor, async (req, res) => {
         .json({ success: false, message: "Invalid file name" });
     }
 
-    const targetPath = path.posix.join(dir, cleanBaseName + ext);
-    if (oldPath !== targetPath && (await client.exists(targetPath))) {
+    const newFileName = cleanBaseName + ext;
+    const absTargetPath = path.join(absDir, newFileName);
+    const relTargetPath = path.posix.join(relDir, newFileName);
+
+    if (absOldPath !== absTargetPath && fs.existsSync(absTargetPath)) {
       return res.status(400).json({
         success: false,
         message: "A file with this name already exists",
       });
     }
 
-    // Nextcloud moveFile performs rename
-    await client.moveFile(oldPath, targetPath);
+    await fs.promises.rename(absOldPath, absTargetPath);
+    await syncSambaPermissions(absTargetPath, false);
     res.json({
       success: true,
-      newPath: targetPath,
-      newBaseName: cleanBaseName + ext,
+      newPath: relTargetPath,
+      newBaseName: newFileName,
     });
   } catch (err) {
-    console.error("WebDAV Rename Error:", err);
+    console.error("Local Rename Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// 🟢 3. EXTRACT PDF TO IMAGES & MOVE PDF TO TEMP IN NEXTCLOUD
+// 3. EXTRACT PDF TO IMAGES & MOVE PDF TO TEMP ON LOCAL DISK
 router.post("/extract-pdf", verifyEditor, async (req, res) => {
   const tempLocalDir = path.join(os.tmpdir(), `extract_${Date.now()}`);
   try {
@@ -164,33 +182,29 @@ router.post("/extract-pdf", verifyEditor, async (req, res) => {
         .json({ success: false, message: "PDF path missing" });
     }
 
-    const exists = await client.exists(filePath);
-    if (!exists) {
-      return res
-        .status(404)
-        .json({ success: false, message: "PDF not found in Nextcloud" });
+    const absPdfPath = resolveSafePath(filePath);
+    if (!absPdfPath) {
+      return res.status(403).json({ success: false, message: "Invalid path" });
     }
 
-    const ext = path.extname(filePath).toLowerCase();
+    if (!fs.existsSync(absPdfPath)) {
+      return res
+        .status(404)
+        .json({ success: false, message: "PDF not found" });
+    }
+
+    const ext = path.extname(absPdfPath).toLowerCase();
     if (ext !== ".pdf") {
       return res
         .status(400)
         .json({ success: false, message: "File is not a PDF" });
     }
 
-    // Create a temporary directory locally on the Linux server
     await fs.promises.mkdir(tempLocalDir, { recursive: true });
-    const localPdfPath = path.join(tempLocalDir, "source.pdf");
-
-    // Download PDF from Nextcloud to local temp
-    const pdfBuffer = await client.getFileContents(filePath);
-    await fs.promises.writeFile(localPdfPath, Buffer.from(pdfBuffer));
-
-    const pdfBaseName = path.basename(filePath, ext);
+    const pdfBaseName = path.basename(absPdfPath, ext);
     const outputPrefix = path.join(tempLocalDir, `${pdfBaseName}_img`);
 
-    // Run poppler-utils pdfimages
-    const cmd = `pdfimages -png "${localPdfPath}" "${outputPrefix}"`;
+    const cmd = `pdfimages -png "${absPdfPath}" "${outputPrefix}"`;
 
     exec(cmd, async (error, stdout, stderr) => {
       if (error) {
@@ -205,35 +219,31 @@ router.post("/extract-pdf", verifyEditor, async (req, res) => {
       }
 
       try {
-        const nextcloudFolder = path.posix.dirname(filePath);
+        const targetFolder = path.dirname(absPdfPath);
 
-        // Upload all extracted images to Nextcloud folder
         const localFiles = await fs.promises.readdir(tempLocalDir);
         for (const f of localFiles) {
           if (f.endsWith(".png") || f.endsWith(".jpg")) {
-            const localImgPath = path.join(tempLocalDir, f);
-            const imgData = await fs.promises.readFile(localImgPath);
-            const targetNcPath = path.posix.join(nextcloudFolder, f);
-            await client.putFileContents(targetNcPath, imgData, {
-              overwrite: true,
-            });
+            const srcImgPath = path.join(tempLocalDir, f);
+            const destImgPath = path.join(targetFolder, f);
+            await fs.promises.copyFile(srcImgPath, destImgPath);
+            await syncSambaPermissions(destImgPath, false);
           }
         }
 
-        // Create Temp folder in Nextcloud if not exists
-        const ncTempFolder = path.posix.join(nextcloudFolder, "Temp");
-        if (!(await client.exists(ncTempFolder))) {
-          await client.createDirectory(ncTempFolder);
+        const tempFolder = path.join(targetFolder, "Temp");
+        if (!fs.existsSync(tempFolder)) {
+          await fs.promises.mkdir(tempFolder, { recursive: true });
+          await syncSambaPermissions(tempFolder, true);
         }
 
-        // Move original PDF to Nextcloud Temp folder
-        const targetTempPath = path.posix.join(
-          ncTempFolder,
-          path.basename(filePath),
+        const targetTempPdfPath = path.join(
+          tempFolder,
+          path.basename(absPdfPath),
         );
-        await client.moveFile(filePath, targetTempPath);
+        await fs.promises.rename(absPdfPath, targetTempPdfPath);
+        await syncSambaPermissions(targetTempPdfPath, false);
 
-        // Clean up server local temp files
         await fs.promises
           .rm(tempLocalDir, { recursive: true, force: true })
           .catch(() => {});
@@ -242,16 +252,16 @@ router.post("/extract-pdf", verifyEditor, async (req, res) => {
           success: true,
           message: "Images extracted in original quality. PDF moved to Temp.",
         });
-      } catch (ncErr) {
-        console.error("Nextcloud sync error:", ncErr);
+      } catch (fsErr) {
+        console.error("Local extract sync error:", fsErr);
         await fs.promises
           .rm(tempLocalDir, { recursive: true, force: true })
           .catch(() => {});
-        res.status(500).json({ success: false, message: ncErr.message });
+        res.status(500).json({ success: false, message: fsErr.message });
       }
     });
   } catch (err) {
-    console.error("Extract PDF WebDAV Error:", err);
+    console.error("Extract PDF Local Error:", err);
     await fs.promises
       .rm(tempLocalDir, { recursive: true, force: true })
       .catch(() => {});

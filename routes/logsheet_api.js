@@ -1,18 +1,31 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const router = express.Router();
-const { createClient } = require("webdav");
-const { verifyToken } = require("../middlewares/auth");
 
-const ncUrl = process.env.NEXTCLOUD_URL;
-const ncUser = process.env.NEXTCLOUD_USER;
-const ncPass = process.env.NEXTCLOUD_PASS;
+const BASE_DIR = path.resolve(
+  process.env.LOGSHEET_BASE_PATH || "/home/fefei/Server_DB",
+);
 
-const client = createClient(ncUrl, {
-  username: ncUser,
-  password: ncPass,
-});
+const mimeMap = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".bmp": "image/bmp",
+  ".pdf": "application/pdf",
+};
+
+function resolveSafePath(relPath) {
+  if (!relPath || typeof relPath !== "string") return null;
+  const cleaned = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const resolved = path.resolve(BASE_DIR, cleaned);
+  if (resolved !== BASE_DIR && !resolved.startsWith(BASE_DIR + path.sep)) {
+    return null;
+  }
+  return resolved;
+}
 
 // Month Mapping Logic
 const monthMap = {
@@ -46,43 +59,64 @@ router.post("/list", async (req, res) => {
     const plateNoClean = plate_no.replace(/\s+/g, ""); // e.g., 7109VDA
     const plateNoSpaced = plate_no; // e.g., 7109 VDA
 
-    // 🟢 Check all possible combinations (Short year vs Full year & Spaced vs No Space)
-    const possiblePaths = [
+    // Check all possible combinations (Short year vs Full year & Spaced vs No Space)
+    const possibleRelPaths = [
       `/Log Sheet/${year}/${folderNameShort}/${plateNoSpaced}`,
       `/Log Sheet/${year}/${folderNameShort}/${plateNoClean}`,
       `/Log Sheet/${year}/${folderNameFull}/${plateNoSpaced}`,
       `/Log Sheet/${year}/${folderNameFull}/${plateNoClean}`,
     ];
 
-    let targetPath = null;
+    let targetRelPath = null;
+    let targetAbsPath = null;
 
-    // Loop through combinations and find the exact matching folder
-    for (const p of possiblePaths) {
-      if (await client.exists(p)) {
-        targetPath = p;
-        break;
-      }
+    for (const relP of possibleRelPaths) {
+      const absP = resolveSafePath(relP);
+      if (!absP) continue;
+      try {
+        const stat = await fs.promises.stat(absP);
+        if (stat.isDirectory()) {
+          targetRelPath = relP;
+          targetAbsPath = absP;
+          break;
+        }
+      } catch (_) {}
     }
 
-    if (!targetPath) {
+    if (!targetAbsPath) {
       return res.json({
         success: true,
         files: [],
-        message: "No files found. Folder path might be different in Nextcloud.",
+        message: "No files found. Folder path might be different.",
       });
     }
 
-    const directoryItems = await client.getDirectoryContents(targetPath);
-    // Filter only files (images and pdfs)
-    const files = directoryItems.filter(
-      (item) =>
-        item.type === "file" &&
-        (item.mime.includes("image") || item.mime.includes("pdf")),
-    );
+    const entries = await fs.promises.readdir(targetAbsPath, {
+      withFileTypes: true,
+    });
+
+    const files = [];
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const ext = path.extname(entry.name).toLowerCase();
+      const mime = mimeMap[ext];
+      if (!mime) continue;
+
+      const fileAbsPath = path.join(targetAbsPath, entry.name);
+      const stat = await fs.promises.stat(fileAbsPath);
+
+      files.push({
+        filename: path.posix.join(targetRelPath, entry.name),
+        basename: entry.name,
+        type: "file",
+        size: stat.size,
+        mime: mime,
+      });
+    }
 
     res.json({ success: true, files: files });
   } catch (error) {
-    console.error("WebDAV List Error:", error);
+    console.error("Local Logsheet List Error:", error);
     res.json({ success: false, message: error.message });
   }
 });
@@ -93,17 +127,31 @@ router.get("/file", async (req, res) => {
     const filePath = req.query.path;
     if (!filePath) return res.status(400).send("No path provided");
 
-    // Set Headers based on extension
-    if (filePath.toLowerCase().endsWith(".pdf")) {
-      res.setHeader("Content-Type", "application/pdf");
+    const absPath = resolveSafePath(filePath);
+    if (!absPath) return res.status(403).send("Invalid path");
+
+    try {
+      const stat = await fs.promises.stat(absPath);
+      if (!stat.isFile()) return res.status(404).send("File not found");
+      res.setHeader("Content-Length", stat.size);
+    } catch (_) {
+      return res.status(404).send("File not found");
     }
 
-    // Stream the file directly from Nextcloud to the client
-    const readStream = client.createReadStream(filePath);
+    const ext = path.extname(absPath).toLowerCase();
+    if (mimeMap[ext]) {
+      res.setHeader("Content-Type", mimeMap[ext]);
+    }
+
+    const readStream = fs.createReadStream(absPath);
+    readStream.on("error", (err) => {
+      console.error("Local Logsheet Stream Error:", err);
+      if (!res.headersSent) res.status(500).send("Error reading file");
+    });
     readStream.pipe(res);
   } catch (error) {
-    console.error("WebDAV File Fetch Error:", error);
-    res.status(500).send("Error fetching file");
+    console.error("Local Logsheet File Fetch Error:", error);
+    if (!res.headersSent) res.status(500).send("Error fetching file");
   }
 });
 
