@@ -2247,6 +2247,7 @@
         const inst =
           bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
         inst.show();
+        syncVersionTick();
       }
 
       function renderDetailModal(custKey) {
@@ -3548,7 +3549,13 @@
             const rec = rawRecords.find(
               (r) => Number(r.id) === Number(currentSiteIshtimaraRecordId),
             );
-            if (rec) rec.site_ishtimara = json.site_ishtimara;
+            if (rec) {
+              rec.site_ishtimara = json.site_ishtimara;
+              rec.joining_date = json.joining_date || null;
+              rec.status = json.status || "Active";
+              rec.release_date = json.release_date || null;
+            }
+            renderGrid();
             if (selectedActiveCustomerKey)
               renderDetailModal(selectedActiveCustomerKey);
             Swal.fire({
@@ -3869,13 +3876,14 @@
       }
 
       let lastSyncVersion = null;
+      let isSyncTickRunning = false;
       async function syncVersionTick() {
-        if (document.visibilityState !== "visible") return;
+        if (document.visibilityState !== "visible" || isSyncTickRunning) return;
+        isSyncTickRunning = true;
         try {
           const res = await fetch("/py/vat-customers/version");
           const json = await res.json();
           if (json.v && lastSyncVersion && json.v !== lastSyncVersion) {
-            lastSyncVersion = json.v;
             const editingOpen = [
               "addCustomerMasterModal",
               "editCustomerMasterModal",
@@ -3887,12 +3895,16 @@
               document.getElementById(id)?.classList.contains("show"),
             );
             if (!editingOpen) {
+              lastSyncVersion = json.v;
               await fetchTableData();
             }
           } else if (json.v && !lastSyncVersion) {
             lastSyncVersion = json.v;
           }
-        } catch (e) {}
+        } catch (e) {
+        } finally {
+          isSyncTickRunning = false;
+        }
       }
 
       loadCompanies();

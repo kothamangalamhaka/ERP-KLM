@@ -802,6 +802,27 @@ def upsert_customer(payload: CustomerUpsertPayload):
                 ),
             )
         else:
+            if not s_site:
+                cur.execute(
+                    "SELECT id FROM non_vat_customer_records WHERE LOWER(customer_name) = LOWER(%s) LIMIT 1",
+                    (c_name,),
+                )
+                if cur.fetchone():
+                    conn.rollback()
+                    return {"success": False, "error": f'Customer "{c_name}" already exists!'}
+            else:
+                cur.execute(
+                    """SELECT id FROM non_vat_customer_records
+                       WHERE LOWER(customer_name) = LOWER(%s)
+                         AND LOWER(COALESCE(site, '')) = LOWER(%s)
+                         AND LOWER(COALESCE(company, '')) = LOWER(%s)
+                       LIMIT 1""",
+                    (c_name, s_site, s_comp),
+                )
+                if cur.fetchone():
+                    conn.rollback()
+                    return {"success": False, "error": f'Site "{s_site}" ({s_comp}) already exists for "{c_name}"!'}
+
             cur.execute(
                 """
                 SELECT customer_code, vat_no, cr_no, customer_remark,
@@ -1462,11 +1483,24 @@ def upload_common_multi_doc(payload: CommonMultiDocUploadPayload):
         target_dir = os.path.join(UPLOAD_BASE, cust_folder_name, sub_folder)
         os.makedirs(target_dir, exist_ok=True)
 
+        title_clean = payload.doc_title.strip() or os.path.splitext(payload.file_name)[0]
         doc_uid = payload.doc_id or str(int(datetime.now().timestamp() * 1000))
         existing_idx = next(
             (i for i, d in enumerate(docs) if str(d.get("id")) == str(doc_uid)),
             -1,
         )
+
+        if existing_idx == -1:
+            dup_title = any(
+                str(d.get("title", "")).strip().lower() == title_clean.lower()
+                for d in docs
+            )
+            if dup_title:
+                conn.rollback()
+                return {
+                    "success": False,
+                    "error": f'"{title_clean}" already exists! Use Replace button to update.',
+                }
 
         if existing_idx != -1:
             old_path = docs[existing_idx].get("file_path", "")
@@ -1775,6 +1809,13 @@ def save_site_ishtimara(payload: SiteIshtimaraSavePayload):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT id FROM non_vat_customer_records WHERE id = %s FOR UPDATE",
+            (payload.customer_id,),
+        )
+        if not cur.fetchone():
+            conn.rollback()
+            return {"success": False, "error": "Site record not found"}
         data_list = [
             {
                 "doc_id": str(it.doc_id),
