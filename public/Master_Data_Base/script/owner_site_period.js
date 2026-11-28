@@ -123,6 +123,7 @@ function splitSiteItemsIntoSections(siteObj) {
   return sections.map((secItems, idx) => ({
     site: siteObj.site,
     siteIsBlank: siteObj.siteIsBlank,
+    company: siteObj.company || "",
     items: secItems,
     sectionNum: idx + 1,
   }));
@@ -294,8 +295,8 @@ async function loadSummaryData() {
     });
 
     allCompanies = Array.from(seen.values());
-    if (!selectedCompany && allCompanies.length > 0) {
-      selectedCompany = allCompanies[0];
+    if (!selectedCompany) {
+      selectedCompany = "__MASTER__";
     }
 
     renderCompanyButtons();
@@ -312,12 +313,11 @@ function renderCompanyButtons() {
   const bar = document.getElementById("companyBottomBar");
   if (!bar) return;
 
-  if (allCompanies.length === 0) {
-    bar.innerHTML = `<span class="company-loading">No companies found</span>`;
-    return;
-  }
+  const masterBtnHtml = `<button type="button" class="company-btn ${
+    selectedCompany === "__MASTER__" ? "active" : ""
+  }" data-company="__MASTER__">Master</button>`;
 
-  bar.innerHTML = allCompanies
+  const companyBtnsHtml = allCompanies
     .map((company) => {
       const isActive = company.toUpperCase() === selectedCompany.toUpperCase();
       return `<button type="button" class="company-btn ${
@@ -325,6 +325,8 @@ function renderCompanyButtons() {
       }" data-company="${escapeHtml(company)}">${escapeHtml(company)}</button>`;
     })
     .join("");
+
+  bar.innerHTML = masterBtnHtml + companyBtnsHtml;
 
   bar.querySelectorAll(".company-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -592,10 +594,11 @@ function renderTable() {
   const tableWrapper = document.getElementById("periodTableWrapper");
   const vatSplitGrid = document.getElementById("vatSplitGrid");
 
+  const isMasterView = selectedCompany === "__MASTER__";
   const selectedCompanyKey = selectedCompany.toUpperCase();
-  const companyRecords = allRecords.filter(
-    (r) => r.companyKey === selectedCompanyKey,
-  );
+  const companyRecords = isMasterView
+    ? allRecords
+    : allRecords.filter((r) => r.companyKey === selectedCompanyKey);
 
   updateVatCounts(companyRecords);
 
@@ -619,7 +622,9 @@ function renderTable() {
     const ownerDisplay = (rec.owner || "(No Owner)").replace(/\s+/g, " ").trim();
     const ownerKey = ownerDisplay.toUpperCase();
     const siteDisplay = (rec.site || "(No Site)").replace(/\s+/g, " ").trim();
-    const siteKey = siteDisplay.toUpperCase();
+    const siteKey = isMasterView
+      ? `${siteDisplay.toUpperCase()}__${rec.companyKey}`
+      : siteDisplay.toUpperCase();
 
     if (!ownerMap.has(ownerKey)) {
       ownerMap.set(ownerKey, {
@@ -634,6 +639,7 @@ function renderTable() {
       ownerEntry.sitesMap.set(siteKey, {
         site: siteDisplay,
         siteIsBlank: !rec.site,
+        company: rec.company || "",
         items: [],
       });
     }
@@ -652,8 +658,10 @@ function renderTable() {
 
   let ownerRows = Array.from(ownerMap.values())
     .map((entry) => {
-      const sortedSites = Array.from(entry.sitesMap.values()).sort((a, b) =>
-        a.site.localeCompare(b.site),
+      const sortedSites = Array.from(entry.sitesMap.values()).sort(
+        (a, b) =>
+          a.site.localeCompare(b.site) ||
+          (a.company || "").localeCompare(b.company || ""),
       );
       const displayBlocks = sortedSites.flatMap((s) =>
         splitSiteItemsIntoSections(s),
@@ -674,6 +682,7 @@ function renderTable() {
         row.sites.some(
           (s) =>
             s.site.toLowerCase().includes(q) ||
+            (isMasterView && (s.company || "").toLowerCase().includes(q)) ||
             s.items.some(
               (i) =>
                 i.plate.toLowerCase().includes(q) ||
@@ -705,12 +714,17 @@ function renderTable() {
           const numPrefixHtml = s.sectionNum
             ? `<span class="section-num">${escapeHtml(s.sectionNum)}.</span>`
             : "";
-          const fullTitle = s.sectionNum ? `${s.sectionNum}. ${s.site}` : s.site;
+          const companyTagText = isMasterView && s.company ? ` (${s.company})` : "";
+          const companyTagHtml =
+            isMasterView && s.company
+              ? `<span style="opacity: 0.72; font-size: 11px; font-weight: 500; margin-left: 4px;">(${escapeHtml(s.company)})</span>`
+              : "";
+          const fullTitle = `${s.sectionNum ? `${s.sectionNum}. ` : ""}${s.site}${companyTagText}`;
           return `<div class="site-block ${
             s.siteIsBlank ? "muted-label" : ""
           }" style="height: ${blockHeight}px;"><span class="site-name-text" title="${escapeHtml(
             fullTitle,
-          )}">${numPrefixHtml}${escapeHtml(s.site)}</span></div>`;
+          )}">${numPrefixHtml}${escapeHtml(s.site)}${companyTagHtml}</span></div>`;
         })
         .join("");
 
