@@ -361,15 +361,9 @@ function updateVatCounts(companyRecords) {
   document.getElementById("vatBlankCount").textContent = ownerSets.BLANK.size;
 }
 
-function renderVatSplitView(companyRecords) {
-  const vatBody = document.getElementById("vatDivBody");
-  const nonVatBody = document.getElementById("nonVatDivBody");
-  const vatStats = document.getElementById("vatDivStats");
-  const nonVatStats = document.getElementById("nonVatDivStats");
-
-  // Step 1: Identify owners who already have at least one VAT (YES or PARTIAL) record
+function computeVatNonVatData(records, applySearch = true) {
   const ownersWithVat = new Set();
-  companyRecords.forEach((rec) => {
+  records.forEach((rec) => {
     if (rec.vatCategory === "YES" || rec.vatCategory === "PARTIAL") {
       const ownerKey = (rec.owner || "(No Owner)")
         .replace(/\s+/g, " ")
@@ -379,11 +373,10 @@ function renderVatSplitView(companyRecords) {
     }
   });
 
-  // Step 2: Bucket records into VAT vs Non-VAT (Blank goes to VAT if owner has VAT, else Non-VAT)
   const vatOwnersMap = new Map();
   const nonVatOwnersMap = new Map();
 
-  companyRecords.forEach((rec) => {
+  records.forEach((rec) => {
     const ownerDisplay = (rec.owner || "(No Owner)")
       .replace(/\s+/g, " ")
       .trim();
@@ -410,14 +403,13 @@ function renderVatSplitView(companyRecords) {
       });
     }
 
-    // Deduplicate plate numbers per owner
     const ownerEntry = targetMap.get(ownerKey);
     if (!ownerEntry.platesMap.has(plateKey)) {
       ownerEntry.platesMap.set(plateKey, plateDisplay);
     }
   });
 
-  const q = searchTerm.trim().toLowerCase();
+  const q = applySearch ? searchTerm.trim().toLowerCase() : "";
   const buildDivisionRows = (map) => {
     let rows = Array.from(map.values())
       .map((entry) => ({
@@ -439,8 +431,122 @@ function renderVatSplitView(companyRecords) {
     return rows;
   };
 
-  const vatRows = buildDivisionRows(vatOwnersMap);
-  const nonVatRows = buildDivisionRows(nonVatOwnersMap);
+  return {
+    vatRows: buildDivisionRows(vatOwnersMap),
+    nonVatRows: buildDivisionRows(nonVatOwnersMap),
+  };
+}
+
+async function exportVatNonVatExcel() {
+  if (typeof ExcelJS === "undefined" || typeof saveAs === "undefined") {
+    showToast("Excel library not loaded.", true);
+    return;
+  }
+  if (!allRecords || allRecords.length === 0) {
+    showToast("No records available to export.", true);
+    return;
+  }
+
+  const { vatRows, nonVatRows } = computeVatNonVatData(allRecords, true);
+  const workbook = new ExcelJS.Workbook();
+
+  const buildSheet = (sheetName, rows, headerColor) => {
+    const ws = workbook.addWorksheet(sheetName, {
+      views: [{ state: "frozen", ySplit: 2 }],
+    });
+
+    const totalVehicles = rows.reduce((sum, r) => sum + r.plates.length, 0);
+    ws.mergeCells("A1:D1");
+    const titleCell = ws.getCell("A1");
+    titleCell.value = `${sheetName} — Unique Owners & Vehicles (${rows.length} Owners, ${totalVehicles} Vehicles)`;
+    titleCell.font = { name: "Inter", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: headerColor } };
+    titleCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+    ws.getRow(1).height = 26;
+
+    const headerRow = ws.addRow(["SN", "Owner Name", "Plate No", "Vehicle Count"]);
+    headerRow.height = 22;
+    headerRow.eachCell((cell) => {
+      cell.font = { name: "Inter", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FF000000" } },
+        left: { style: "thin", color: { argb: "FF000000" } },
+        bottom: { style: "thin", color: { argb: "FF000000" } },
+        right: { style: "thin", color: { argb: "FF000000" } },
+      };
+    });
+
+    let maxOwnerLen = 18;
+    let maxPlateLen = 14;
+
+    rows.forEach((row, idx) => {
+      const plates = row.plates.length > 0 ? row.plates : ["(No Plate)"];
+      maxOwnerLen = Math.max(maxOwnerLen, row.owner.length + 4);
+      const startRow = ws.lastRow.number + 1;
+
+      plates.forEach((plate, pIdx) => {
+        maxPlateLen = Math.max(maxPlateLen, plate.length + 4);
+        const r = ws.addRow([
+          pIdx === 0 ? idx + 1 : "",
+          pIdx === 0 ? row.owner : "",
+          plate,
+          pIdx === 0 ? plates.length : "",
+        ]);
+        r.height = 20;
+        r.eachCell((cell, colNum) => {
+          cell.font = { name: "Inter", size: 10, bold: colNum === 2 };
+          cell.alignment = {
+            horizontal: colNum === 2 || colNum === 3 ? "left" : "center",
+            vertical: "middle",
+          };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FF000000" } },
+            left: { style: "thin", color: { argb: "FF000000" } },
+            bottom: { style: "thin", color: { argb: "FF000000" } },
+            right: { style: "thin", color: { argb: "FF000000" } },
+          };
+        });
+      });
+
+      const endRow = ws.lastRow.number;
+      if (endRow > startRow) {
+        ws.mergeCells(`A${startRow}:A${endRow}`);
+        ws.mergeCells(`B${startRow}:B${endRow}`);
+        ws.mergeCells(`D${startRow}:D${endRow}`);
+      }
+    });
+
+    ws.columns = [
+      { width: 8 },
+      { width: Math.min(maxOwnerLen, 45) },
+      { width: Math.min(maxPlateLen, 26) },
+      { width: 15 },
+    ];
+  };
+
+  buildSheet("VAT", vatRows, "FF0F766E");
+  buildSheet("Non-VAT", nonVatRows, "FF334155");
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const dateStr = new Date().toISOString().slice(0, 10);
+  saveAs(
+    new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    `VAT_NonVAT_Owners_Plates_${dateStr}.xlsx`,
+  );
+  showToast("Excel exported successfully.");
+}
+
+function renderVatSplitView(companyRecords) {
+  const vatBody = document.getElementById("vatDivBody");
+  const nonVatBody = document.getElementById("nonVatDivBody");
+  const vatStats = document.getElementById("vatDivStats");
+  const nonVatStats = document.getElementById("nonVatDivStats");
+
+  const { vatRows, nonVatRows } = computeVatNonVatData(companyRecords, true);
 
   const renderDivisionHtml = (rows, emptyLabel) => {
     if (rows.length === 0) {

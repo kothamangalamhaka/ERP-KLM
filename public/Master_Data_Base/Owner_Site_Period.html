@@ -8,6 +8,8 @@
     />
     <title>Owner Site Period | Haka ERP</title>
     <link rel="stylesheet" href="style/owner_site_period.css" />
+    <script src="/node_xlsx_scripts/exceljs.min.js"></script>
+    <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
   </head>
   <body>
     <header class="topbar">
@@ -84,6 +86,17 @@
             autocomplete="off"
           />
         </div>
+
+        <button
+          class="export-excel-btn"
+          type="button"
+          id="btnExportExcel"
+          onclick="exportVatNonVatExcel()"
+          title="Export VAT & Non-VAT Unique Owners & Plates to Excel"
+        >
+          <span class="material-icons" style="font-size: 16px">table_view</span>
+          Export Excel
+        </button>
 
         <button
           class="icon-button"
