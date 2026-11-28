@@ -637,6 +637,173 @@
         background: #cf222e;
         color: #ffffff;
       }
+
+      /* 🌙 Dark / Light Theme Toggle */
+      .ribbon-title {
+        cursor: pointer;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .ribbon-title:hover {
+        opacity: 0.85;
+      }
+
+      body.dark-theme {
+        --bg: #0d1117;
+        --text-main: #e6edf3;
+        --border: #30363d;
+        --ribbon-bg: #161b22;
+        --btn-bg: #21262d;
+        --btn-border: #30363d;
+        --btn-hover: #58a6ff;
+        color-scheme: dark;
+      }
+
+      body.dark-theme .ribbon-title {
+        color: #f0f6fc;
+      }
+      body.dark-theme .ribbon button {
+        color: #e6edf3;
+      }
+      body.dark-theme .ribbon .salary a {
+        color: #0f172a !important;
+      }
+      body.dark-theme #globalSearchType,
+      body.dark-theme #globalSearchInput {
+        color: #e6edf3 !important;
+        background: transparent !important;
+      }
+      body.dark-theme #globalSearchType option {
+        background: #161b22;
+        color: #e6edf3;
+      }
+      body.dark-theme .ribbon > div:nth-child(2) {
+        background: #0d1117 !important;
+        border-color: #30363d !important;
+      }
+
+      body.dark-theme thead th,
+      body.dark-theme th.sticky-sn,
+      body.dark-theme th.sticky-plate {
+        background-color: #161b22;
+        color: #c9d1d9;
+      }
+      body.dark-theme tbody tr {
+        background-color: #0d1117;
+      }
+      body.dark-theme td.sticky-sn {
+        background-color: #0d1117;
+        color: #8b949e;
+      }
+      body.dark-theme td.sticky-plate {
+        background-color: #0d1117;
+        color: #f0f6fc;
+        border-right-color: #30363d !important;
+      }
+      body.dark-theme tbody tr:hover,
+      body.dark-theme tbody tr:hover td,
+      body.dark-theme tbody tr:hover td.sticky-sn,
+      body.dark-theme tbody tr:hover td.sticky-plate {
+        background-color: #1f242c;
+      }
+
+      body.dark-theme .filter-btn {
+        color: #8b949e;
+      }
+      body.dark-theme .filter-btn:hover {
+        background: #30363d;
+        border-color: #484f58;
+      }
+      body.dark-theme .filter-btn.active {
+        color: #58a6ff;
+        background: #1f3a5f;
+        border-color: #58a6ff;
+      }
+
+      body.dark-theme .status-running { color: #3fb950; }
+      body.dark-theme .status-released { color: #f85149; }
+      body.dark-theme .status-mobilizing { color: #d29922; }
+      body.dark-theme .status-ideal { color: #8b949e; }
+
+      body.dark-theme .modal-content,
+      body.dark-theme #excelFilterMenu,
+      body.dark-theme #plateContextMenu,
+      body.dark-theme #logEditContextMenu {
+        background: #161b22;
+        color: #e6edf3;
+        border-color: #30363d;
+      }
+      body.dark-theme .context-menu-item {
+        color: #e6edf3;
+      }
+      body.dark-theme .log-left-form,
+      body.dark-theme .quick-log-tabs,
+      body.dark-theme .filter-list-container,
+      body.dark-theme .sort-btn-group button {
+        background: #0d1117;
+        border-color: #30363d;
+        color: #e6edf3;
+      }
+      body.dark-theme .quick-log-tab-btn {
+        background: #161b22;
+        color: #e6edf3;
+        border-color: #30363d;
+      }
+      body.dark-theme .quick-log-tab-btn:hover,
+      body.dark-theme .quick-log-tab-btn.active {
+        background: #1f6feb;
+        color: #ffffff;
+        border-color: #1f6feb;
+      }
+      body.dark-theme .log-right-history th {
+        background: #21262d;
+        color: #e6edf3;
+      }
+      body.dark-theme .modal-content input,
+      body.dark-theme .modal-content select,
+      body.dark-theme .filter-search-box {
+        background: #0d1117 !important;
+        color: #e6edf3 !important;
+        border-color: #30363d !important;
+      }
+      body.dark-theme .modal-content label {
+        color: #c9d1d9 !important;
+      }
+      body.dark-theme .sub-timeline-card {
+        background: #0d1117;
+        border-color: #30363d;
+        color: #e6edf3;
+      }
+      body.dark-theme .btn-cancel {
+        background: #30363d;
+        color: #e6edf3;
+      }
+      body.dark-theme .action-controls {
+        background: #161b22;
+        border-color: #30363d;
+      }
+      body.dark-theme #logDeleteDetails {
+        background: #2d1215 !important;
+        border-color: #8e1519 !important;
+        color: #ffdcd7 !important;
+      }
+      body.dark-theme .log-mode-banner.mode-new {
+        background: #0f2d1a;
+        color: #56d364;
+        border-color: #2ea043;
+      }
+      body.dark-theme .log-mode-banner.mode-edit {
+        background: #2e2107;
+        color: #e3b341;
+        border-color: #9e6a03;
+      }
+      body.dark-theme .log-mode-banner.mode-eq {
+        background: #0d263d;
+        color: #79c0ff;
+        border-color: #1f6feb;
+      }
     </style>
   </head>
   <body>
@@ -651,7 +818,15 @@
     </div>
 
     <div class="ribbon">
-      <div class="ribbon-title">We1 Own EQ Data</div>
+      <div
+        class="ribbon-title"
+        id="themeToggleTitle"
+        onclick="toggleWe1Theme()"
+        title="Click to switch Dark / Light Theme"
+      >
+        <span>We1 Own EQ Data</span>
+        <span id="themeToggleIcon" style="font-size: 14px">☀️</span>
+      </div>
 
       <!-- 🟢 Global Search Container -->
       <div
@@ -707,13 +882,14 @@
           >
             ➕ Add New
           </button>
-          <button onclick="openLog('SiteLog')">🏢 Site Log</button>
-          <button onclick="openLog('DriverLog')">👤 Driver Log</button>
+          <button onclick="openLog('SiteLog')">🏢 Site</button>
+          <button onclick="openLog('DriverLog')">👤 Driver</button>
           <button onclick="openLog('VehicleTypeLog')">
-            🚜 Vehicle Type & Santhook
+            🚜 Santhook & Type
           </button>
-          <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
+          <button onclick="openLog('OwnerLog')">📋 Owner</button>
           <button onclick="openLog('Equipment')">🚜 Equipment</button>
+          <button onclick="openLog('PlateLog')">🔢 Plate</button>
           <button
             onclick="window.location.href = 'OWN_EXP.html'"
             style="
@@ -997,31 +1173,37 @@
               class="quick-log-tab-btn"
               onclick="switchQuickLog('SiteLog', this)"
             >
-              🏢 Site Log
+              🏢 Site
             </button>
             <button
               class="quick-log-tab-btn"
               onclick="switchQuickLog('DriverLog', this)"
             >
-              👤 Driver Log
+              👤 Driver
             </button>
             <button
               class="quick-log-tab-btn"
               onclick="switchQuickLog('VehicleTypeLog', this)"
             >
-              🚜 Type & Santhook
+              🚜 Santhook & Type
             </button>
             <button
               class="quick-log-tab-btn"
               onclick="switchQuickLog('OwnerLog', this)"
             >
-              📋 Owner Log
+              📋 Owner
             </button>
             <button
               class="quick-log-tab-btn"
               onclick="switchQuickLog('Equipment', this)"
             >
               🚜 Equipment
+            </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('PlateLog', this)"
+            >
+              🔢 Plate
             </button>
           </div>
 
@@ -1839,7 +2021,23 @@
       let currentSortColumn = null;
       let currentSortDirection = null;
 
+      function applyWe1Theme(theme) {
+        const isDark = theme === "dark";
+        document.body.classList.toggle("dark-theme", isDark);
+        const icon = document.getElementById("themeToggleIcon");
+        if (icon) icon.innerText = isDark ? "🌙" : "☀️";
+      }
+
+      function toggleWe1Theme() {
+        const nextTheme = document.body.classList.contains("dark-theme")
+          ? "light"
+          : "dark";
+        localStorage.setItem("we1OwnEqTheme", nextTheme);
+        applyWe1Theme(nextTheme);
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
+        applyWe1Theme(localStorage.getItem("we1OwnEqTheme") || "light");
         const token = localStorage.getItem("emp_token");
         if (!token) {
           window.location.href = "login.html";
@@ -3195,6 +3393,26 @@
           { id: "f_start_date", label: "Start Date", type: "date" },
           { id: "f_end_date", label: "End Date", type: "date" },
         ],
+        PlateLog: [
+          {
+            id: "f_old_plate_no",
+            label: "Current / Old Plate No",
+            type: "text",
+          },
+          {
+            id: "f_new_plate_no",
+            label: "New Plate No",
+            type: "text",
+            placeholder: "e.g. 1234 ABC",
+          },
+          { id: "f_change_date", label: "Change Date", type: "date" },
+          {
+            id: "f_reason",
+            label: "Reason / Note",
+            type: "text",
+            placeholder: "Reason for plate change",
+          },
+        ],
         Equipment: [
           {
             type: "row",
@@ -3302,11 +3520,25 @@
             return `
                     <div>
                         <label style="font-weight:600; font-size:11px; display:block; margin-bottom:3px;">${f.label}</label>
-                        <input type="${f.type}" id="${f.id}" ${f.list ? `list="${f.list}"` : ""} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
+                        <input type="${f.type}" id="${f.id}" ${f.list ? `list="${f.list}"` : ""} ${f.readonly ? "readonly" : ""} placeholder="${f.placeholder || ""}" autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px; ${f.readonly ? "background:#e9ecef; font-weight:700;" : ""}">
                     </div>
                 `;
           })
           .join("");
+
+        if (type === "PlateLog") {
+          const oldEl = document.getElementById("f_old_plate_no");
+          const dateEl = document.getElementById("f_change_date");
+          if (oldEl) oldEl.value = document.getElementById("activeLogPlate").value || "";
+          if (dateEl && !dateEl.value) dateEl.value = toLocalYYYYMMDD(new Date());
+          formContainer.insertAdjacentHTML(
+            "beforeend",
+            `<label style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#57606a; cursor:pointer; margin-top:2px;">
+              <input type="checkbox" id="f_fix_typo_only" style="width:14px; height:14px; cursor:pointer;">
+              <span>Fix Typo Only (Don't add to Plate History)</span>
+            </label>`,
+          );
+        }
       }
 
       async function loadLogHistory(type, plate) {
@@ -3404,6 +3636,8 @@
           ];
         else if (type === "OwnerLog")
           headers = ["Owner Name", "Start Date", "End Date", "Edit"];
+        else if (type === "PlateLog")
+          headers = ["Old Plate", "New Plate", "Change Date", "Reason", "Edit"];
 
         thead.innerHTML = `<tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr>`;
 
@@ -3501,7 +3735,11 @@
             return;
           }
 
-          const res = await fetch(`/api/we1-own-eq/log/history`, {
+          const historyEndpoint =
+            type === "PlateLog"
+              ? "/api/we1-own-eq/plate-log/history"
+              : "/api/we1-own-eq/log/history";
+          const res = await fetch(historyEndpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -3541,6 +3779,8 @@
                 tdHtml = `<td>${r.driver_name || "-"}</td><td>${r.driver_mobile || r.mobile || "-"}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || "-"}</td><td>${r.iqama_no || "-"}</td><td>${formatUIDate(r.iqama_expiry)}</td><td>${formatUIDate(r.licence_expiry)}</td><td>${r.passport_no || "-"}</td><td>${formatUIDate(r.passport_expiry)}</td>`;
               } else if (type === "OwnerLog") {
                 tdHtml = `<td>${r.owner_name || "-"}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
+              } else if (type === "PlateLog") {
+                tdHtml = `<td>${r.old_plate_no || "-"}</td><td style="font-weight:700; color:#0969da;">${r.new_plate_no || "-"}</td><td>${formatUIDate(r.change_date)}</td><td>${r.reason || "-"}</td>`;
               }
 
               const safeData = JSON.stringify(r)
@@ -3588,6 +3828,8 @@
           summary = `<strong>Vehicle Type:</strong> ${r.vehicle_type || "-"}<br><strong>Santhook:</strong> ${r.santhook_name || "-"}<br><strong>Start Date:</strong> ${formatUIDate(r.start_date) || "-"}`;
         } else if (type === "OwnerLog") {
           summary = `<strong>Owner:</strong> ${r.owner_name || "-"}<br><strong>Start Date:</strong> ${formatUIDate(r.start_date) || "-"}`;
+        } else if (type === "PlateLog") {
+          summary = `<strong>Old Plate:</strong> ${r.old_plate_no || "-"}<br><strong>New Plate:</strong> ${r.new_plate_no || "-"}<br><strong>Date:</strong> ${formatUIDate(r.change_date) || "-"}`;
         }
 
         document.getElementById("logDeleteDetails").innerHTML = `
@@ -3615,7 +3857,11 @@
         btn.disabled = true;
 
         try {
-          const res = await fetch("/api/we1-own-eq/log/delete", {
+          const deleteEndpoint =
+            type === "PlateLog"
+              ? "/api/we1-own-eq/plate-log/delete"
+              : "/api/we1-own-eq/log/delete";
+          const res = await fetch(deleteEndpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -3666,8 +3912,14 @@
           data.site_name ||
           data.vehicle_type ||
           data.owner_name ||
+          data.new_plate_no ||
           (data.id ? `#${data.id}` : "");
         setLogFormMode("edit", editLabel);
+
+        if (type === "PlateLog") {
+          const typoWrap = document.getElementById("f_fix_typo_only")?.closest("label");
+          if (typoWrap) typoWrap.style.display = "none";
+        }
 
         const populateField = (f) => {
           const dbVal = data[f.id.replace("f_", "")];
@@ -3779,6 +4031,62 @@
             }
           } catch (e) {
             alert("Network Error while updating Equipment");
+            return false;
+          }
+        }
+
+        if (type === "PlateLog") {
+          const activePlateClean = String(plate || "").replace(/\s+/g, " ").trim().toUpperCase();
+          const oldPlateVal = (document.getElementById("f_old_plate_no")?.value || "").replace(/\s+/g, " ").trim().toUpperCase();
+          const newPlateVal = (document.getElementById("f_new_plate_no")?.value || "").replace(/\s+/g, " ").trim().toUpperCase();
+          const changeDateVal = (document.getElementById("f_change_date")?.value || "").trim();
+          const reasonVal = (document.getElementById("f_reason")?.value || "").trim();
+
+          // If user directly edited Current/Old Plate No without entering New Plate No -> treat as direct typo fix
+          const isDirectOldEdit = !id && !newPlateVal && oldPlateVal && oldPlateVal !== activePlateClean;
+          const payloadOldPlate = isDirectOldEdit ? activePlateClean : (oldPlateVal || activePlateClean);
+          const payloadNewPlate = isDirectOldEdit ? oldPlateVal : newPlateVal;
+          const isTypoOnly = isDirectOldEdit || Boolean(document.getElementById("f_fix_typo_only")?.checked);
+
+          if (!payloadNewPlate) {
+            if (!isAutoSave) alert("Please edit Current Plate No or enter a New Plate No.");
+            return false;
+          }
+
+          try {
+            const res = await fetch("/api/we1-own-eq/plate-log/save", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify({
+                id: id || null,
+                old_plate_no: payloadOldPlate,
+                new_plate_no: payloadNewPlate,
+                change_date: changeDateVal || null,
+                reason: reasonVal || null,
+                fix_typo_only: isTypoOnly,
+              }),
+            });
+            const responseData = await res.json();
+            if (responseData.success) {
+              const updatedPlate = responseData.new_plate_no || newPlateVal;
+              document.getElementById("editLogId").value = "";
+              document.getElementById("activeLogPlate").value = updatedPlate;
+              document.getElementById("splitLogTitle").innerText = `📂 PlateLog - ${updatedPlate}`;
+              if (!isAutoSave) {
+                renderLogForm(type);
+                loadLogHistory(type, updatedPlate);
+              }
+              await loadTableData();
+              return true;
+            } else {
+              alert("Error: " + responseData.message);
+              return false;
+            }
+          } catch (e) {
+            alert("Network Error");
             return false;
           }
         }

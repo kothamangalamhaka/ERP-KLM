@@ -314,6 +314,132 @@ router.post("/log/delete", verifyEditor, async (req, res) => {
   }
 });
 
+// 3.2 Plate Change Log History, Save (Cascade Update) & Delete
+router.post("/plate-log/history", verifyToken, async (req, res) => {
+  try {
+    const { plate } = req.body;
+    const result = await pool.query(
+      `SELECT * FROM we1_plate_log
+       WHERE UPPER(TRIM(old_plate_no)) = UPPER(TRIM($1))
+          OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1))
+       ORDER BY COALESCE(change_date, '1970-01-01'::date) DESC, id DESC`,
+      [plate],
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+router.post("/plate-log/save", verifyEditor, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id, old_plate_no, new_plate_no, change_date, reason, fix_typo_only } = req.body;
+    const oldPlate = String(old_plate_no || "").replace(/\s+/g, " ").trim().toUpperCase();
+    const newPlate = String(new_plate_no || "").replace(/\s+/g, " ").trim().toUpperCase();
+    const effectiveDate = change_date && String(change_date).trim() !== "" ? change_date : null;
+    const username = req.user ? req.user.username : "Editor";
+
+    if (!oldPlate || !newPlate) {
+      throw new Error("Both Old Plate No and New Plate No are required.");
+    }
+
+    const cascadePlateRename = async (fromPlate, toPlate) => {
+      await client.query(`UPDATE we1_own_eq_master SET plate_no=$1 WHERE UPPER(TRIM(plate_no))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_own_eq_master SET old_eq=$1 WHERE UPPER(TRIM(old_eq))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_own_eq_master SET new_eq=$1 WHERE UPPER(TRIM(new_eq))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_site_log SET plate_no=$1 WHERE UPPER(TRIM(plate_no))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_site_log SET old_eq=$1 WHERE UPPER(TRIM(old_eq))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_site_log SET new_eq=$1 WHERE UPPER(TRIM(new_eq))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_driver_log SET plate_no=$1 WHERE UPPER(TRIM(plate_no))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_vtype_log SET plate_no=$1 WHERE UPPER(TRIM(plate_no))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_owner_log SET plate_no=$1 WHERE UPPER(TRIM(plate_no))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_santhook_log SET plate_no=$1 WHERE UPPER(TRIM(plate_no))=$2`, [toPlate, fromPlate]);
+      await client.query(`UPDATE we1_payroll SET plate_no=$1 WHERE UPPER(TRIM(plate_no))=$2`, [toPlate, fromPlate]);
+    };
+
+    await client.query("BEGIN");
+
+    if (id) {
+      const prevRes = await client.query(`SELECT old_plate_no, new_plate_no FROM we1_plate_log WHERE id=$1`, [id]);
+      if (prevRes.rows.length === 0) throw new Error("Plate log record not found.");
+      const prevNewPlate = String(prevRes.rows[0].new_plate_no || "").trim().toUpperCase();
+
+      if (prevNewPlate !== newPlate) {
+        const dupCheck = await client.query(
+          `SELECT 1 FROM we1_own_eq_master WHERE UPPER(TRIM(plate_no)) = $1 LIMIT 1`,
+          [newPlate],
+        );
+        if (dupCheck.rows.length > 0) {
+          throw new Error(`Plate No "${newPlate}" already exists in Master table.`);
+        }
+        await cascadePlateRename(prevNewPlate, newPlate);
+        await client.query(
+          `UPDATE we1_plate_log SET old_plate_no=$1 WHERE UPPER(TRIM(old_plate_no))=$2 AND id <> $3`,
+          [newPlate, prevNewPlate, id],
+        );
+      }
+
+      await client.query(
+        `UPDATE we1_plate_log SET new_plate_no=$1, change_date=$2, reason=$3 WHERE id=$4`,
+        [newPlate, effectiveDate, reason || null, id],
+      );
+      await client.query("COMMIT");
+      return res.json({ success: true, message: "Plate log updated.", new_plate_no: newPlate });
+    }
+
+    if (oldPlate === newPlate) {
+      throw new Error("New Plate No must be different from Old Plate No.");
+    }
+
+    const dupCheck = await client.query(
+      `SELECT 1 FROM we1_own_eq_master WHERE UPPER(TRIM(plate_no)) = $1 LIMIT 1`,
+      [newPlate],
+    );
+    if (dupCheck.rows.length > 0) {
+      throw new Error(`Plate No "${newPlate}" already exists in Master table.`);
+    }
+
+    if (!fix_typo_only) {
+      await client.query(
+        `INSERT INTO we1_plate_log (old_plate_no, new_plate_no, change_date, reason, changed_by)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [oldPlate, newPlate, effectiveDate, reason || null, username],
+      );
+    } else {
+      await client.query(`UPDATE we1_plate_log SET old_plate_no=$1 WHERE UPPER(TRIM(old_plate_no))=$2`, [newPlate, oldPlate]);
+      await client.query(`UPDATE we1_plate_log SET new_plate_no=$1 WHERE UPPER(TRIM(new_plate_no))=$2`, [newPlate, oldPlate]);
+    }
+
+    await cascadePlateRename(oldPlate, newPlate);
+
+    await client.query("COMMIT");
+    res.json({
+      success: true,
+      message: fix_typo_only
+        ? `Plate corrected from ${oldPlate} to ${newPlate}.`
+        : `Plate changed from ${oldPlate} to ${newPlate}.`,
+      new_plate_no: newPlate,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.json({ success: false, message: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+router.post("/plate-log/delete", verifyEditor, async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) throw new Error("Log ID is required.");
+    await pool.query(`DELETE FROM we1_plate_log WHERE id=$1`, [id]);
+    res.json({ success: true, message: "Plate log deleted." });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
 // 4. Add New Vehicle (With Auto-Log Generation and Full Details)
 router.post("/add", verifyEditor, async (req, res) => {
   const client = await pool.connect();
