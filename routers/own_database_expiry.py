@@ -48,31 +48,39 @@ def get_we1_own_eq_expiry_data():
                 m.eq_insurance_exp,
                 m.fahs_mvpi_exp,
                 m.op_card_exp,
-                m.isthimaara_exp,
-                d.id AS driver_log_id,
-                d.iqama_no,
-                d.iqama_expiry,
-                d.licence_expiry,
-                d.passport_no,
-                d.passport_expiry
+                m.isthimaara_exp
             FROM we1_own_eq_master m
-            LEFT JOIN LATERAL (
-                SELECT
-                    id,
-                    iqama_no,
-                    iqama_expiry,
-                    licence_expiry,
-                    passport_no,
-                    passport_expiry
-                FROM we1_driver_log
-                WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(m.plate_no))
-                ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
-                LIMIT 1
-            ) d ON true
             ORDER BY m.id ASC
         """
         cursor.execute(query)
-        rows = cursor.fetchall()
+        master_rows = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                id AS driver_log_id,
+                UPPER(TRIM(plate_no)) AS plate_key,
+                driver_name,
+                driver_mobile,
+                work_end_date,
+                iqama_no,
+                iqama_expiry,
+                licence_expiry,
+                passport_no,
+                passport_expiry
+            FROM we1_driver_log
+            WHERE plate_no IS NOT NULL AND TRIM(plate_no) <> ''
+            ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
+        """)
+        all_driver_logs = cursor.fetchall()
+
+        active_drivers_map = {}
+        latest_driver_map = {}
+        for dl in all_driver_logs:
+            pk = dl["plate_key"]
+            if pk not in latest_driver_map:
+                latest_driver_map[pk] = dl
+            if dl["work_end_date"] is None:
+                active_drivers_map.setdefault(pk, []).append(dl)
 
         today = datetime.now().date()
         formatted_rows = []
@@ -87,18 +95,62 @@ def get_we1_own_eq_expiry_data():
             "isthimaara_exp",
         ]
 
-        for r in rows:
-            item = dict(r)
+        def format_expiry_item(item_dict):
             for field in expiry_fields:
-                val = item.get(field)
+                val = item_dict.get(field)
                 if val:
                     val_date = val.date() if isinstance(val, datetime) else val
-                    item[field] = val_date.isoformat()
-                    item[f"{field}_days"] = (val_date - today).days
+                    item_dict[field] = val_date.isoformat()
+                    item_dict[f"{field}_days"] = (val_date - today).days
                 else:
-                    item[field] = None
-                    item[f"{field}_days"] = None
-            formatted_rows.append(item)
+                    item_dict[field] = None
+                    item_dict[f"{field}_days"] = None
+            return item_dict
+
+        for r in master_rows:
+            pk = str(r.get("plate_no") or "").strip().upper()
+            active_list = active_drivers_map.get(pk, [])
+
+            if len(active_list) <= 1:
+                d = active_list[0] if active_list else latest_driver_map.get(pk)
+                item = dict(r)
+                item["driver_log_id"] = d["driver_log_id"] if d else None
+                item["iqama_no"] = d["iqama_no"] if d else None
+                item["iqama_expiry"] = d["iqama_expiry"] if d else None
+                item["licence_expiry"] = d["licence_expiry"] if d else None
+                item["passport_no"] = d["passport_no"] if d else None
+                item["passport_expiry"] = d["passport_expiry"] if d else None
+                formatted_rows.append(format_expiry_item(item))
+            else:
+                # 1) Equipment-level expiries (single row with joined driver names)
+                eq_item = dict(r)
+                eq_item["driver_name"] = " / ".join(
+                    [str(d["driver_name"]).strip() for d in active_list if d.get("driver_name")]
+                ) or r.get("driver_name")
+                eq_item["driver_log_id"] = None
+                eq_item["iqama_no"] = None
+                eq_item["iqama_expiry"] = None
+                eq_item["licence_expiry"] = None
+                eq_item["passport_no"] = None
+                eq_item["passport_expiry"] = None
+                formatted_rows.append(format_expiry_item(eq_item))
+
+                # 2) Driver-level expiries (one row per active driver)
+                for d in active_list:
+                    drv_item = dict(r)
+                    drv_item["driver_name"] = d.get("driver_name") or r.get("driver_name")
+                    drv_item["driver_mobile"] = d.get("driver_mobile") or r.get("driver_mobile")
+                    drv_item["driver_log_id"] = d["driver_log_id"]
+                    drv_item["iqama_no"] = d.get("iqama_no")
+                    drv_item["iqama_expiry"] = d.get("iqama_expiry")
+                    drv_item["licence_expiry"] = d.get("licence_expiry")
+                    drv_item["passport_no"] = d.get("passport_no")
+                    drv_item["passport_expiry"] = d.get("passport_expiry")
+                    drv_item["eq_insurance_exp"] = None
+                    drv_item["fahs_mvpi_exp"] = None
+                    drv_item["op_card_exp"] = None
+                    drv_item["isthimaara_exp"] = None
+                    formatted_rows.append(format_expiry_item(drv_item))
 
         return {"success": True, "data": formatted_rows}
 
@@ -209,29 +261,76 @@ def export_we1_own_eq_expiry_excel():
                 m.eq_insurance_exp,
                 m.fahs_mvpi_exp,
                 m.op_card_exp,
-                m.isthimaara_exp,
-                d.iqama_no,
-                d.iqama_expiry,
-                d.licence_expiry,
-                d.passport_no,
-                d.passport_expiry
+                m.isthimaara_exp
             FROM we1_own_eq_master m
-            LEFT JOIN LATERAL (
-                SELECT
-                    iqama_no,
-                    iqama_expiry,
-                    licence_expiry,
-                    passport_no,
-                    passport_expiry
-                FROM we1_driver_log
-                WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(m.plate_no))
-                ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
-                LIMIT 1
-            ) d ON true
             ORDER BY m.id ASC
         """
         cursor.execute(query)
-        rows = cursor.fetchall()
+        master_rows = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                UPPER(TRIM(plate_no)) AS plate_key,
+                driver_name,
+                work_end_date,
+                iqama_no,
+                iqama_expiry,
+                licence_expiry,
+                passport_no,
+                passport_expiry
+            FROM we1_driver_log
+            WHERE plate_no IS NOT NULL AND TRIM(plate_no) <> ''
+            ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
+        """)
+        all_driver_logs = cursor.fetchall()
+
+        active_drivers_map = {}
+        latest_driver_map = {}
+        for dl in all_driver_logs:
+            pk = dl["plate_key"]
+            if pk not in latest_driver_map:
+                latest_driver_map[pk] = dl
+            if dl["work_end_date"] is None:
+                active_drivers_map.setdefault(pk, []).append(dl)
+
+        rows = []
+        for r in master_rows:
+            pk = str(r.get("plate_no") or "").strip().upper()
+            active_list = active_drivers_map.get(pk, [])
+            if len(active_list) <= 1:
+                d = active_list[0] if active_list else latest_driver_map.get(pk)
+                item = dict(r)
+                item["iqama_no"] = d["iqama_no"] if d else None
+                item["iqama_expiry"] = d["iqama_expiry"] if d else None
+                item["licence_expiry"] = d["licence_expiry"] if d else None
+                item["passport_no"] = d["passport_no"] if d else None
+                item["passport_expiry"] = d["passport_expiry"] if d else None
+                rows.append(item)
+            else:
+                eq_item = dict(r)
+                eq_item["driver_name"] = " / ".join(
+                    [str(d["driver_name"]).strip() for d in active_list if d.get("driver_name")]
+                ) or r.get("driver_name")
+                eq_item["iqama_no"] = None
+                eq_item["iqama_expiry"] = None
+                eq_item["licence_expiry"] = None
+                eq_item["passport_no"] = None
+                eq_item["passport_expiry"] = None
+                rows.append(eq_item)
+
+                for d in active_list:
+                    drv_item = dict(r)
+                    drv_item["driver_name"] = d.get("driver_name") or r.get("driver_name")
+                    drv_item["iqama_no"] = d.get("iqama_no")
+                    drv_item["iqama_expiry"] = d.get("iqama_expiry")
+                    drv_item["licence_expiry"] = d.get("licence_expiry")
+                    drv_item["passport_no"] = d.get("passport_no")
+                    drv_item["passport_expiry"] = d.get("passport_expiry")
+                    drv_item["eq_insurance_exp"] = None
+                    drv_item["fahs_mvpi_exp"] = None
+                    drv_item["op_card_exp"] = None
+                    drv_item["isthimaara_exp"] = None
+                    rows.append(drv_item)
         today = datetime.now().date()
 
         categories = [

@@ -967,10 +967,14 @@
         const cat =
           EXPIRY_CATEGORIES.find((c) => c.key === activeCategoryKey) ||
           EXPIRY_CATEGORIES[0];
-        // Find exact record by unique masterId (never by index)
+        // Find exact record by masterId + driverLogId (supports multiple active drivers per plate)
         const targetRow = masterExpiryData.find(
-          (item) => Number(item.id) === Number(masterId),
-        );
+          (item) =>
+            Number(item.id) === Number(masterId) &&
+            (driverLogId
+              ? Number(item.driver_log_id) === Number(driverLogId)
+              : !item.driver_log_id || item.driver_log_id === Number(driverLogId)),
+        ) || masterExpiryData.find((item) => Number(item.id) === Number(masterId));
         if (!targetRow) {
           alert("Record not found. Please refresh the page.");
           return;

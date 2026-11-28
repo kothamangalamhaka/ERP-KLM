@@ -24,7 +24,8 @@ router.get("/data", verifyToken, async (req, res) => {
         d.iqama_expiry,
         d.licence_expiry,
         d.passport_no,
-        d.passport_expiry
+        d.passport_expiry,
+        ad.active_drivers
       FROM we1_own_eq_master m
       LEFT JOIN LATERAL (
         SELECT iqama_no, iqama_expiry, licence_expiry, passport_no, passport_expiry
@@ -33,6 +34,28 @@ router.get("/data", verifyToken, async (req, res) => {
         ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
         LIMIT 1
       ) d ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(
+          json_agg(
+            json_build_object(
+              'id', dl.id,
+              'driver_name', dl.driver_name,
+              'driver_mobile', dl.driver_mobile,
+              'join_date', dl.join_date,
+              'iqama_no', dl.iqama_no,
+              'iqama_expiry', dl.iqama_expiry,
+              'licence_expiry', dl.licence_expiry,
+              'passport_no', dl.passport_no,
+              'passport_expiry', dl.passport_expiry
+            )
+            ORDER BY COALESCE(dl.join_date, '1970-01-01'::date) DESC, dl.id DESC
+          ) FILTER (WHERE dl.id IS NOT NULL),
+          '[]'::json
+        ) AS active_drivers
+        FROM we1_driver_log dl
+        WHERE UPPER(TRIM(dl.plate_no)) = UPPER(TRIM(m.plate_no))
+          AND dl.work_end_date IS NULL
+      ) ad ON true
       ORDER BY m.id ASC
     `;
     const result = await pool.query(query);
@@ -114,7 +137,7 @@ router.post("/log/save", verifyEditor, async (req, res) => {
 
     if (type === "SiteLog") {
       const latest = await client.query(
-        `SELECT site_name, mob_date, work_end_date, replaced_date, old_eq, new_eq FROM we1_site_log WHERE plate_no = $1 ORDER BY COALESCE(mob_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+        `SELECT site_name, mob_date, work_end_date, replaced_date, old_eq, new_eq FROM we1_site_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(mob_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
         [plate_no],
       );
       if (latest.rows.length > 0) {
@@ -125,7 +148,7 @@ router.post("/log/save", verifyEditor, async (req, res) => {
         else if (!r.mob_date) status = "Ideal";
 
         // 🟢 Master table ലേക്ക് old_eq, new_eq സിങ്ക് ചെയ്യുന്നു
-        syncQuery = `UPDATE we1_own_eq_master SET site_name=$2, mob_date=$3, status=$4, old_eq=$5, new_eq=$6 WHERE plate_no=$1`;
+        syncQuery = `UPDATE we1_own_eq_master SET site_name=$2, mob_date=$3, status=$4, old_eq=$5, new_eq=$6 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`;
         syncVals.push(
           r.site_name,
           r.mob_date,
@@ -136,12 +159,12 @@ router.post("/log/save", verifyEditor, async (req, res) => {
       }
     } else if (type === "DriverLog") {
       const latest = await client.query(
-        `SELECT driver_name, driver_mobile, join_date, salary, iqama_no, iqama_expiry, licence_expiry, passport_no, passport_expiry FROM we1_driver_log WHERE plate_no = $1 ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+        `SELECT driver_name, driver_mobile, join_date, salary, iqama_no, iqama_expiry, licence_expiry, passport_no, passport_expiry FROM we1_driver_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
         [plate_no],
       );
       if (latest.rows.length > 0) {
         const r = latest.rows[0];
-        syncQuery = `UPDATE we1_own_eq_master SET driver_name=$2, driver_mobile=$3, joining_date=$4, salary=$5 WHERE plate_no=$1`;
+        syncQuery = `UPDATE we1_own_eq_master SET driver_name=$2, driver_mobile=$3, joining_date=$4, salary=$5 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`;
         syncVals.push(
           r.driver_name,
           r.driver_mobile || null,
@@ -151,29 +174,29 @@ router.post("/log/save", verifyEditor, async (req, res) => {
       }
     } else if (type === "VehicleTypeLog") {
       const latest = await client.query(
-        `SELECT vehicle_type FROM we1_vtype_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`,
+        `SELECT vehicle_type FROM we1_vtype_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(start_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
         [plate_no],
       );
       if (latest.rows.length > 0) {
-        syncQuery = `UPDATE we1_own_eq_master SET vehicle_type=$2 WHERE plate_no=$1`;
+        syncQuery = `UPDATE we1_own_eq_master SET vehicle_type=$2 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`;
         syncVals.push(latest.rows[0].vehicle_type);
       }
     } else if (type === "OwnerLog") {
       const latest = await client.query(
-        `SELECT owner_name FROM we1_owner_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`,
+        `SELECT owner_name FROM we1_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(start_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
         [plate_no],
       );
       if (latest.rows.length > 0) {
-        syncQuery = `UPDATE we1_own_eq_master SET vehicle_owner=$2 WHERE plate_no=$1`;
+        syncQuery = `UPDATE we1_own_eq_master SET vehicle_owner=$2 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`;
         syncVals.push(latest.rows[0].owner_name);
       }
     } else if (type === "SanthookLog") {
       const latest = await client.query(
-        `SELECT santhook_name FROM we1_santhook_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`,
+        `SELECT santhook_name FROM we1_santhook_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(start_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
         [plate_no],
       );
       if (latest.rows.length > 0) {
-        syncQuery = `UPDATE we1_own_eq_master SET santhook=$2 WHERE plate_no=$1`;
+        syncQuery = `UPDATE we1_own_eq_master SET santhook=$2 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`;
         syncVals.push(latest.rows[0].santhook_name);
       }
     }
@@ -182,6 +205,107 @@ router.post("/log/save", verifyEditor, async (req, res) => {
 
     await client.query("COMMIT");
     res.json({ success: true, message: "Log saved successfully" });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.json({ success: false, message: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// 3.1 Delete Log Entry & Re-sync Master Table
+router.post("/log/delete", verifyEditor, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { type, plate_no, id, santhook_log_id } = req.body;
+    const tableName = logTableMapping[type];
+    if (!tableName) throw new Error("Invalid Log Type");
+
+    await client.query("BEGIN");
+
+    if (type === "VehicleTypeLog") {
+      if (id) {
+        await client.query(`DELETE FROM we1_vtype_log WHERE id = $1`, [id]);
+      }
+      if (santhook_log_id) {
+        await client.query(`DELETE FROM we1_santhook_log WHERE id = $1`, [santhook_log_id]);
+      }
+    } else {
+      if (!id) throw new Error("Log ID is required for deletion.");
+      await client.query(`DELETE FROM ${tableName} WHERE id = $1`, [id]);
+    }
+
+    // Re-sync Master Table after delete
+    if (plate_no) {
+      if (type === "SiteLog") {
+        const latest = await client.query(
+          `SELECT site_name, mob_date, work_end_date, replaced_date, old_eq, new_eq FROM we1_site_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(mob_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+          [plate_no],
+        );
+        if (latest.rows.length > 0) {
+          const r = latest.rows[0];
+          let status = "Running";
+          if (r.replaced_date) status = "Replaced";
+          else if (r.work_end_date) status = "Released";
+          else if (!r.mob_date) status = "Ideal";
+          await client.query(
+            `UPDATE we1_own_eq_master SET site_name=$2, mob_date=$3, status=$4, old_eq=$5, new_eq=$6 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
+            [plate_no, r.site_name, r.mob_date, status, r.old_eq || null, r.new_eq || null],
+          );
+        } else {
+          await client.query(
+            `UPDATE we1_own_eq_master SET site_name=NULL, mob_date=NULL, status='Ideal', old_eq=NULL, new_eq=NULL WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
+            [plate_no],
+          );
+        }
+      } else if (type === "DriverLog") {
+        const latest = await client.query(
+          `SELECT driver_name, driver_mobile, join_date, salary FROM we1_driver_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+          [plate_no],
+        );
+        if (latest.rows.length > 0) {
+          const r = latest.rows[0];
+          await client.query(
+            `UPDATE we1_own_eq_master SET driver_name=$2, driver_mobile=$3, joining_date=$4, salary=$5 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
+            [plate_no, r.driver_name, r.driver_mobile || null, r.join_date, r.salary],
+          );
+        } else {
+          await client.query(
+            `UPDATE we1_own_eq_master SET driver_name=NULL, driver_mobile=NULL, joining_date=NULL, salary=NULL WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
+            [plate_no],
+          );
+        }
+      } else if (type === "VehicleTypeLog") {
+        const latestVT = await client.query(
+          `SELECT vehicle_type FROM we1_vtype_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(start_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+          [plate_no],
+        );
+        await client.query(
+          `UPDATE we1_own_eq_master SET vehicle_type=$2 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
+          [plate_no, latestVT.rows.length > 0 ? latestVT.rows[0].vehicle_type : null],
+        );
+        const latestST = await client.query(
+          `SELECT santhook_name FROM we1_santhook_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(start_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+          [plate_no],
+        );
+        await client.query(
+          `UPDATE we1_own_eq_master SET santhook=$2 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
+          [plate_no, latestST.rows.length > 0 ? latestST.rows[0].santhook_name : null],
+        );
+      } else if (type === "OwnerLog") {
+        const latest = await client.query(
+          `SELECT owner_name FROM we1_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY COALESCE(start_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+          [plate_no],
+        );
+        await client.query(
+          `UPDATE we1_own_eq_master SET vehicle_owner=$2 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
+          [plate_no, latest.rows.length > 0 ? latest.rows[0].owner_name : null],
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+    res.json({ success: true, message: "Log deleted successfully" });
   } catch (error) {
     await client.query("ROLLBACK");
     res.json({ success: false, message: error.message });

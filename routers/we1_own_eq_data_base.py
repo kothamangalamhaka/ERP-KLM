@@ -8,9 +8,27 @@ from openpyxl.utils import get_column_letter
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from datetime import datetime
+from datetime import datetime, date
 
 router = APIRouter()
+
+def parse_excel_date(val):
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        return val.date()
+    if isinstance(val, date):
+        return val
+    s = str(val).strip()
+    if not s or s in ("-", "null", "None", "undefined"):
+        return None
+    s_date = s.split("T")[0].strip()
+    for fmt in ("%Y-%m-%d", "%d-%b-%y", "%d-%b-%Y", "%d/%m/%Y", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(s_date, fmt).date()
+        except ValueError:
+            continue
+    return None
 
 # DB Connection Helper
 def get_db_connection():
@@ -79,6 +97,50 @@ def export_we1_own_eq_excel(
         else:
             cursor.execute(base_query + " ORDER BY m.id ASC")
             data = cursor.fetchall()
+
+        # 🟢 Fetch all active drivers (work_end_date IS NULL) per plate
+        cursor.execute("""
+            SELECT
+                UPPER(TRIM(plate_no)) AS plate_key,
+                driver_name,
+                driver_mobile,
+                join_date,
+                iqama_no,
+                iqama_expiry,
+                licence_expiry,
+                passport_no,
+                passport_expiry
+            FROM we1_driver_log
+            WHERE work_end_date IS NULL AND plate_no IS NOT NULL AND TRIM(plate_no) <> ''
+            ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
+        """)
+        active_drivers_by_plate = {}
+        for dl in cursor.fetchall():
+            active_drivers_by_plate.setdefault(dl["plate_key"], []).append(dl)
+
+        def fmt_multi_excel_dates(dates_list):
+            parts = []
+            for dt in dates_list:
+                d_obj = parse_excel_date(dt)
+                parts.append(d_obj.strftime("%d-%b-%y") if d_obj else "-")
+            return "\n".join(parts)
+
+        def check_multi_expiry_status(dates_list, today_ref):
+            has_expired = False
+            has_soon = False
+            for dt in dates_list:
+                d_obj = parse_excel_date(dt)
+                if d_obj:
+                    diff = (d_obj - today_ref).days
+                    if diff < 0:
+                        has_expired = True
+                    elif diff <= 30:
+                        has_soon = True
+            if has_expired:
+                return "expired"
+            if has_soon:
+                return "soon"
+            return None
         
         wb = openpyxl.Workbook()
         
@@ -113,16 +175,49 @@ def export_we1_own_eq_excel(
                 cell.font = header_font
                 cell.alignment = center_alignment
 
+            wrap_center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            wrap_left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+            multi_row_expiry_status = {}
+
             for i, row in enumerate(data, start=1):
                 salary_val = float(row['salary']) if row['salary'] else None
+                pk = str(row['plate_no'] or "").strip().upper()
+                act_drivers = active_drivers_by_plate.get(pk, [])
+                is_multi = len(act_drivers) > 1
+
+                if is_multi:
+                    drv_name = "\n".join([f"{idx + 1}. {str(d['driver_name']).strip() if d.get('driver_name') else '-'}" for idx, d in enumerate(act_drivers)])
+                    drv_mobile = "\n".join([str(d['driver_mobile']).strip() if d.get('driver_mobile') else "-" for d in act_drivers])
+                    join_val = fmt_multi_excel_dates([d.get('join_date') for d in act_drivers])
+                    iqama_no_val = "\n".join([str(d['iqama_no']).strip() if d.get('iqama_no') else "-" for d in act_drivers])
+                    iqama_exp_val = fmt_multi_excel_dates([d.get('iqama_expiry') for d in act_drivers])
+                    licence_exp_val = fmt_multi_excel_dates([d.get('licence_expiry') for d in act_drivers])
+                    passport_no_val = "\n".join([str(d['passport_no']).strip() if d.get('passport_no') else "-" for d in act_drivers])
+                    passport_exp_val = fmt_multi_excel_dates([d.get('passport_expiry') for d in act_drivers])
+
+                    multi_row_expiry_status[i + 1] = {
+                        17: check_multi_expiry_status([d.get('iqama_expiry') for d in act_drivers], today_date),
+                        18: check_multi_expiry_status([d.get('licence_expiry') for d in act_drivers], today_date),
+                        20: check_multi_expiry_status([d.get('passport_expiry') for d in act_drivers], today_date),
+                    }
+                else:
+                    drv_name = row['driver_name'] or ""
+                    drv_mobile = row['driver_mobile'] or ""
+                    join_val = parse_excel_date(row['joining_date'])
+                    iqama_no_val = row['iqama_no'] or ""
+                    iqama_exp_val = parse_excel_date(row['iqama_expiry'])
+                    licence_exp_val = parse_excel_date(row['licence_expiry'])
+                    passport_no_val = row['passport_no'] or ""
+                    passport_exp_val = parse_excel_date(row['passport_expiry'])
+
                 ws.append([
                     i,
-                    row['mob_date'],
+                    parse_excel_date(row['mob_date']),
                     row['vehicle_type'] or "",
                     row['plate_no'] or "",
-                    row['driver_name'] or "",
-                    row['driver_mobile'] or "",
-                    row['joining_date'],
+                    drv_name,
+                    drv_mobile,
+                    join_val,
                     row['site_name'] or "",
                     row['vehicle_owner'] or "",
                     row['santhook'] or "",
@@ -131,36 +226,57 @@ def export_we1_own_eq_excel(
                     row['note'] or "",
                     row['old_eq'] or "",
                     row['new_eq'] or "",
-                    row['iqama_no'] or "",
-                    row['iqama_expiry'],
-                    row['licence_expiry'],
-                    row['passport_no'] or "",
-                    row['passport_expiry'],
+                    iqama_no_val,
+                    iqama_exp_val,
+                    licence_exp_val,
+                    passport_no_val,
+                    passport_exp_val,
                     row['chassis_no'] or "",
                     row['serial_no'] or "",
-                    row['eq_insurance_exp'],
-                    row['fahs_mvpi_exp'],
-                    row['op_card_exp'],
-                    row['isthimaara_exp']
+                    parse_excel_date(row['eq_insurance_exp']),
+                    parse_excel_date(row['fahs_mvpi_exp']),
+                    parse_excel_date(row['op_card_exp']),
+                    parse_excel_date(row['isthimaara_exp'])
                 ])
 
             all_date_cols = [2, 7, 17, 18, 20, 23, 24, 25, 26]
             expiry_date_cols = {17, 18, 20, 23, 24, 25, 26}
-            for row in ws.iter_rows(min_row=2, max_col=26, max_row=len(data) + 1):
+            for row_idx, row in enumerate(ws.iter_rows(min_row=2, max_col=26, max_row=len(data) + 1), start=2):
                 for col_idx in all_date_cols:
                     cell = row[col_idx - 1]
                     if cell.value:
-                        cell.number_format = 'DD-MMM-YY'
-                        cell.alignment = center_alignment
-                        if col_idx in expiry_date_cols:
-                            val_date = cell.value.date() if isinstance(cell.value, datetime) else cell.value
-                            diff_days = (val_date - today_date).days
-                            if diff_days < 0:
+                        if isinstance(cell.value, str) and "\n" in cell.value:
+                            cell.alignment = wrap_center_alignment
+                            st = multi_row_expiry_status.get(row_idx, {}).get(col_idx)
+                            if st == "expired":
                                 cell.fill = expired_fill
                                 cell.font = expired_font
-                            elif diff_days <= 30:
+                            elif st == "soon":
                                 cell.fill = expiring_fill
                                 cell.font = expiring_font
+                        else:
+                            cell.number_format = 'DD-MMM-YY'
+                            cell.alignment = center_alignment
+                            if col_idx in expiry_date_cols:
+                                val_date = cell.value.date() if isinstance(cell.value, datetime) else cell.value
+                                if isinstance(val_date, date):
+                                    diff_days = (val_date - today_date).days
+                                    if diff_days < 0:
+                                        cell.fill = expired_fill
+                                        cell.font = expired_font
+                                    elif diff_days <= 30:
+                                        cell.fill = expiring_fill
+                                        cell.font = expiring_font
+                for c_idx in (5, 6, 16, 19):
+                    c_cell = row[c_idx - 1]
+                    if isinstance(c_cell.value, str) and "\n" in c_cell.value:
+                        c_cell.alignment = wrap_left_alignment if c_idx == 5 else wrap_center_alignment
+                max_lines = max(
+                    [str(c.value).count("\n") + 1 for c in row if isinstance(c.value, str) and "\n" in c.value],
+                    default=1
+                )
+                if max_lines > 1:
+                    ws.row_dimensions[row_idx].height = max_lines * 16
                 if row[12].value:
                     row[12].alignment = Alignment(wrap_text=True, vertical="top")
 
@@ -168,8 +284,12 @@ def export_we1_own_eq_excel(
             ws.freeze_panes = "A2"
             ws.sheet_view.zoomScale = 80
 
+            max_driver_len = max(
+                [len(line) for r_cell in ws['E'] if r_cell.value for line in str(r_cell.value).splitlines()],
+                default=20
+            )
             col_widths_full = {
-                'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': 22, 
+                'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': max(max_driver_len + 4, 22), 
                 'F': 16, 'G': 16, 'H': 22, 'I': 22, 'J': 16, 
                 'K': 12, 'L': 12, 'M': 35, 'N': 14, 'O': 14,
                 'P': 16, 'Q': 16, 'R': 16, 'S': 16, 'T': 16,
@@ -198,16 +318,35 @@ def export_we1_own_eq_excel(
                 cell.font = header_font
                 cell.alignment = center_alignment
 
+            wrap_center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            wrap_left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
             for i, row in enumerate(data, start=1):
                 salary_val = float(row['salary']) if row['salary'] else None
+                pk = str(row['plate_no'] or "").strip().upper()
+                act_drivers = active_drivers_by_plate.get(pk, [])
+                is_multi = len(act_drivers) > 1
+
+                drv_name = (
+                    "\n".join([f"{idx + 1}. {str(d['driver_name']).strip() if d.get('driver_name') else '-'}" for idx, d in enumerate(act_drivers)])
+                    if is_multi else (row['driver_name'] or "")
+                )
+                drv_mobile = (
+                    "\n".join([str(d['driver_mobile']).strip() if d.get('driver_mobile') else "-" for d in act_drivers])
+                    if is_multi else (row['driver_mobile'] or "")
+                )
+                join_val = (
+                    fmt_multi_excel_dates([d.get('join_date') for d in act_drivers])
+                    if is_multi else parse_excel_date(row['joining_date'])
+                )
+
                 ws.append([
                     i,
-                    row['mob_date'],
+                    parse_excel_date(row['mob_date']),
                     row['vehicle_type'] or "",
                     row['plate_no'] or "",
-                    row['driver_name'] or "",
-                    row['driver_mobile'] or "",
-                    row['joining_date'],
+                    drv_name,
+                    drv_mobile,
+                    join_val,
                     row['site_name'] or "",
                     row['vehicle_owner'] or "",
                     row['santhook'] or "",
@@ -216,13 +355,26 @@ def export_we1_own_eq_excel(
                     row['note'] or ""
                 ])
 
-            for row in ws.iter_rows(min_row=2, max_col=13, max_row=len(data) + 1):
+            for row_idx, row in enumerate(ws.iter_rows(min_row=2, max_col=13, max_row=len(data) + 1), start=2):
                 if row[1].value:
                     row[1].number_format = 'DD-MMM-YY'
                     row[1].alignment = center_alignment
+                if isinstance(row[4].value, str) and "\n" in row[4].value:
+                    row[4].alignment = wrap_left_alignment
+                if isinstance(row[5].value, str) and "\n" in row[5].value:
+                    row[5].alignment = wrap_center_alignment
                 if row[6].value:
-                    row[6].number_format = 'DD-MMM-YY'
-                    row[6].alignment = center_alignment
+                    if isinstance(row[6].value, str) and "\n" in row[6].value:
+                        row[6].alignment = wrap_center_alignment
+                    else:
+                        row[6].number_format = 'DD-MMM-YY'
+                        row[6].alignment = center_alignment
+                max_lines = max(
+                    [str(c.value).count("\n") + 1 for c in row if isinstance(c.value, str) and "\n" in c.value],
+                    default=1
+                )
+                if max_lines > 1:
+                    ws.row_dimensions[row_idx].height = max_lines * 16
                 if row[12].value:
                     row[12].alignment = Alignment(wrap_text=True, vertical="top")
 
@@ -230,8 +382,12 @@ def export_we1_own_eq_excel(
             ws.freeze_panes = "A2"
             ws.sheet_view.zoomScale = 80
 
+            max_driver_len = max(
+                [len(line) for r_cell in ws['E'] if r_cell.value for line in str(r_cell.value).splitlines()],
+                default=20
+            )
             col_widths_compact = {
-                'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': 22, 
+                'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': max(max_driver_len + 4, 22), 
                 'F': 16, 'G': 16, 'H': 22, 'I': 22, 'J': 16, 
                 'K': 12, 'L': 12, 'M': 40
             }
