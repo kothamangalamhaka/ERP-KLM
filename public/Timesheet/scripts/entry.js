@@ -1202,8 +1202,37 @@ function updateSiteLogDetailsCard(targetSiteLog) {
         (targetSiteLog.new_vehicle_no ? " (Replaced)" : " (Released)")
       : "Running";
   }
-  document.getElementById("dispAsset").innerText =
-    targetSiteLog.asset_code || (vMaster ? vMaster.asset_code : "N/A");
+  const dispAssetEl = document.getElementById("dispAsset");
+  dispAssetEl.style.whiteSpace = "pre-line";
+  dispAssetEl.style.lineHeight = "1.4";
+
+  const monthSites = Array.isArray(window.currentActiveSitesList)
+    ? window.currentActiveSitesList
+    : [];
+
+  if (monthSites.length > 1) {
+    // Old site first (top line), New site second (bottom line)
+    const orderedSites = [...monthSites].sort((a, b) => {
+      const da = a.work_start_date
+        ? String(a.work_start_date).split("T")[0]
+        : "1970-01-01";
+      const db = b.work_start_date
+        ? String(b.work_start_date).split("T")[0]
+        : "1970-01-01";
+      if (da !== db) return da.localeCompare(db);
+      return (a.id || 0) - (b.id || 0);
+    });
+
+    const assetLines = orderedSites.map((s) => {
+      const code = s.asset_code ? String(s.asset_code).trim() : "";
+      return code && code !== "null" ? code : "-";
+    });
+    dispAssetEl.innerText = assetLines.join("\n");
+  } else {
+    dispAssetEl.innerText =
+      targetSiteLog.asset_code || (vMaster ? vMaster.asset_code : "N/A");
+  }
+
   document.getElementById("dispWorkOrder").innerText =
     targetSiteLog.work_order_no || (vMaster ? vMaster.wrk_order_no : "N/A");
 
